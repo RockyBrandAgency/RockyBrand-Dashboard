@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Paleta real portada desde el Figma Make (const B / STATUS en App.tsx) -
+   Verde Bosque / Verde Salvia. El theme Tailwind del Make (Playfair
+   Display, paleta crema/oliva) no se usa en ningun componente real, se
+   descarta. */
+:root {
+  --primary: #425327;
+  --primary-hov: #344219;
+  --sage: #bcc2b3;
+  --sage-mid: #a8b09a;
+  --text: #000000;
+  --text-sub: #374151;
+  --text-muted: #6b7280;
+  --bg: #f5f6f2;
+  --white: #ffffff;
+  --border: #d1d5db;
+  --border-soft: #e5e7eb;
+
+  --status-bien-dot: #1e7a3c;
+  --status-bien-bg: #dcfce7;
+  --status-bien-text: #14532d;
+  --status-atencion-dot: #b45309;
+  --status-atencion-bg: #fef3c7;
+  --status-atencion-text: #713f12;
+  --status-critico-dot: #b42318;
+  --status-critico-bg: #fee2e2;
+  --status-critico-text: #7f1d1d;
+  --status-neutro-dot: #9ca3af;
+  --status-neutro-bg: #f3f4f6;
+  --status-neutro-text: #4b5563;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
