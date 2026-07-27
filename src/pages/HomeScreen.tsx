@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { SectionHead } from '../components/SectionHead';
 import { MetricCard } from '../components/MetricCard';
 import { WeatherWidget } from '../components/WeatherWidget';
+import { RoomGrid } from '../components/RoomGrid';
 import { AsyncState } from '../components/AsyncState';
 import { STATUS } from '../components/status';
 import { getSemaforo, UnauthorizedError } from '../api/dashboardApi';
@@ -124,6 +125,9 @@ export function HomeScreen({ onDetail, isDesktop }: { onDetail: () => void; isDe
                     value={`${s.reservas_nuevas_7d.valor.cantidad} reserva${s.reservas_nuevas_7d.valor.cantidad === 1 ? '' : 's'}`}
                     sub={formatMonto(s.reservas_nuevas_7d.valor.monto_por_moneda)}
                   />
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <RoomGrid isDesktop={isDesktop} />
                 </div>
               </div>
 

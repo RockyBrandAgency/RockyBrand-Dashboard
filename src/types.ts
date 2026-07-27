@@ -74,3 +74,17 @@ export interface LlegadasResponse {
   client_id: string;
   llegadas: LlegadaGuest[];
 }
+
+export type EstadoCelda = 'ocupado' | 'llegada' | 'salida' | 'libre';
+
+export interface HabitacionDisponibilidad {
+  room_id: string;
+  estados: EstadoCelda[];
+}
+
+export interface DisponibilidadResponse {
+  client_id: string;
+  dias: string[];
+  habitaciones: HabitacionDisponibilidad[];
+  nota?: string;
+}
