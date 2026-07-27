@@ -68,6 +68,10 @@ export interface LlegadaGuest {
   DietaryRestrictions: string[];
   MobilityNotes: string;
   SpecialNotes: string;
+  // Sesion 4 (integracion Channex) - valor crudo tal cual esta guardado
+  // en el booking (Direct/Booking.com/Airbnb/etc/null). La traduccion a
+  // texto humano vive en OriginBadge.tsx, no aca.
+  Source: string | null;
 }
 
 export interface LlegadasResponse {
@@ -80,6 +84,10 @@ export type EstadoCelda = 'ocupado' | 'llegada' | 'salida' | 'libre';
 export interface HabitacionDisponibilidad {
   room_id: string;
   estados: EstadoCelda[];
+  // Sesion 4 (integracion Channex) - paralelo a estados (mismo indice =
+  // mismo dia), valor crudo del Source del booking que ocupa ese dia, o
+  // null si esta libre.
+  sources: (string | null)[];
 }
 
 export interface DisponibilidadResponse {

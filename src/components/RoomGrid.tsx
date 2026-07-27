@@ -3,6 +3,7 @@ import { Card } from './Card';
 import { AsyncState } from './AsyncState';
 import { getDisponibilidad, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
+import { originLabel } from './OriginBadge';
 import type { EstadoCelda, DisponibilidadResponse } from '../types';
 
 // Definicion de color/icono aprobada (reemplaza la del Make - ver plan de
@@ -22,10 +23,14 @@ const LEGEND: { estado: EstadoCelda; label: string }[] = [
   { estado: 'libre', label: 'Libre' },
 ];
 
-function RoomCell({ estado }: { estado: EstadoCelda }) {
+function RoomCell({ estado, source }: { estado: EstadoCelda; source?: string | null }) {
   const c = CELL[estado];
+  // Sesion 4: tooltip nativo (sin libreria nueva) con el origen real de
+  // la celda ocupada/llegada/salida - solo si hay dato, nunca en "libre".
+  const title = estado !== 'libre' ? originLabel(source) : undefined;
   return (
     <div
+      title={title}
       style={{
         height: 26,
         borderRadius: 4,
@@ -36,9 +41,24 @@ function RoomCell({ estado }: { estado: EstadoCelda }) {
         justifyContent: c.iconAlign === 'left' ? 'flex-start' : c.iconAlign === 'right' ? 'flex-end' : 'center',
         padding: c.icon ? '0 5px' : undefined,
         overflow: 'hidden',
+        position: 'relative',
       }}
     >
       {c.icon && <span style={{ fontSize: 11, fontWeight: 800, color: c.iconColor, lineHeight: 1 }}>{c.icon}</span>}
+      {title && (
+        <span
+          style={{
+            position: 'absolute',
+            top: 2,
+            right: 2,
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            background: c.iconColor ?? '#fff',
+            opacity: 0.55,
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -73,7 +93,7 @@ function RoomGridContent({ data, isDesktop }: { data: DisponibilidadResponse; is
             {h.room_id}
           </div>
           {h.estados.map((estado, i) => (
-            <RoomCell key={i} estado={estado} />
+            <RoomCell key={i} estado={estado} source={h.sources[i]} />
           ))}
         </div>
       ))}

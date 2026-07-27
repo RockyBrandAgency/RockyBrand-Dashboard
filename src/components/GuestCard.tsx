@@ -2,6 +2,7 @@ import { Card } from './Card';
 import { InfoRow } from './InfoRow';
 import { STATUS } from './status';
 import { countryFlag } from './countryFlags';
+import { OriginBadge } from './OriginBadge';
 import type { LlegadaGuest } from '../types';
 
 function formatCheckIn(checkIn: string): string {
@@ -47,6 +48,7 @@ export function GuestCard({ guest, isDesktop }: { guest: LlegadaGuest; isDesktop
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{guest.OriginCountry ?? 'País no informado'}</div>
           </div>
         </div>
+        <OriginBadge source={guest.Source} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
