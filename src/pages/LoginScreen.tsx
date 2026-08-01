@@ -34,54 +34,44 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
     <div
       style={{
         minHeight: '100vh',
-        background: 'var(--primary)',
+        background: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '40px 24px',
-        position: 'relative',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 60% 50% at 50% 35%, rgba(188,194,179,0.10) 0%, transparent 70%)',
-        }}
-      />
-
-      <div style={{ width: '100%', maxWidth: 340, zIndex: 1 }}>
+      <div style={{ width: '100%', maxWidth: 360 }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 40 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             {branding ? (
               <img
-                src={branding.logoSrc}
+                src={branding.logoSrcLight}
                 alt={branding.logoAlt}
-                style={{ height: 72, width: 'auto', maxWidth: 220, objectFit: 'contain', display: 'block' }}
+                style={{ height: 160, width: 'auto', maxWidth: 320, objectFit: 'contain', display: 'block' }}
               />
             ) : (
               <LogoPlaceholder size="lg" />
             )}
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{branding?.logoAlt ?? 'RockyBrand'}</div>
-              <div style={{ fontSize: 10, color: 'var(--sage)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>{branding?.logoAlt ?? 'RockyBrand'}</div>
+              <div style={{ fontSize: 10, color: 'var(--primary)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 4 }}>
                 Executive Dashboard
               </div>
             </div>
-            <div style={{ width: 40, height: 1.5, background: 'var(--sage)', opacity: 0.4 }} />
+            <div style={{ width: 40, height: 1.5, background: 'var(--border)' }} />
           </div>
         </div>
 
         {sessionExpiredMessage && (
           <div
             style={{
-              background: 'rgba(255,255,255,0.10)',
-              border: '1px solid rgba(255,255,255,0.20)',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
               borderRadius: 9,
               padding: '10px 14px',
               fontSize: 13,
-              color: '#fff',
+              color: 'var(--text-sub)',
               marginBottom: 16,
               textAlign: 'center',
             }}
@@ -92,7 +82,7 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.50)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>
               Correo electrónico
             </span>
             <input
@@ -106,7 +96,7 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
           </label>
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.50)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>
               Contraseña
             </span>
             <input
@@ -120,7 +110,7 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
           </label>
 
           {loginError && (
-            <div style={{ fontSize: 13, color: '#FCA5A5', textAlign: 'center', padding: '4px 0' }}>{loginError}</div>
+            <div style={{ fontSize: 13, color: '#B94040', textAlign: 'center', padding: '4px 0' }}>{loginError}</div>
           )}
 
           <button
@@ -131,8 +121,8 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
               display: 'block',
               width: '100%',
               boxSizing: 'border-box',
-              background: 'var(--white)',
-              color: 'var(--primary)',
+              background: 'var(--primary)',
+              color: '#fff',
               borderRadius: 9,
               padding: '15px',
               fontSize: 16,
@@ -154,12 +144,12 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
 }
 
 const inputStyle = {
-  background: 'rgba(255,255,255,0.09)',
-  border: '1px solid rgba(255,255,255,0.16)',
+  background: 'var(--bg)',
+  border: '1px solid var(--border)',
   borderRadius: 9,
   padding: '14px 16px',
   fontSize: 16,
-  color: '#fff',
+  color: 'var(--text)',
   outline: 'none',
   minHeight: 52,
   fontFamily: 'Inter, sans-serif',

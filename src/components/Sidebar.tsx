@@ -48,24 +48,22 @@ export function Sidebar({
         zIndex: 40,
       }}
     >
-      <div style={{ padding: '28px 22px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
-        <div style={{ marginTop: 0 }}>
-          {clientLogoSrc && (
-            <img
-              src={clientLogoSrc}
-              alt={clientDisplayName ?? ''}
-              style={{ height: 36, width: 'auto', maxWidth: '100%', objectFit: 'contain', display: 'block', marginBottom: 10 }}
-            />
-          )}
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-            {clientDisplayName ?? '…'}
-          </div>
-          {clientDisplaySubtitle && (
-            <div style={{ fontSize: 10, color: 'var(--sage)', letterSpacing: '0.10em', textTransform: 'uppercase', marginTop: 3 }}>
-              {clientDisplaySubtitle}
-            </div>
-          )}
+      <div style={{ padding: '24px 18px 18px', borderBottom: '1px solid rgba(255,255,255,0.10)', textAlign: 'center' }}>
+        {clientLogoSrc && (
+          <img
+            src={clientLogoSrc}
+            alt={clientDisplayName ?? ''}
+            style={{ height: 100, width: 'auto', maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto 12px' }}
+          />
+        )}
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          {clientDisplayName ?? '…'}
         </div>
+        {clientDisplaySubtitle && (
+          <div style={{ fontSize: 10, color: 'var(--sage)', letterSpacing: '0.10em', textTransform: 'uppercase', marginTop: 3 }}>
+            {clientDisplaySubtitle}
+          </div>
+        )}
       </div>
 
       <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>

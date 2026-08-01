@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientDisplayName(me.display_name);
         setClientDisplaySubtitle(me.display_subtitle);
         setClientServices(me.services);
-        setClientLogoSrc(CLIENT_BRANDING[me.client_id]?.logoSrc ?? null);
+        setClientLogoSrc(CLIENT_BRANDING[me.client_id]?.logoSrcDark ?? null);
         // Solo SETEA acá, nunca resetea (ver la rama !isAuthenticated de
         // arriba) - si reseteara en cada mount, pisaría el theme que
         // LoginScreen ya aplicó por subdominio antes del login (efectos

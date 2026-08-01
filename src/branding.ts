@@ -3,9 +3,27 @@
 // acá porque son apps/builds separados. Si un client_id no está acá, no se
 // inventa un logo - LoginScreen/Sidebar caen a su fallback ya existente
 // (LogoPlaceholder / solo texto).
-export const CLIENT_BRANDING: Record<string, { logoSrc: string; logoAlt: string }> = {
-  'alto-castillo': { logoSrc: '/logo-alto-castillo.png', logoAlt: 'Alto Castillo Lodge' },
-  'chile-fly-fishing': { logoSrc: '/logo-chile-fly-fishing.png', logoAlt: 'Chile Fly Fishing' },
+//
+// Dos variantes por cliente: `logoSrcDark` para fondo oscuro (Sidebar,
+// theme de marca del cliente) y `logoSrcLight` para el login (fondo
+// blanco, pedido explícito de Mato). El logo de Alto Castillo
+// (logo-alto-castillo.png) es blanco/transparente - invisible sobre
+// blanco -, así que el login usa la versión a color real
+// (logo-alto-castillo-color.png, /Users/matiasaraneda/Documents/Alto
+// Castillo/Logo/logop.png, el mismo verde #425327 del guideline). El
+// logo de Chile Fly Fishing es una insignia circular con su propio fondo
+// azul - funciona igual en ambos casos, mismo archivo para las 2 claves.
+export const CLIENT_BRANDING: Record<string, { logoSrcDark: string; logoSrcLight: string; logoAlt: string }> = {
+  'alto-castillo': {
+    logoSrcDark: '/logo-alto-castillo.png',
+    logoSrcLight: '/logo-alto-castillo-color.png',
+    logoAlt: 'Alto Castillo Lodge',
+  },
+  'chile-fly-fishing': {
+    logoSrcDark: '/logo-chile-fly-fishing.png',
+    logoSrcLight: '/logo-chile-fly-fishing.png',
+    logoAlt: 'Chile Fly Fishing',
+  },
 };
 
 // Regla permanente (2026-08-01, pedido explícito de Mato): todo panel de

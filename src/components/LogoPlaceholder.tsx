@@ -7,8 +7,8 @@ export function LogoPlaceholder({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) 
         width: w,
         height: h,
         borderRadius: 8,
-        border: '1.5px dashed rgba(255,255,255,0.35)',
-        background: 'rgba(255,255,255,0.08)',
+        border: '1.5px dashed rgba(0,0,0,0.20)',
+        background: 'rgba(0,0,0,0.03)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -20,14 +20,14 @@ export function LogoPlaceholder({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) 
         style={{
           fontSize: size === 'lg' ? 13 : size === 'sm' ? 9 : 11,
           fontWeight: 800,
-          color: 'rgba(255,255,255,0.55)',
+          color: 'rgba(0,0,0,0.40)',
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
         }}
       >
         LOGO
       </div>
-      <div style={{ fontSize: size === 'lg' ? 9 : 8, color: 'rgba(255,255,255,0.30)', letterSpacing: '0.08em' }}>
+      <div style={{ fontSize: size === 'lg' ? 9 : 8, color: 'rgba(0,0,0,0.25)', letterSpacing: '0.08em' }}>
         {size === 'lg' ? '188 × 72 px recomendado' : 'placeholder'}
       </div>
     </div>
