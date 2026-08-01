@@ -5,6 +5,7 @@ import { AsyncState } from '../../components/AsyncState';
 import { getSemaforo, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
+import { FacebookIcon, InstagramIcon, YoutubeIcon, TiktokIcon, GoogleIcon } from '../../components/PlatformIcons';
 import type { SemaforoResponse } from '../../types';
 import type { Screen } from '../../screens';
 
@@ -15,7 +16,7 @@ function ChannelCard({
   sub,
   onClick,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
@@ -38,7 +39,7 @@ function ChannelCard({
         width: '100%',
       }}
     >
-      <span style={{ fontSize: 20 }}>{icon}</span>
+      <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>{label}</div>
         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>{value}</div>
@@ -126,34 +127,34 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
               {report && (
                 <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)', gap: 12 }}>
                   <ChannelCard
-                    icon="📘"
+                    icon={<FacebookIcon />}
                     label="Facebook"
                     value={report.facebook.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}
                     sub="seguidores"
                     onClick={() => onNavigate('metricas-facebook')}
                   />
                   <ChannelCard
-                    icon="📷"
+                    icon={<InstagramIcon />}
                     label="Instagram"
                     value={report.social.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}
                     sub="seguidores"
                     onClick={() => onNavigate('metricas-instagram')}
                   />
                   <ChannelCard
-                    icon="▶️"
+                    icon={<YoutubeIcon />}
                     label="Youtube"
                     value={report.youtube.suscriptores_actuales?.toLocaleString('es-CL') ?? '—'}
                     sub="suscriptores"
                     onClick={() => onNavigate('metricas-youtube')}
                   />
                   <ChannelCard
-                    icon="🔍"
+                    icon={<GoogleIcon />}
                     label="SEO"
                     value={report.seo.posicion_actual !== null ? `#${report.seo.posicion_actual}` : '—'}
                     sub={report.seo.keyword ?? 'posición promedio'}
                     onClick={() => onNavigate('metricas-seo')}
                   />
-                  <ChannelCard icon="🎵" label="TikTok" value="—" sub="sin conectar" onClick={() => onNavigate('metricas-tiktok')} />
+                  <ChannelCard icon={<TiktokIcon />} label="TikTok" value="—" sub="sin conectar" onClick={() => onNavigate('metricas-tiktok')} />
                 </div>
               )}
             </AsyncState>

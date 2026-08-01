@@ -1,3 +1,5 @@
+import { TiktokIcon } from '../../components/PlatformIcons';
+
 // TikTok - a diferencia de Facebook/Instagram/YouTube/SEO, no hay
 // ninguna fuente de datos conectada hoy (sin cron, sin snapshots en
 // rockybrand-memory) - confirmado antes de construir, no se inventa un
@@ -22,7 +24,9 @@ export function MetricasTiktok({ isDesktop }: { isDesktop: boolean }) {
             color: 'var(--text-muted)',
           }}
         >
-          <div style={{ fontSize: 28, marginBottom: 12 }}>🎵</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+            <TiktokIcon size={32} />
+          </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>TikTok — sin conectar todavía</div>
           <div style={{ fontSize: 13, marginTop: 6, maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
             No hay una integración real de TikTok para este cliente todavía.

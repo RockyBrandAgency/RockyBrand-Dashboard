@@ -39,11 +39,20 @@ export interface LlegadasSummaryMetric extends SemaforoMetric {
   valor: { cantidad: number; con_banderas: number };
 }
 
+// Reservas con Source == "Directa Web" (el formulario de reservas
+// propio del cliente, no un canal externo como Booking.com/Airbnb)
+// creadas en los últimos 7 días. Sin semáforo/estado - es un dato
+// puramente informativo, no una métrica con umbral.
+export interface FormularioReservasMetric {
+  cantidad: number;
+}
+
 export interface SemaforoResponse {
   client_id: string;
   semaforo: {
     ocupacion_30d: OcupacionMetric;
     reservas_nuevas_7d: ReservasNuevasMetric;
+    formulario_reservas_7d: FormularioReservasMetric;
     leads_7d: LeadsMetric;
     open_rate_ultima_campana: OpenRateMetric;
     llegadas_48h: LlegadasSummaryMetric;

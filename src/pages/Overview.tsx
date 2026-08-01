@@ -103,6 +103,26 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                 </button>
               )}
 
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  background: 'var(--white)',
+                  border: '1px solid var(--border)',
+                  borderLeft: '4px solid var(--primary)',
+                  borderRadius: 10,
+                  padding: '14px 18px',
+                  marginBottom: 28,
+                }}
+              >
+                <span style={{ fontSize: 20, flexShrink: 0 }}>📝</span>
+                <div style={{ fontSize: 14, color: 'var(--text)' }}>
+                  Esta semana <strong>{s.formulario_reservas_7d.cantidad}</strong>{' '}
+                  {s.formulario_reservas_7d.cantidad === 1 ? 'usuario completó' : 'usuarios completaron'} el formulario de reservas
+                </div>
+              </div>
+
               <div style={{ marginBottom: 40 }}>
                 <SectionHead icon="🏠">Ocupación</SectionHead>
                 <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 12 }}>
