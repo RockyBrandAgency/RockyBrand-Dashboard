@@ -1,5 +1,19 @@
 import { NAV, SIDEBAR_W, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
+import type { ServiceKey } from '../types';
+
+// Pedido explícito de Mato (2026-08-01): que el cliente vea qué servicios
+// tiene contratados con RockyBrand, en su propio sidebar - informativo,
+// no togglea nada (eso sigue siendo solo de staff, desde el Panel Global).
+// Mismos labels/iconos que ya usa 05-panel-web (ServicesToggleCard.tsx),
+// para que un mismo servicio se vea igual en ambos paneles.
+const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
+  agents: { label: 'Agentes de IA', icon: '◈' },
+  pms: { label: 'PMS', icon: '⌂' },
+  crm: { label: 'CRM', icon: '☎' },
+  email_marketing: { label: 'Email Marketing', icon: '✉' },
+};
+const SERVICE_ORDER: ServiceKey[] = ['agents', 'pms', 'crm', 'email_marketing'];
 
 export function Sidebar({
   screen,
@@ -16,6 +30,7 @@ export function Sidebar({
   // clientServices null mientras carga -> se ve todo (nunca se esconde
   // un item real por un falso negativo de una carga en curso).
   const visibleNav = NAV.filter((item) => !clientServices || clientServices[item.serviceKey]);
+  const contractedServices = clientServices ? SERVICE_ORDER.filter((key) => clientServices[key]) : [];
 
   return (
     <aside
@@ -84,6 +99,43 @@ export function Sidebar({
             </button>
           );
         })}
+
+        {contractedServices.length > 0 && (
+          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: 'var(--sage)',
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+                padding: '0 12px 8px',
+              }}
+            >
+              Servicios
+            </div>
+            {contractedServices.map((key) => {
+              const meta = SERVICE_META[key];
+              return (
+                <div
+                  key={key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '9px 12px',
+                    color: 'rgba(255,255,255,0.75)',
+                    fontSize: 13,
+                    fontWeight: 500,
+                  }}
+                >
+                  <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0 }}>{meta.icon}</span>
+                  {meta.label}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <button
           onClick={() => setScreen('settings')}
