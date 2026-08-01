@@ -12,7 +12,7 @@ export function Sidebar({
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientDisplaySubtitle, clientServices } = useAuth();
+  const { clientDisplayName, clientDisplaySubtitle, clientServices, clientLogoSrc } = useAuth();
   // clientServices null mientras carga -> se ve todo (nunca se esconde
   // un item real por un falso negativo de una carga en curso).
   const visibleNav = NAV.filter((item) => !clientServices || clientServices[item.serviceKey]);
@@ -35,6 +35,13 @@ export function Sidebar({
     >
       <div style={{ padding: '28px 22px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
         <div style={{ marginTop: 0 }}>
+          {clientLogoSrc && (
+            <img
+              src={clientLogoSrc}
+              alt={clientDisplayName ?? ''}
+              style={{ height: 36, width: 'auto', maxWidth: '100%', objectFit: 'contain', display: 'block', marginBottom: 10 }}
+            />
+          )}
           <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
             {clientDisplayName ?? '…'}
           </div>

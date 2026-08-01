@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTokenClaims, LoginError } from '../api/cognitoAuth';
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
+import { CLIENT_BRANDING } from '../branding';
 import type { ClientServices } from '../types';
 
 interface AuthContextValue {
@@ -19,6 +20,10 @@ interface AuthContextValue {
   clientDisplayName: string | null;
   clientDisplaySubtitle: string;
   clientServices: ClientServices | null;
+  // Logo real del cliente logueado (branding.ts), resuelto por su
+  // client_id real (no por el subdominio - ya hay sesión, se usa el dato
+  // de verdad). null si el cliente no tiene logo cargado todavía.
+  clientLogoSrc: string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,12 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
   const [clientDisplaySubtitle, setClientDisplaySubtitle] = useState('');
   const [clientServices, setClientServices] = useState<ClientServices | null>(null);
+  const [clientLogoSrc, setClientLogoSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setClientDisplayName(null);
       setClientDisplaySubtitle('');
       setClientServices(null);
+      setClientLogoSrc(null);
       return;
     }
     let cancelled = false;
@@ -54,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientDisplayName(me.display_name);
         setClientDisplaySubtitle(me.display_subtitle);
         setClientServices(me.services);
+        setClientLogoSrc(CLIENT_BRANDING[me.client_id]?.logoSrc ?? null);
       })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -117,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clientDisplayName,
         clientDisplaySubtitle,
         clientServices,
+        clientLogoSrc,
       }}
     >
       {children}

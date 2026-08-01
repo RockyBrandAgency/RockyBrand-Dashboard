@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { LogoPlaceholder } from '../components/LogoPlaceholder';
 import { useAuth } from '../context/AuthContext';
+import { CLIENT_BRANDING, clientIdFromHostname } from '../branding';
 
 // El Make solo traia un campo de email (sin password) - Cognito real
 // necesita ambos, se agrega el campo con el mismo lenguaje visual.
@@ -8,6 +9,13 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
   const { login, loginError, isLoggingIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Sin sesión todavía no hay ningún dato de identidad real - el único
+  // indicio es el subdominio (nombredelcliente.panel.rockybrand.cl). Si
+  // no matchea un cliente conocido (localhost, URL default de Amplify),
+  // cae al placeholder genérico de siempre - nunca se inventa un logo.
+  const clientId = clientIdFromHostname(window.location.hostname);
+  const branding = clientId ? CLIENT_BRANDING[clientId] : null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,9 +50,17 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
       <div style={{ width: '100%', maxWidth: 340, zIndex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 40 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <LogoPlaceholder size="lg" />
+            {branding ? (
+              <img
+                src={branding.logoSrc}
+                alt={branding.logoAlt}
+                style={{ height: 72, width: 'auto', maxWidth: 220, objectFit: 'contain', display: 'block' }}
+              />
+            ) : (
+              <LogoPlaceholder size="lg" />
+            )}
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Alto Castillo Lodge</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{branding?.logoAlt ?? 'RockyBrand'}</div>
               <div style={{ fontSize: 10, color: 'var(--sage)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 4 }}>
                 Executive Dashboard
               </div>

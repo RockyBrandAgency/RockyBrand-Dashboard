@@ -10,7 +10,7 @@ export function MobileBar({
   setScreen: (s: Screen) => void;
   userEmail: string;
 }) {
-  const { clientDisplayName, clientServices } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrc } = useAuth();
   const visibleNav = NAV.filter((item) => !clientServices || clientServices[item.serviceKey]);
   const bottomItems = [
     ...visibleNav.map((item) => ({ id: item.id, icon: item.icon, label: item.shortLabel })),
@@ -35,7 +35,12 @@ export function MobileBar({
           boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{clientDisplayName ?? '…'}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {clientLogoSrc && (
+            <img src={clientLogoSrc} alt={clientDisplayName ?? ''} style={{ height: 26, width: 'auto', maxWidth: 90, objectFit: 'contain', display: 'block' }} />
+          )}
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{clientDisplayName ?? '…'}</div>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={() => setScreen('settings')}
