@@ -1,14 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* Paleta real portada desde el Figma Make (const B / STATUS en App.tsx) -
-   Verde Bosque / Verde Salvia. El theme Tailwind del Make (Playfair
-   Display, paleta crema/oliva) no se usa en ningun componente real, se
-   descarta. */
+/* --primary/--primary-hov/--sage/--sage-mid son el theme de MARCA DEL
+   CLIENTE, aplicado en runtime por branding.ts (applyClientTheme) según
+   el cliente real logueado (o el subdominio, antes del login) - nunca un
+   valor fijo para todos los clientes (regla explícita de Mato, 2026-08-01:
+   "siempre deben considerar sus colores oficiales según su manual de
+   marca"). Los valores de acá son solo el default sin cliente conocido
+   (paleta propia de RockyBrand - graphite + gold, no la de ningún
+   cliente). El resto de la paleta (status/texto/fondos neutros) sí es
+   fija, no depende del cliente. */
 :root {
-  --primary: #425327;
-  --primary-hov: #344219;
-  --sage: #bcc2b3;
-  --sage-mid: #a8b09a;
+  --primary: #2a2a2a;
+  --primary-hov: #191919;
+  --sage: #c2beb3;
+  --sage-mid: #b0aa9a;
   --text: #000000;
   --text-sub: #374151;
   --text-muted: #6b7280;

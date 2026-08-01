@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTokenClaims, LoginError } from '../api/cognitoAuth';
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
-import { CLIENT_BRANDING } from '../branding';
+import { applyClientTheme, CLIENT_BRANDING } from '../branding';
 import type { ClientServices } from '../types';
 
 interface AuthContextValue {
@@ -62,6 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientDisplaySubtitle(me.display_subtitle);
         setClientServices(me.services);
         setClientLogoSrc(CLIENT_BRANDING[me.client_id]?.logoSrc ?? null);
+        // Solo SETEA acá, nunca resetea (ver la rama !isAuthenticated de
+        // arriba) - si reseteara en cada mount, pisaría el theme que
+        // LoginScreen ya aplicó por subdominio antes del login (efectos
+        // de hijos corren antes que los del padre, AuthProvider envuelve
+        // a LoginScreen). El reset real pasa solo al volver a esa
+        // pantalla (mount fresco, mismo mecanismo por hostname).
+        applyClientTheme(me.client_id);
       })
       .catch((e: unknown) => {
         if (cancelled) return;
