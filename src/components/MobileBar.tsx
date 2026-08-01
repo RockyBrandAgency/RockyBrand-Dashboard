@@ -1,4 +1,5 @@
-import type { Screen } from '../screens';
+import { NAV, type Screen } from '../screens';
+import { useAuth } from '../context/AuthContext';
 
 export function MobileBar({
   screen,
@@ -9,6 +10,13 @@ export function MobileBar({
   setScreen: (s: Screen) => void;
   userEmail: string;
 }) {
+  const { clientDisplayName, clientServices } = useAuth();
+  const visibleNav = NAV.filter((item) => !clientServices || clientServices[item.serviceKey]);
+  const bottomItems = [
+    ...visibleNav.map((item) => ({ id: item.id, icon: item.icon, label: item.shortLabel })),
+    { id: 'settings' as Screen, icon: '🔔', label: 'Avisos' },
+  ];
+
   return (
     <>
       <header
@@ -27,7 +35,7 @@ export function MobileBar({
           boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Alto Castillo Lodge</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{clientDisplayName ?? '…'}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={() => setScreen('settings')}
@@ -79,11 +87,7 @@ export function MobileBar({
           height: 60,
         }}
       >
-        {[
-          { id: 'home' as Screen, icon: '◉', label: 'Estatus' },
-          { id: 'detail' as Screen, icon: '↓', label: 'Llegadas' },
-          { id: 'settings' as Screen, icon: '🔔', label: 'Avisos' },
-        ].map((item) => {
+        {bottomItems.map((item) => {
           const active = screen === item.id;
           return (
             <button

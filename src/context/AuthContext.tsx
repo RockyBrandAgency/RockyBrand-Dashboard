@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTokenClaims, LoginError } from '../api/cognitoAuth';
+import { getMe, UnauthorizedError } from '../api/dashboardApi';
+import type { ClientServices } from '../types';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -10,6 +12,13 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   handleUnauthorized: () => void;
+  // Identidad + servicios REALES del cliente logueado (rockybrand-client-config,
+  // vía GET /dashboard/me) - cada cliente entra a SU panel, no al panel
+  // global de staff, así que el sidebar/branding se arma con esto, nunca
+  // con un nombre hardcodeado. null mientras carga.
+  clientDisplayName: string | null;
+  clientDisplaySubtitle: string;
+  clientServices: ClientServices | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,6 +36,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
+  const [clientDisplaySubtitle, setClientDisplaySubtitle] = useState('');
+  const [clientServices, setClientServices] = useState<ClientServices | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setClientDisplayName(null);
+      setClientDisplaySubtitle('');
+      setClientServices(null);
+      return;
+    }
+    let cancelled = false;
+    getMe()
+      .then((me) => {
+        if (cancelled) return;
+        setClientDisplayName(me.display_name);
+        setClientDisplaySubtitle(me.display_subtitle);
+        setClientServices(me.services);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        if (e instanceof UnauthorizedError) {
+          clearStoredSession();
+          setIsAuthenticated(false);
+          setUserEmail('');
+          setSessionExpiredMessage('Tu sesión expiró, inicia sesión de nuevo.');
+          return;
+        }
+        // Sin datos de servicios el sidebar no puede filtrar nada real -
+        // se queda cargando en vez de mostrar/esconder algo por error de
+        // red transitorio (mismo criterio que 05-panel-web).
+        console.error('Error cargando el perfil del cliente', e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoggingIn(true);
@@ -59,7 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, userEmail, loginError, sessionExpiredMessage, isLoggingIn, login, logout, handleUnauthorized }}
+      value={{
+        isAuthenticated,
+        userEmail,
+        loginError,
+        sessionExpiredMessage,
+        isLoggingIn,
+        login,
+        logout,
+        handleUnauthorized,
+        clientDisplayName,
+        clientDisplaySubtitle,
+        clientServices,
+      }}
     >
       {children}
     </AuthContext.Provider>

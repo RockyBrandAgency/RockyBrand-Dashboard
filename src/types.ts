@@ -96,3 +96,14 @@ export interface DisponibilidadResponse {
   habitaciones: HabitacionDisponibilidad[];
   nota?: string;
 }
+
+export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing';
+
+export type ClientServices = Record<ServiceKey, boolean>;
+
+export interface MeResponse {
+  client_id: string;
+  display_name: string;
+  display_subtitle: string;
+  services: ClientServices;
+}

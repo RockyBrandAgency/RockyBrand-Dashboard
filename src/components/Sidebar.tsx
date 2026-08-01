@@ -1,4 +1,5 @@
 import { NAV, SIDEBAR_W, type Screen } from '../screens';
+import { useAuth } from '../context/AuthContext';
 
 export function Sidebar({
   screen,
@@ -11,6 +12,11 @@ export function Sidebar({
   userEmail: string;
   onLogout: () => void;
 }) {
+  const { clientDisplayName, clientDisplaySubtitle, clientServices } = useAuth();
+  // clientServices null mientras carga -> se ve todo (nunca se esconde
+  // un item real por un falso negativo de una carga en curso).
+  const visibleNav = NAV.filter((item) => !clientServices || clientServices[item.serviceKey]);
+
   return (
     <aside
       style={{
@@ -30,16 +36,18 @@ export function Sidebar({
       <div style={{ padding: '28px 22px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
         <div style={{ marginTop: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-            Alto Castillo Lodge
+            {clientDisplayName ?? '…'}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--sage)', letterSpacing: '0.10em', textTransform: 'uppercase', marginTop: 3 }}>
-            Patagonia · Chile
-          </div>
+          {clientDisplaySubtitle && (
+            <div style={{ fontSize: 10, color: 'var(--sage)', letterSpacing: '0.10em', textTransform: 'uppercase', marginTop: 3 }}>
+              {clientDisplaySubtitle}
+            </div>
+          )}
         </div>
       </div>
 
       <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>
-        {NAV.map((item) => {
+        {visibleNav.map((item) => {
           const active = screen === item.id;
           return (
             <button

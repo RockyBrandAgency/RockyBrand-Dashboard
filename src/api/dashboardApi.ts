@@ -1,6 +1,6 @@
 import { DASHBOARD_API_URL } from '../config';
 import { getStoredSession, refreshSession, SessionExpiredError } from './cognitoAuth';
-import type { SemaforoResponse, LlegadasResponse, DisponibilidadResponse } from '../types';
+import type { SemaforoResponse, LlegadasResponse, DisponibilidadResponse, MeResponse } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
 // (o refresh fallido) burbujea como UnauthorizedError para que AuthContext
@@ -42,6 +42,13 @@ async function request<T>(path: string): Promise<T> {
     throw new Error((data as { error?: string }).error || 'Error de conexión con el dashboard.');
   }
   return data as T;
+}
+
+// Sin gate de `services` en el backend (a diferencia de las 3 de abajo) -
+// el cliente necesita saber quien es y que tiene contratado incluso si CRM
+// esta apagado, para que la UI muestre un estado explicito.
+export function getMe(): Promise<MeResponse> {
+  return request('/dashboard/me');
 }
 
 export function getSemaforo(): Promise<SemaforoResponse> {
