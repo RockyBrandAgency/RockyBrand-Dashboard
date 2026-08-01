@@ -39,12 +39,16 @@ export const CLIENT_BRANDING: Record<string, { logoSrcDark: string; logoSrcLight
 //   (Figma "Brand Guidelines v1.0 2025") - Verde Bosque #425327 / Verde Salvia #BCC2B3.
 //   Mismos valores ya portados 1:1 en el sitio real (alto-castillo-lodge/src/styles/tokens.css).
 // - chile-fly-fishing: clientes/chile-fly-fishing/01-knowledge-base/brand-guidelines-extracto.md
-//   (PDF oficial) - Corporate Blue #006DC6 / Luxury Gold #7B541C, confirmados por conteo de
-//   uso real en los 22 templates de email (templates-v2/*.html).
+//   (PDF oficial) - Charcoal #202020 / Luxury Gold #7B541C. Ajuste 2026-08-01 (pedido
+//   explícito de Mato): el sidebar pasó de Corporate Blue #006DC6 a Charcoal - sigue siendo
+//   un color 100% real de su guideline (el mismo que usan como texto/fondo oscuro en los 22
+//   templates de email), no uno nuevo. Corporate Blue queda disponible para otros usos
+//   (botones/CTAs) si hace falta más adelante, no se descarta del theme del cliente.
 //   `sage`/`sageMid` no tienen un equivalente literal en su guideline (esas 2 claves son un
 //   rol de UI - texto muted sobre el fondo primario -, no un color de marca en sí) - se
 //   derivaron de Luxury Gold (mismo matiz, luminosidad/saturación de las claves sage de Alto
-//   Castillo) en vez de inventar un gris o un azul fuera de paleta.
+//   Castillo) en vez de inventar un gris fuera de paleta - charcoal + dorado es además una
+//   combinación real y frecuente en piezas editoriales de la marca.
 export interface ClientTheme {
   primary: string;
   primaryHover: string;
@@ -54,7 +58,7 @@ export interface ClientTheme {
 
 export const CLIENT_THEME: Record<string, ClientTheme> = {
   'alto-castillo': { primary: '#425327', primaryHover: '#344219', sage: '#bcc2b3', sageMid: '#a8b09a' },
-  'chile-fly-fishing': { primary: '#006dc6', primaryHover: '#005194', sage: '#c2bcb3', sageMid: '#b0a79a' },
+  'chile-fly-fishing': { primary: '#202020', primaryHover: '#333333', sage: '#c2bcb3', sageMid: '#b0a79a' },
 };
 
 // Aplica el theme del cliente sobre las custom properties de :root. Sin
