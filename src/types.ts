@@ -107,3 +107,21 @@ export interface MeResponse {
   display_subtitle: string;
   services: ClientServices;
 }
+
+export interface ReservaResumenItem {
+  BookingID: string;
+  RoomID: string;
+  CheckIn: string;
+  CheckOut: string;
+  Status: string;
+  Source: string | null;
+  GuestName: string;
+  TotalAmount: number;
+  Currency: string;
+  PaymentStatus: string | null;
+}
+
+export interface ReservasResumenResponse {
+  client_id: string;
+  reservas: ReservaResumenItem[];
+}

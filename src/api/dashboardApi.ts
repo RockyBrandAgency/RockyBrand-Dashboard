@@ -1,6 +1,6 @@
 import { DASHBOARD_API_URL } from '../config';
 import { getStoredSession, refreshSession, SessionExpiredError } from './cognitoAuth';
-import type { SemaforoResponse, LlegadasResponse, DisponibilidadResponse, MeResponse } from '../types';
+import type { SemaforoResponse, LlegadasResponse, DisponibilidadResponse, MeResponse, ReservasResumenResponse } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
 // (o refresh fallido) burbujea como UnauthorizedError para que AuthContext
@@ -61,4 +61,8 @@ export function getLlegadas(): Promise<LlegadasResponse> {
 
 export function getDisponibilidad(): Promise<DisponibilidadResponse> {
   return request('/dashboard/disponibilidad');
+}
+
+export function getReservasResumen(): Promise<ReservasResumenResponse> {
+  return request('/dashboard/reservas-resumen');
 }

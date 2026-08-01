@@ -22,7 +22,13 @@ function greetingByHour(): string {
   return 'Buenas noches';
 }
 
-export function HomeScreen({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
+// "Estado Actual" es un resumen ejecutivo puramente operativo (reservas,
+// calendario, quién llega/quién se va, clima) - pedido explícito de Mato
+// (2026-08-01): "nada de métricas de marketing" acá. Leads/open-rate de
+// email vivían antes en esta pantalla (sección "Ventas y Marketing") -
+// se movieron a Métricas > Resumen (MetricasResumen.tsx), misma fuente de
+// datos (getSemaforo), solo cambia dónde se muestra.
+export function EstadoActual({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,20 +102,6 @@ export function HomeScreen({ onDetail, isDesktop }: { onDetail: () => void; isDe
                 </button>
               )}
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: isDesktop ? 'repeat(4,1fr)' : 'repeat(2,1fr)',
-                  gap: 12,
-                  marginBottom: 36,
-                }}
-              >
-                <MetricCard title="Ocupación 30 días" estado={s.ocupacion_30d.estado} value={s.ocupacion_30d.valor != null ? `${s.ocupacion_30d.valor}%` : '—'} />
-                <MetricCard title="Reservas nuevas 7 días" estado={s.reservas_nuevas_7d.estado} value={`${s.reservas_nuevas_7d.valor.cantidad}`} sub={formatMonto(s.reservas_nuevas_7d.valor.monto_por_moneda)} />
-                <MetricCard title="Leads 7 días" estado={s.leads_7d.estado} value={`${s.leads_7d.valor.cantidad}`} />
-                <MetricCard title="Open rate última campaña" estado={s.open_rate_ultima_campana.estado} value={s.open_rate_ultima_campana.valor != null ? `${s.open_rate_ultima_campana.valor}%` : '—'} />
-              </div>
-
               <div style={{ marginBottom: 40 }}>
                 <SectionHead icon="🏠">Ocupación</SectionHead>
                 <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 12 }}>
@@ -142,14 +134,6 @@ export function HomeScreen({ onDetail, isDesktop }: { onDetail: () => void; isDe
                     onClick={onDetail}
                   />
                   <MetricCard title="Sincronización de reservas" estado={s.estado_sincronizacion.estado} value="—" />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 40 }}>
-                <SectionHead icon="📈">Ventas y Marketing</SectionHead>
-                <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 12, marginBottom: 14 }}>
-                  <MetricCard title="Leads / consultas nuevas 7 días" estado={s.leads_7d.estado} value={`${s.leads_7d.valor.cantidad}`} sub="Contactos nuevos en email marketing" />
-                  <MetricCard title="Último envío Email Marketing" estado={s.open_rate_ultima_campana.estado} value={s.open_rate_ultima_campana.valor != null ? `${s.open_rate_ultima_campana.valor}% apertura` : '—'} />
                 </div>
               </div>
 

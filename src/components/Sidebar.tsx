@@ -1,6 +1,6 @@
-import { NAV, SIDEBAR_W, type Screen } from '../screens';
+import { ESTADO_ACTUAL, NAV_SECTIONS, SIDEBAR_W, type NavLeaf, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
-import type { ServiceKey } from '../types';
+import type { ClientServices, ServiceKey } from '../types';
 
 // Pedido explícito de Mato (2026-08-01): que el cliente vea qué servicios
 // tiene contratados con RockyBrand, en su propio sidebar - informativo,
@@ -15,6 +15,13 @@ const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
 };
 const SERVICE_ORDER: ServiceKey[] = ['agents', 'pms', 'crm', 'email_marketing'];
 
+// Visible si CUALQUIERA de los servicios del item está contratado.
+// clientServices null (cargando) -> visible, mismo criterio de "nunca
+// esconder por un falso negativo" de todo el panel.
+function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
+  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
+}
+
 export function Sidebar({
   screen,
   setScreen,
@@ -27,9 +34,11 @@ export function Sidebar({
   onLogout: () => void;
 }) {
   const { clientDisplayName, clientDisplaySubtitle, clientServices, clientLogoSrc } = useAuth();
-  // clientServices null mientras carga -> se ve todo (nunca se esconde
-  // un item real por un falso negativo de una carga en curso).
-  const visibleNav = NAV.filter((item) => !clientServices || clientServices[item.serviceKey]);
+  const showEstadoActual = isVisible(ESTADO_ACTUAL, clientServices);
+  const visibleSections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => isVisible(item, clientServices)),
+  })).filter((section) => section.items.length > 0);
   const contractedServices = clientServices ? SERVICE_ORDER.filter((key) => clientServices[key]) : [];
 
   return (
@@ -67,36 +76,82 @@ export function Sidebar({
       </div>
 
       <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>
-        {visibleNav.map((item) => {
-          const active = screen === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setScreen(item.id)}
+        {showEstadoActual && (
+          <button
+            onClick={() => setScreen(ESTADO_ACTUAL.id)}
+            style={{
+              all: 'unset',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '11px 12px',
+              borderRadius: 8,
+              marginBottom: 2,
+              background: screen === ESTADO_ACTUAL.id ? 'rgba(255,255,255,0.12)' : 'transparent',
+              color: screen === ESTADO_ACTUAL.id ? '#fff' : 'var(--sage)',
+              fontSize: 14,
+              fontWeight: screen === ESTADO_ACTUAL.id ? 700 : 500,
+              cursor: 'pointer',
+              borderLeft: screen === ESTADO_ACTUAL.id ? '3px solid #fff' : '3px solid transparent',
+              transition: 'background 0.12s, color 0.12s',
+            }}
+          >
+            <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0 }}>◉</span>
+            {ESTADO_ACTUAL.label}
+          </button>
+        )}
+
+        {visibleSections.map((section) => (
+          <div key={section.label} style={{ marginTop: 16 }}>
+            <div
               style={{
-                all: 'unset',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '11px 12px',
-                borderRadius: 8,
-                marginBottom: 2,
-                background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
-                color: active ? '#fff' : 'var(--sage)',
-                fontSize: 14,
-                fontWeight: active ? 700 : 500,
-                cursor: 'pointer',
-                borderLeft: active ? '3px solid #fff' : '3px solid transparent',
-                transition: 'background 0.12s, color 0.12s',
+                gap: 8,
+                padding: '0 12px 6px',
+                fontSize: 10,
+                fontWeight: 700,
+                color: 'rgba(255,255,255,0.45)',
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
               }}
             >
-              <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
-              {item.label}
-            </button>
-          );
-        })}
+              <span>{section.icon}</span>
+              {section.label}
+            </div>
+            {section.items.map((item) => {
+              const active = screen === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setScreen(item.id)}
+                  style={{
+                    all: 'unset',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '10px 12px 10px 24px',
+                    borderRadius: 8,
+                    marginBottom: 2,
+                    background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: active ? '#fff' : 'var(--sage)',
+                    fontSize: 13,
+                    fontWeight: active ? 700 : 500,
+                    cursor: 'pointer',
+                    borderLeft: active ? '3px solid #fff' : '3px solid transparent',
+                    transition: 'background 0.12s, color 0.12s',
+                  }}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        ))}
 
         {contractedServices.length > 0 && (
           <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.10)' }}>

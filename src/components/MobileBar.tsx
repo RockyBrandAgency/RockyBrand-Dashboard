@@ -1,5 +1,11 @@
-import { NAV, type Screen } from '../screens';
+import { ESTADO_ACTUAL, NAV_SECTIONS, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
+import type { ClientServices } from '../types';
+import type { NavLeaf } from '../screens';
+
+function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
+  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
+}
 
 export function MobileBar({
   screen,
@@ -11,11 +17,19 @@ export function MobileBar({
   userEmail: string;
 }) {
   const { clientDisplayName, clientServices, clientLogoSrc } = useAuth();
-  const visibleNav = NAV.filter((item) => !clientServices || clientServices[item.serviceKey]);
-  const bottomItems = [
-    ...visibleNav.map((item) => ({ id: item.id, icon: item.icon, label: item.shortLabel })),
-    { id: 'settings' as Screen, icon: '🔔', label: 'Avisos' },
-  ];
+
+  const bottomItems: { id: Screen; icon: string; label: string }[] = [];
+  if (isVisible(ESTADO_ACTUAL, clientServices)) {
+    bottomItems.push({ id: ESTADO_ACTUAL.id, icon: '◉', label: ESTADO_ACTUAL.shortLabel });
+  }
+  for (const section of NAV_SECTIONS) {
+    for (const item of section.items) {
+      if (isVisible(item, clientServices)) {
+        bottomItems.push({ id: item.id, icon: section.icon, label: item.shortLabel });
+      }
+    }
+  }
+  bottomItems.push({ id: 'settings', icon: '🔔', label: 'Avisos' });
 
   return (
     <>
@@ -90,6 +104,7 @@ export function MobileBar({
           borderTop: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           height: 60,
+          overflowX: bottomItems.length > 5 ? 'auto' : 'visible',
         }}
       >
         {bottomItems.map((item) => {
@@ -100,7 +115,7 @@ export function MobileBar({
               onClick={() => setScreen(item.id)}
               style={{
                 all: 'unset',
-                flex: 1,
+                flex: bottomItems.length > 5 ? '0 0 72px' : 1,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
