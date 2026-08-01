@@ -125,3 +125,139 @@ export interface ReservasResumenResponse {
   client_id: string;
   reservas: ReservaResumenItem[];
 }
+
+// Formas reales devueltas por dashboard_metrics.compute_metrics_report -
+// mismo cálculo que ya usa el panel de staff (get_metrics_report), ver
+// panel_config_api_lambda.py:handle_get_metrics_report para la fuente de
+// verdad original.
+export interface EmailCampaignSummary {
+  name: string | null;
+  sent_at: string | null;
+  enviados: number;
+  aperturas: number;
+}
+
+export interface EmailMetrics {
+  enviados: number;
+  aperturas: number;
+  clics: number;
+  rebotes: number;
+  campaigns: EmailCampaignSummary[];
+}
+
+export interface SocialSnapshotPoint {
+  fecha: string;
+  seguidores: number | null;
+}
+
+export interface InstagramPost {
+  media_id: string;
+  fecha: string;
+  tipo: string;
+  formato: string;
+  permalink: string;
+  caption: string | null;
+  likes: number;
+  comentarios: number;
+  alcance: number | null;
+  impresiones: number | null;
+  reproducciones: number | null;
+  shares: number | null;
+  guardados: number | null;
+  interacciones_totales_meta: number | null;
+  engagement_rate_sobre_alcance_pct: number | null;
+  engagement_rate_sobre_seguidores_pct: number | null;
+}
+
+export interface SocialMetrics {
+  snapshots: SocialSnapshotPoint[];
+  seguidores_actuales: number | null;
+  cambio_neto_periodo: number;
+  cambio_neto_7d: number;
+  engagement_promedio_pct: number | null;
+  publicaciones: InstagramPost[];
+}
+
+export interface FacebookVisualizacionPoint {
+  fecha: string;
+  visualizaciones: number | null;
+}
+
+export interface FacebookMetrics {
+  snapshots: SocialSnapshotPoint[];
+  seguidores_actuales: number | null;
+  nombre_pagina: string | null;
+  visualizaciones_actual: number | null;
+  visualizaciones_snapshots: FacebookVisualizacionPoint[];
+}
+
+export interface YoutubeSnapshotPoint {
+  fecha: string;
+  suscriptores: number | null;
+}
+
+export interface YoutubeTopVideo {
+  titulo?: string;
+  vistas?: number;
+  watch_time_minutos?: number;
+  [key: string]: unknown;
+}
+
+export interface YoutubeMetrics {
+  snapshots: YoutubeSnapshotPoint[];
+  suscriptores_actuales: number | null;
+  suscriptores_ganados_periodo: number;
+  suscriptores_perdidos_periodo: number;
+  suscriptores_netos_7d: number;
+  vistas_periodo: number;
+  minutos_vistos_periodo: number | null;
+  duracion_promedio_vista_seg: number | null;
+  fuentes_de_trafico: { fuente?: string; vistas?: number }[];
+  top_videos: YoutubeTopVideo[];
+}
+
+export interface SeoSnapshotPoint {
+  fecha: string;
+  keyword: string | null;
+  posicion: number | null;
+}
+
+export interface SeoKeywordRow {
+  keyword: string | null;
+  posicion_actual: number | null;
+  posicion_anterior: number | null;
+  delta: number | null;
+  impresiones: number | null;
+  periodo: string | null;
+  landing_page: string | null;
+}
+
+export interface SeoClicksPoint {
+  fecha: string;
+  clics: number;
+}
+
+export interface SeoImpressionsPoint {
+  fecha: string;
+  impresiones: number;
+}
+
+export interface SeoMetrics {
+  snapshots: SeoSnapshotPoint[];
+  posicion_actual: number | null;
+  keyword: string | null;
+  keyword_matrix: SeoKeywordRow[];
+  clicks_snapshots: SeoClicksPoint[];
+  impressions_snapshots: SeoImpressionsPoint[];
+  clics_organicos_actual: number | null;
+}
+
+export interface MetricsReportResponse {
+  client_id: string;
+  range: { from: string; to: string; days: number };
+  email: EmailMetrics;
+  social: SocialMetrics;
+  facebook: FacebookMetrics;
+  youtube: YoutubeMetrics;
+  seo: SeoMetrics;
+}

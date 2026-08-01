@@ -4,53 +4,70 @@ import { useIsDesktop } from './hooks/useIsDesktop';
 import { Sidebar } from './components/Sidebar';
 import { MobileBar } from './components/MobileBar';
 import { LoginScreen } from './pages/LoginScreen';
-import { EstadoActual } from './pages/EstadoActual';
+import { Overview } from './pages/Overview';
 import { DetailScreen } from './pages/DetailScreen';
 import { ReservasResumen } from './pages/Reservas/ReservasResumen';
+import { EmailCampanas } from './pages/Servicios/EmailCampanas';
 import { MetricasResumen } from './pages/Metricas/MetricasResumen';
-import { MetricasMeta } from './pages/Metricas/MetricasMeta';
-import { MetricasGoogle } from './pages/Metricas/MetricasGoogle';
+import { MetricasFacebook } from './pages/Metricas/MetricasFacebook';
+import { MetricasInstagram } from './pages/Metricas/MetricasInstagram';
+import { MetricasYoutube } from './pages/Metricas/MetricasYoutube';
+import { MetricasSeo } from './pages/Metricas/MetricasSeo';
+import { MetricasTiktok } from './pages/Metricas/MetricasTiktok';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
-import { ESTADO_ACTUAL, NAV_SECTIONS, SIDEBAR_W, type NavLeaf, type Screen } from './screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from './screens';
 import type { ClientServices } from './types';
 
 function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
   return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
 }
 
-// 'estado-actual' es el default inicial (mismo criterio de siempre: se ve
-// todo mientras clientServices carga). Pero un cliente real puede no
-// tener 'pms' (ej. Chile Fly Fishing, que gestiona expediciones, no
+function isServiceEntryVisible(screen: Screen, clientServices: ClientServices | null): boolean {
+  if (!clientServices) return true;
+  return (Object.keys(SERVICE_ENTRY_SCREEN) as (keyof typeof SERVICE_ENTRY_SCREEN)[]).some(
+    (key) => SERVICE_ENTRY_SCREEN[key] === screen && clientServices[key],
+  );
+}
+
+// 'overview' es el default inicial (mismo criterio de siempre: se ve todo
+// mientras clientServices carga). Pero un cliente real puede no tener
+// 'pms' (ej. Chile Fly Fishing, que gestiona expediciones, no
 // habitaciones) - una vez que clientServices carga, si la pantalla activa
 // ya no es visible para este cliente, hay que moverse a la primera que sí
 // lo sea, nunca dejarlo parado en una pantalla rota/vacía sin salida en
 // el sidebar.
 function isScreenVisible(screen: Screen, clientServices: ClientServices | null): boolean {
   if (screen === 'settings') return true;
-  if (screen === 'estado-actual' || screen === 'llegadas-detalle') return isVisible(ESTADO_ACTUAL, clientServices);
+  if (screen === 'overview' || screen === 'llegadas-detalle') return isVisible(OVERVIEW, clientServices);
   for (const section of NAV_SECTIONS) {
     const item = section.items.find((i) => i.id === screen);
     if (item) return isVisible(item, clientServices);
   }
+  if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas') return isServiceEntryVisible(screen, clientServices);
   return true;
 }
 
 function firstVisibleScreen(clientServices: ClientServices | null): Screen | null {
-  if (isVisible(ESTADO_ACTUAL, clientServices)) return ESTADO_ACTUAL.id;
+  if (isVisible(OVERVIEW, clientServices)) return OVERVIEW.id;
   for (const section of NAV_SECTIONS) {
     const item = section.items.find((i) => isVisible(i, clientServices));
     if (item) return item.id;
   }
+  if (isServiceEntryVisible('servicio-pms-reservas', clientServices)) return 'servicio-pms-reservas';
+  if (isServiceEntryVisible('servicio-email-campanas', clientServices)) return 'servicio-email-campanas';
   return null;
 }
 
 function AuthenticatedShell() {
-  const [screen, setScreen] = useState<Screen>('estado-actual');
+  const [screen, setScreen] = useState<Screen>('overview');
   const isDesktop = useIsDesktop();
   const { userEmail, logout, clientServices } = useAuth();
   const anyNavVisible =
-    isVisible(ESTADO_ACTUAL, clientServices) || NAV_SECTIONS.some((section) => section.items.some((item) => isVisible(item, clientServices)));
+    isVisible(OVERVIEW, clientServices) ||
+    NAV_SECTIONS.some((section) => section.items.some((item) => isVisible(item, clientServices))) ||
+    isServiceEntryVisible('servicio-pms-reservas', clientServices) ||
+    isServiceEntryVisible('servicio-email-campanas', clientServices);
   // clientServices ya cargó y este cliente no tiene ningún servicio de los
   // que arma este dashboard - en vez de caer a una pantalla vacía o un 403
   // crudo, mostramos un estado explícito. Avisos sigue siendo accesible:
@@ -83,12 +100,16 @@ function AuthenticatedShell() {
           <ServiceUnavailableScreen isDesktop={isDesktop} />
         ) : (
           <>
-            {screen === 'estado-actual' && <EstadoActual onDetail={() => setScreen('llegadas-detalle')} isDesktop={isDesktop} />}
+            {screen === 'overview' && <Overview onDetail={() => setScreen('llegadas-detalle')} isDesktop={isDesktop} />}
             {screen === 'llegadas-detalle' && <DetailScreen isDesktop={isDesktop} />}
-            {screen === 'reservas-resumen' && <ReservasResumen isDesktop={isDesktop} />}
-            {screen === 'metricas-resumen' && <MetricasResumen isDesktop={isDesktop} />}
-            {screen === 'metricas-meta' && <MetricasMeta isDesktop={isDesktop} />}
-            {screen === 'metricas-google' && <MetricasGoogle isDesktop={isDesktop} />}
+            {screen === 'metricas-resumen' && <MetricasResumen isDesktop={isDesktop} onNavigate={setScreen} />}
+            {screen === 'metricas-facebook' && <MetricasFacebook isDesktop={isDesktop} />}
+            {screen === 'metricas-instagram' && <MetricasInstagram isDesktop={isDesktop} />}
+            {screen === 'metricas-youtube' && <MetricasYoutube isDesktop={isDesktop} />}
+            {screen === 'metricas-seo' && <MetricasSeo isDesktop={isDesktop} />}
+            {screen === 'metricas-tiktok' && <MetricasTiktok isDesktop={isDesktop} />}
+            {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
+            {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}
             {screen === 'settings' && <SettingsScreen isDesktop={isDesktop} />}
           </>
         )}

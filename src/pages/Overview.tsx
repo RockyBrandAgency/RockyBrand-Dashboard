@@ -22,13 +22,14 @@ function greetingByHour(): string {
   return 'Buenas noches';
 }
 
-// "Estado Actual" es un resumen ejecutivo puramente operativo (reservas,
-// calendario, quién llega/quién se va, clima) - pedido explícito de Mato
-// (2026-08-01): "nada de métricas de marketing" acá. Leads/open-rate de
-// email vivían antes en esta pantalla (sección "Ventas y Marketing") -
-// se movieron a Métricas > Resumen (MetricasResumen.tsx), misma fuente de
-// datos (getSemaforo), solo cambia dónde se muestra.
-export function EstadoActual({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
+// "Overview" (antes "Estado Actual", renombrado 2026-08-01) es un resumen
+// ejecutivo puramente operativo (reservas, calendario, quién llega/quién
+// se va, clima) - pedido explícito de Mato: "nada de métricas de
+// marketing" acá. Leads/open-rate de email vivían antes en esta pantalla
+// (sección "Ventas y Marketing") - se movieron a Métricas > Resumen
+// (MetricasResumen.tsx), misma fuente de datos (getSemaforo), solo
+// cambia dónde se muestra.
+export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);

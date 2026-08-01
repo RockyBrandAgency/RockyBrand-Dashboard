@@ -4,45 +4,57 @@ import { MetricCard } from '../../components/MetricCard';
 import { AsyncState } from '../../components/AsyncState';
 import { getSemaforo, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
+import { useMetricsReport } from '../../hooks/useMetricsReport';
 import type { SemaforoResponse } from '../../types';
+import type { Screen } from '../../screens';
 
-// Canales que gestionan los Agentes de IA (redes/SEO) - todavía sin ruta
-// client-facing propia (hoy solo existen en el panel de staff, ver
-// get_metrics_report en panel_config_api_lambda.py). Se muestran como
-// estado honesto "próximamente", nunca con un número inventado - la
-// conexión real es la fase siguiente del trabajo (gráficos y métricas de
-// redes sociales), pedido explícito de Mato.
-const CHANNELS_PROXIMAMENTE = [
-  { icon: '📘', label: 'Facebook' },
-  { icon: '📷', label: 'Instagram' },
-  { icon: '▶️', label: 'YouTube' },
-  { icon: '🎵', label: 'TikTok' },
-  { icon: '🔍', label: 'SEO' },
-];
-
-function ChannelPlaceholder({ icon, label }: { icon: string; label: string }) {
+function ChannelCard({
+  icon,
+  label,
+  value,
+  sub,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  sub?: string;
+  onClick: () => void;
+}) {
   return (
-    <div
+    <button
+      onClick={onClick}
       style={{
+        all: 'unset',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
         background: 'var(--white)',
-        border: '1px dashed var(--border)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '16px 20px',
+        cursor: 'pointer',
+        boxSizing: 'border-box',
+        width: '100%',
       }}
     >
       <span style={{ fontSize: 20 }}>{icon}</span>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{label}</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Próximamente</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>{label}</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>{value}</div>
+        {sub && <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 1 }}>{sub}</div>}
       </div>
-    </div>
+      <span style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>→</span>
+    </button>
   );
 }
 
-export function MetricasResumen({ isDesktop }: { isDesktop: boolean }) {
+// "Resumen" de Métricas: Email Marketing (getSemaforo, sin cambios) +
+// tarjetas reales de cada canal que gestionan los Agentes de IA, cada una
+// clickeable hacia su página de detalle (Métricas > Facebook/Instagram/
+// Youtube/SEO) - pedido explícito de Mato (2026-08-01), ya con datos
+// reales conectados (compute_metrics_report).
+export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean; onNavigate: (screen: Screen) => void }) {
   const { handleUnauthorized, clientServices } = useAuth();
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +85,8 @@ export function MetricasResumen({ isDesktop }: { isDesktop: boolean }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const { data: report, loading: reportLoading, error: reportError, reload: reloadReport } = useMetricsReport();
 
   const s = data?.semaforo;
   const col2 = isDesktop ? '1fr 1fr' : '1fr';
@@ -108,14 +122,41 @@ export function MetricasResumen({ isDesktop }: { isDesktop: boolean }) {
         {showAgentsChannels && (
           <div style={{ marginBottom: 40 }}>
             <SectionHead icon="📊">Redes y SEO</SectionHead>
-            <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)', gap: 12 }}>
-              {CHANNELS_PROXIMAMENTE.map((c) => (
-                <ChannelPlaceholder key={c.label} {...c} />
-              ))}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 14 }}>
-              Los gráficos detallados de Meta y Google están en la sección correspondiente del menú.
-            </div>
+            <AsyncState loading={reportLoading} error={reportError} onRetry={reloadReport}>
+              {report && (
+                <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)', gap: 12 }}>
+                  <ChannelCard
+                    icon="📘"
+                    label="Facebook"
+                    value={report.facebook.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}
+                    sub="seguidores"
+                    onClick={() => onNavigate('metricas-facebook')}
+                  />
+                  <ChannelCard
+                    icon="📷"
+                    label="Instagram"
+                    value={report.social.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}
+                    sub="seguidores"
+                    onClick={() => onNavigate('metricas-instagram')}
+                  />
+                  <ChannelCard
+                    icon="▶️"
+                    label="Youtube"
+                    value={report.youtube.suscriptores_actuales?.toLocaleString('es-CL') ?? '—'}
+                    sub="suscriptores"
+                    onClick={() => onNavigate('metricas-youtube')}
+                  />
+                  <ChannelCard
+                    icon="🔍"
+                    label="SEO"
+                    value={report.seo.posicion_actual !== null ? `#${report.seo.posicion_actual}` : '—'}
+                    sub={report.seo.keyword ?? 'posición promedio'}
+                    onClick={() => onNavigate('metricas-seo')}
+                  />
+                  <ChannelCard icon="🎵" label="TikTok" value="—" sub="sin conectar" onClick={() => onNavigate('metricas-tiktok')} />
+                </div>
+              )}
+            </AsyncState>
           </div>
         )}
       </div>

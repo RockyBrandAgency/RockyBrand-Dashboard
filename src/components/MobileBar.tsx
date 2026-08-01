@@ -1,7 +1,15 @@
-import { ESTADO_ACTUAL, NAV_SECTIONS, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
-import type { ClientServices } from '../types';
+import type { ClientServices, ServiceKey } from '../types';
 import type { NavLeaf } from '../screens';
+
+const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
+  agents: { label: 'Agentes de IA', icon: '◈' },
+  pms: { label: 'PMS', icon: '⌂' },
+  crm: { label: 'CRM', icon: '☎' },
+  email_marketing: { label: 'Email Marketing', icon: '✉' },
+};
+const SERVICE_ORDER: ServiceKey[] = ['agents', 'pms', 'crm', 'email_marketing'];
 
 function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
   return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
@@ -19,13 +27,21 @@ export function MobileBar({
   const { clientDisplayName, clientServices, clientLogoSrc } = useAuth();
 
   const bottomItems: { id: Screen; icon: string; label: string }[] = [];
-  if (isVisible(ESTADO_ACTUAL, clientServices)) {
-    bottomItems.push({ id: ESTADO_ACTUAL.id, icon: '◉', label: ESTADO_ACTUAL.shortLabel });
+  if (isVisible(OVERVIEW, clientServices)) {
+    bottomItems.push({ id: OVERVIEW.id, icon: '◉', label: OVERVIEW.shortLabel });
   }
   for (const section of NAV_SECTIONS) {
     for (const item of section.items) {
       if (isVisible(item, clientServices)) {
         bottomItems.push({ id: item.id, icon: section.icon, label: item.shortLabel });
+      }
+    }
+  }
+  if (clientServices) {
+    for (const key of SERVICE_ORDER) {
+      const entryScreen = SERVICE_ENTRY_SCREEN[key];
+      if (entryScreen && clientServices[key]) {
+        bottomItems.push({ id: entryScreen, icon: SERVICE_META[key].icon, label: SERVICE_META[key].label });
       }
     }
   }

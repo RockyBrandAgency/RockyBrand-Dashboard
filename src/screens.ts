@@ -1,31 +1,35 @@
 import type { ServiceKey } from './types';
 
-// Estructura de navegación 2026-08-01, pedido explícito de Mato: "Estado
-// actual" es un resumen ejecutivo (sin métricas de marketing) y aparte hay
-// 2 secciones con sub-páginas propias (Reservas, Métricas). "detail"
-// (llegadas 48h con el detalle completo por huésped) deja de ser un item
-// de nav propio - sigue existiendo como drill-down ("Ver detalle") desde
-// Estado Actual, no se pierde contenido, solo deja de competir por un
-// lugar en el sidebar.
+// Estructura de navegación 2026-08-01, pedido explícito de Mato (2 rondas
+// de mensajes, sintetizadas acá):
+// - "Overview" (antes "Estado Actual", mismo contenido - resumen
+//   ejecutivo operativo, sin métricas de marketing).
+// - "Métricas": Resumen general + una página de detalle real por canal
+//   (Facebook/Instagram/YouTube/SEO/TikTok) con gráficos.
+// - "Servicios Contratados": lista de los servicios reales del cliente,
+//   navegable - cada servicio con una página propia entra ahí (PMS →
+//   Reservas, Email Marketing → Campañas). Los que todavía no tienen
+//   contenido propio real (CRM, Agentes de IA) se listan pero no son
+//   clickeables - no se inventa una página vacía.
 export type Screen =
-  | 'estado-actual'
+  | 'overview'
   | 'llegadas-detalle'
-  | 'reservas-resumen'
   | 'metricas-resumen'
-  | 'metricas-meta'
-  | 'metricas-google'
+  | 'metricas-facebook'
+  | 'metricas-instagram'
+  | 'metricas-youtube'
+  | 'metricas-seo'
+  | 'metricas-tiktok'
+  | 'servicio-pms-reservas'
+  | 'servicio-email-campanas'
   | 'settings'
   | 'login';
 
 export const SIDEBAR_W = 220;
 
-// serviceKeys: de qué servicio(s) de rockybrand-client-config depende ver
-// este item - visible si CUALQUIERA de los servicios listados está
-// contratado (mismo criterio "OR" que ya usa el backend para el
-// semáforo, que mezcla datos de pms y de email_marketing). Un cliente sin
-// ninguno de los servicios listados no ve el item - pedido explícito de
-// Mato: "si le asigno Email Marketing, PMS, CRM o Agentes, le debe
-// aparecer disponible", controlado desde el Panel Global.
+// serviceKeys: de qué servicio(s) depende ver este item - visible si
+// CUALQUIERA de los listados está contratado (mismo criterio "OR" que ya
+// usa el backend, ej. el semáforo mezclando pms/email_marketing).
 export interface NavLeaf {
   id: Screen;
   label: string;
@@ -33,10 +37,10 @@ export interface NavLeaf {
   serviceKeys: ServiceKey[];
 }
 
-export const ESTADO_ACTUAL: NavLeaf = {
-  id: 'estado-actual',
-  label: 'Estado Actual',
-  shortLabel: 'Estado',
+export const OVERVIEW: NavLeaf = {
+  id: 'overview',
+  label: 'Overview',
+  shortLabel: 'Overview',
   serviceKeys: ['pms'],
 };
 
@@ -48,21 +52,31 @@ export interface NavSection {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
-    label: 'Reservas',
-    icon: '📋',
-    items: [{ id: 'reservas-resumen', label: 'Resumen', shortLabel: 'Reservas', serviceKeys: ['pms'] }],
-  },
-  {
     label: 'Métricas',
     icon: '📊',
     items: [
-      // "Resumen" combina Email Marketing + canales que gestionan los
-      // Agentes de IA (redes/SEO) - visible con cualquiera de los 2, cada
-      // bloque interno de la página se muestra u oculta aparte según el
-      // servicio real (ver MetricasResumen.tsx).
+      // "Resumen" combina Email Marketing + lo que gestionan los Agentes
+      // de IA (redes/SEO) - visible con cualquiera de los 2. Los canales
+      // individuales son todos del lado de Agentes de IA (son ellos
+      // quienes gestionan redes/SEO), TikTok incluido aunque hoy sea un
+      // stub honesto (sin fuente de datos conectada todavía).
       { id: 'metricas-resumen', label: 'Resumen', shortLabel: 'Métricas', serviceKeys: ['email_marketing', 'agents'] },
-      { id: 'metricas-meta', label: 'META', shortLabel: 'META', serviceKeys: ['agents'] },
-      { id: 'metricas-google', label: 'Google', shortLabel: 'Google', serviceKeys: ['agents'] },
+      { id: 'metricas-facebook', label: 'Facebook', shortLabel: 'Facebook', serviceKeys: ['agents'] },
+      { id: 'metricas-instagram', label: 'Instagram', shortLabel: 'Instagram', serviceKeys: ['agents'] },
+      { id: 'metricas-youtube', label: 'Youtube', shortLabel: 'Youtube', serviceKeys: ['agents'] },
+      { id: 'metricas-seo', label: 'SEO', shortLabel: 'SEO', serviceKeys: ['agents'] },
+      { id: 'metricas-tiktok', label: 'TikTok', shortLabel: 'TikTok', serviceKeys: ['agents'] },
     ],
   },
 ];
+
+// Servicios Contratados: a diferencia de NAV_SECTIONS (donde cada item
+// tiene su propia página garantizada), acá cada ServiceKey real puede o
+// no tener una página propia todavía - SERVICE_ENTRY_SCREEN solo cubre
+// los que sí (PMS, Email Marketing). CRM y Agentes de IA se listan en el
+// sidebar (informativo, ya contratado) pero sin entrar a ningún lado -
+// no existe contenido propio real para ellos todavía, no se inventa uno.
+export const SERVICE_ENTRY_SCREEN: Partial<Record<ServiceKey, Screen>> = {
+  pms: 'servicio-pms-reservas',
+  email_marketing: 'servicio-email-campanas',
+};

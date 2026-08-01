@@ -1,12 +1,14 @@
-import { ESTADO_ACTUAL, NAV_SECTIONS, SIDEBAR_W, type NavLeaf, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import type { ClientServices, ServiceKey } from '../types';
 
 // Pedido explícito de Mato (2026-08-01): que el cliente vea qué servicios
-// tiene contratados con RockyBrand, en su propio sidebar - informativo,
-// no togglea nada (eso sigue siendo solo de staff, desde el Panel Global).
-// Mismos labels/iconos que ya usa 05-panel-web (ServicesToggleCard.tsx),
-// para que un mismo servicio se vea igual en ambos paneles.
+// tiene contratados con RockyBrand, en su propio sidebar. Los que ya
+// tienen página propia (PMS, Email Marketing) son navegables; los que no
+// (CRM, Agentes de IA) quedan informativos - no se inventa una página
+// vacía. Mismos labels/iconos que ya usa 05-panel-web
+// (ServicesToggleCard.tsx), para que un mismo servicio se vea igual en
+// ambos paneles.
 const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
   agents: { label: 'Agentes de IA', icon: '◈' },
   pms: { label: 'PMS', icon: '⌂' },
@@ -34,7 +36,7 @@ export function Sidebar({
   onLogout: () => void;
 }) {
   const { clientDisplayName, clientDisplaySubtitle, clientServices, clientLogoSrc } = useAuth();
-  const showEstadoActual = isVisible(ESTADO_ACTUAL, clientServices);
+  const showOverview = isVisible(OVERVIEW, clientServices);
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter((item) => isVisible(item, clientServices)),
@@ -76,9 +78,9 @@ export function Sidebar({
       </div>
 
       <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>
-        {showEstadoActual && (
+        {showOverview && (
           <button
-            onClick={() => setScreen(ESTADO_ACTUAL.id)}
+            onClick={() => setScreen(OVERVIEW.id)}
             style={{
               all: 'unset',
               display: 'flex',
@@ -89,17 +91,17 @@ export function Sidebar({
               padding: '11px 12px',
               borderRadius: 8,
               marginBottom: 2,
-              background: screen === ESTADO_ACTUAL.id ? 'rgba(255,255,255,0.12)' : 'transparent',
-              color: screen === ESTADO_ACTUAL.id ? '#fff' : 'var(--sage)',
+              background: screen === OVERVIEW.id ? 'rgba(255,255,255,0.12)' : 'transparent',
+              color: screen === OVERVIEW.id ? '#fff' : 'var(--sage)',
               fontSize: 14,
-              fontWeight: screen === ESTADO_ACTUAL.id ? 700 : 500,
+              fontWeight: screen === OVERVIEW.id ? 700 : 500,
               cursor: 'pointer',
-              borderLeft: screen === ESTADO_ACTUAL.id ? '3px solid #fff' : '3px solid transparent',
+              borderLeft: screen === OVERVIEW.id ? '3px solid #fff' : '3px solid transparent',
               transition: 'background 0.12s, color 0.12s',
             }}
           >
             <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0 }}>◉</span>
-            {ESTADO_ACTUAL.label}
+            {OVERVIEW.label}
           </button>
         )}
 
@@ -165,10 +167,41 @@ export function Sidebar({
                 padding: '0 12px 8px',
               }}
             >
-              Servicios
+              Servicios Contratados
             </div>
             {contractedServices.map((key) => {
               const meta = SERVICE_META[key];
+              const entryScreen = SERVICE_ENTRY_SCREEN[key];
+              if (entryScreen) {
+                const active = screen === entryScreen;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setScreen(entryScreen)}
+                    style={{
+                      all: 'unset',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      marginBottom: 2,
+                      background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                      color: active ? '#fff' : 'var(--sage)',
+                      fontSize: 13,
+                      fontWeight: active ? 700 : 500,
+                      cursor: 'pointer',
+                      borderLeft: active ? '3px solid #fff' : '3px solid transparent',
+                    }}
+                  >
+                    <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0 }}>{meta.icon}</span>
+                    {meta.label}
+                    <span style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.7 }}>→</span>
+                  </button>
+                );
+              }
               return (
                 <div
                   key={key}
