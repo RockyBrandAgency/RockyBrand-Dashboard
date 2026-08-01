@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { KpiRow } from '../../components/KpiRow';
 import { LineChart } from '../../components/LineChart';
+import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
+import { downloadCsv } from '../../lib/exportCsv';
+import type { DateRangeDays } from '../../components/DateRangeControl';
 
 function formatDateShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -12,19 +16,41 @@ function formatDateShort(iso: string): string {
 // meta_snapshot#, campo pagina_facebook) - pedido explícito de Mato
 // (2026-08-01): panel ejecutivo por canal, con gráficos reales.
 export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
-  const { data, loading, error, reload } = useMetricsReport();
+  const [days, setDays] = useState<DateRangeDays>(30);
+  const { data, loading, error, reload } = useMetricsReport(days);
   const fb = data?.facebook;
+
+  const handleExport = () => {
+    if (!fb) return;
+    const rows: (string | number | null)[][] = [
+      ['Facebook', `últimos ${days} días`],
+      [],
+      ['Seguidores actuales', fb.seguidores_actuales],
+      ['Visualizaciones (último dato)', fb.visualizaciones_actual],
+      [],
+      ['Seguidores en el tiempo'],
+      ['Fecha', 'Seguidores'],
+      ...fb.snapshots.map((s) => [s.fecha, s.seguidores]),
+      [],
+      ['Visualizaciones de página'],
+      ['Fecha', 'Visualizaciones'],
+      ...fb.visualizaciones_snapshots.map((s) => [s.fecha, s.visualizaciones]),
+    ];
+    downloadCsv(`metricas-facebook-${days}d.csv`, rows);
+  };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-            Métricas
-          </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Facebook</h1>
-          {fb?.nombre_pagina && <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>{fb.nombre_pagina}</div>}
-        </div>
+        <MetricsPageHeader
+          title="Facebook"
+          subtitle={fb?.nombre_pagina}
+          isDesktop={isDesktop}
+          days={days}
+          onDaysChange={setDays}
+          onExport={handleExport}
+          exportDisabled={!fb}
+        />
 
         <AsyncState loading={loading} error={error} onRetry={reload}>
           {fb && (

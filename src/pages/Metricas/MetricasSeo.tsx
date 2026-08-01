@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { KpiRow } from '../../components/KpiRow';
 import { LineChart } from '../../components/LineChart';
+import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
+import { downloadCsv } from '../../lib/exportCsv';
+import type { DateRangeDays } from '../../components/DateRangeControl';
 
 function formatDateShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -13,18 +17,44 @@ function formatDateShort(iso: string): string {
 // fuente de datos real (confirmado con Mato) - un solo canal, no dos
 // páginas separadas.
 export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
-  const { data, loading, error, reload } = useMetricsReport();
+  const [days, setDays] = useState<DateRangeDays>(30);
+  const { data, loading, error, reload } = useMetricsReport(days);
   const seo = data?.seo;
+
+  const handleExport = () => {
+    if (!seo) return;
+    const rows: (string | number | null)[][] = [
+      ['SEO', `últimos ${days} días`],
+      [],
+      ['Posición promedio', seo.posicion_actual],
+      ['Clics orgánicos (último dato)', seo.clics_organicos_actual],
+      [],
+      ['Clics orgánicos'],
+      ['Fecha', 'Clics'],
+      ...seo.clicks_snapshots.map((s) => [s.fecha, s.clics]),
+      [],
+      ['Impresiones'],
+      ['Fecha', 'Impresiones'],
+      ...seo.impressions_snapshots.map((s) => [s.fecha, s.impresiones]),
+      [],
+      ['Keywords'],
+      ['Keyword', 'Posición', 'Cambio', 'Impresiones'],
+      ...seo.keyword_matrix.map((row) => [row.keyword, row.posicion_actual, row.delta, row.impresiones]),
+    ];
+    downloadCsv(`metricas-seo-${days}d.csv`, rows);
+  };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-            Métricas
-          </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>SEO</h1>
-        </div>
+        <MetricsPageHeader
+          title="SEO"
+          isDesktop={isDesktop}
+          days={days}
+          onDaysChange={setDays}
+          onExport={handleExport}
+          exportDisabled={!seo}
+        />
 
         <AsyncState loading={loading} error={error} onRetry={reload}>
           {seo && (

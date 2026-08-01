@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { KpiRow } from '../../components/KpiRow';
 import { LineChart } from '../../components/LineChart';
+import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
+import { downloadCsv } from '../../lib/exportCsv';
+import type { DateRangeDays } from '../../components/DateRangeControl';
 import type { InstagramPost } from '../../types';
 
 function formatDateShort(iso: string): string {
@@ -46,18 +50,42 @@ function PostRow({ post }: { post: InstagramPost }) {
 // Detalle real de Instagram (meta_snapshot#, campo cuenta) - pedido
 // explícito de Mato (2026-08-01): panel ejecutivo por canal.
 export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
-  const { data, loading, error, reload } = useMetricsReport();
+  const [days, setDays] = useState<DateRangeDays>(30);
+  const { data, loading, error, reload } = useMetricsReport(days);
   const ig = data?.social;
+
+  const handleExport = () => {
+    if (!ig) return;
+    const rows: (string | number | null)[][] = [
+      ['Instagram', `últimos ${days} días`],
+      [],
+      ['Seguidores actuales', ig.seguidores_actuales],
+      ['Cambio neto (período)', ig.cambio_neto_periodo],
+      ['Cambio neto 7 días', ig.cambio_neto_7d],
+      ['Engagement promedio (%)', ig.engagement_promedio_pct],
+      [],
+      ['Seguidores en el tiempo'],
+      ['Fecha', 'Seguidores'],
+      ...ig.snapshots.map((s) => [s.fecha, s.seguidores]),
+      [],
+      ['Publicaciones recientes'],
+      ['Fecha', 'Formato', 'Likes', 'Comentarios', 'Engagement %', 'Permalink'],
+      ...ig.publicaciones.map((p) => [p.fecha.slice(0, 10), p.formato, p.likes, p.comentarios, p.engagement_rate_sobre_alcance_pct, p.permalink]),
+    ];
+    downloadCsv(`metricas-instagram-${days}d.csv`, rows);
+  };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-            Métricas
-          </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Instagram</h1>
-        </div>
+        <MetricsPageHeader
+          title="Instagram"
+          isDesktop={isDesktop}
+          days={days}
+          onDaysChange={setDays}
+          onExport={handleExport}
+          exportDisabled={!ig}
+        />
 
         <AsyncState loading={loading} error={error} onRetry={reload}>
           {ig && (

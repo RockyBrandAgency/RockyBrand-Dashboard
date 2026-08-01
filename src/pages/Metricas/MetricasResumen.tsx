@@ -6,6 +6,9 @@ import { getSemaforo, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { FacebookIcon, InstagramIcon, YoutubeIcon, TiktokIcon, GoogleIcon } from '../../components/PlatformIcons';
+import type { DateRangeDays } from '../../components/DateRangeControl';
+import { MetricsPageHeader } from '../../components/MetricsPageHeader';
+import { downloadCsv } from '../../lib/exportCsv';
 import type { SemaforoResponse } from '../../types';
 import type { Screen } from '../../screens';
 
@@ -60,6 +63,7 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [days, setDays] = useState<DateRangeDays>(30);
 
   const showEmail = !clientServices || clientServices.email_marketing;
   const showAgentsChannels = !clientServices || clientServices.agents;
@@ -87,20 +91,41 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
     load();
   }, [load]);
 
-  const { data: report, loading: reportLoading, error: reportError, reload: reloadReport } = useMetricsReport();
+  const { data: report, loading: reportLoading, error: reportError, reload: reloadReport } = useMetricsReport(days);
 
   const s = data?.semaforo;
   const col2 = isDesktop ? '1fr 1fr' : '1fr';
 
+  const handleExport = () => {
+    const rows: (string | number | null)[][] = [
+      ['Métricas — Resumen', `últimos ${days} días`],
+      [],
+      ['Email Marketing'],
+      ['Métrica', 'Valor'],
+      ['Leads/consultas nuevas 7 días', s?.leads_7d.valor.cantidad ?? ''],
+      ['Open rate última campaña (%)', s?.open_rate_ultima_campana.valor ?? ''],
+      [],
+      ['Redes y SEO'],
+      ['Canal', 'Valor', 'Detalle'],
+      ['Facebook', report?.facebook.seguidores_actuales ?? '', 'seguidores'],
+      ['Instagram', report?.social.seguidores_actuales ?? '', 'seguidores'],
+      ['Youtube', report?.youtube.suscriptores_actuales ?? '', 'suscriptores'],
+      ['SEO', report?.seo.posicion_actual ?? '', report?.seo.keyword ?? 'posición promedio'],
+    ];
+    downloadCsv(`metricas-resumen-${days}d.csv`, rows);
+  };
+
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-            Métricas
-          </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Resumen</h1>
-        </div>
+        <MetricsPageHeader
+          title="Resumen"
+          isDesktop={isDesktop}
+          days={days}
+          onDaysChange={setDays}
+          onExport={handleExport}
+          exportDisabled={!s && !report}
+        />
 
         {showEmail && (
           <div style={{ marginBottom: 40 }}>

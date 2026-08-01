@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { KpiRow } from '../../components/KpiRow';
 import { LineChart } from '../../components/LineChart';
+import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
+import { downloadCsv } from '../../lib/exportCsv';
+import type { DateRangeDays } from '../../components/DateRangeControl';
 
 function formatDateShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -11,18 +15,42 @@ function formatDateShort(iso: string): string {
 // Detalle real de YouTube (youtube_snapshot#) - pedido explícito de Mato
 // (2026-08-01): panel ejecutivo por canal.
 export function MetricasYoutube({ isDesktop }: { isDesktop: boolean }) {
-  const { data, loading, error, reload } = useMetricsReport();
+  const [days, setDays] = useState<DateRangeDays>(30);
+  const { data, loading, error, reload } = useMetricsReport(days);
   const yt = data?.youtube;
+
+  const handleExport = () => {
+    if (!yt) return;
+    const rows: (string | number | null)[][] = [
+      ['Youtube', `últimos ${days} días`],
+      [],
+      ['Suscriptores actuales', yt.suscriptores_actuales],
+      ['Netos 7 días', yt.suscriptores_netos_7d],
+      ['Vistas (período)', yt.vistas_periodo],
+      ['Minutos vistos', yt.minutos_vistos_periodo],
+      [],
+      ['Suscriptores en el tiempo'],
+      ['Fecha', 'Suscriptores'],
+      ...yt.snapshots.map((s) => [s.fecha, s.suscriptores]),
+      [],
+      ['Videos con más watch time'],
+      ['Título', 'Vistas'],
+      ...yt.top_videos.map((v) => [typeof v.titulo === 'string' ? v.titulo : '', typeof v.vistas === 'number' ? v.vistas : '']),
+    ];
+    downloadCsv(`metricas-youtube-${days}d.csv`, rows);
+  };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-            Métricas
-          </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Youtube</h1>
-        </div>
+        <MetricsPageHeader
+          title="Youtube"
+          isDesktop={isDesktop}
+          days={days}
+          onDaysChange={setDays}
+          onExport={handleExport}
+          exportDisabled={!yt}
+        />
 
         <AsyncState loading={loading} error={error} onRetry={reload}>
           {yt && (
