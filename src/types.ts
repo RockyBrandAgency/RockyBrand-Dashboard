@@ -180,6 +180,7 @@ export interface InstagramPost {
   formato: string;
   permalink: string;
   caption: string | null;
+  imagen_url: string | null;
   likes: number;
   comentarios: number;
   alcance: number | null;
@@ -199,6 +200,14 @@ export interface SocialMetrics {
   cambio_neto_7d: number;
   engagement_promedio_pct: number | null;
   publicaciones: InstagramPost[];
+  // 4 campos nuevos (2026-08-01) - confirmados en vivo contra la API real
+  // de Meta antes de agregarlos. Ventana fija de 30 días (así los expone
+  // Meta), no respetan el selector de rango de la página.
+  alcance_no_seguidores_pct: number | null;
+  clics_enlace_perfil_30d: number | null;
+  guardados_totales: number | null;
+  guardados_promedio: number | null;
+  compartidos_totales: number | null;
 }
 
 export interface FacebookVisualizacionPoint {
@@ -212,6 +221,10 @@ export interface FacebookMetrics {
   nombre_pagina: string | null;
   visualizaciones_actual: number | null;
   visualizaciones_snapshots: FacebookVisualizacionPoint[];
+  // Meta deprecó el delta directo de seguidores de Página - se calcula
+  // con nuestro propio historial diario (ver dashboard_metrics.py).
+  cambio_neto_7d: number | null;
+  cambio_neto_30d: number | null;
 }
 
 export interface YoutubeSnapshotPoint {
