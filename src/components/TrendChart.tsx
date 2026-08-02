@@ -46,7 +46,7 @@ export function TrendChart({
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const width = 640; // viewBox lógico - escala por CSS, no por JS
-  const margin = { top: 20, right: 16, bottom: compact ? 20 : 28, left: 8 };
+  const margin = { top: 24, right: 30, bottom: compact ? 20 : 28, left: 30 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
 
@@ -141,6 +141,14 @@ export function TrendChart({
 
   const xTicks = compact ? (dates.length > 1 ? [dates[0], dates[dates.length - 1]] : dates) : undefined;
 
+  // Evita que la etiqueta de una anotación se corte contra el borde del
+  // SVG cuando el punto está cerca del inicio/fin de la serie.
+  const edgeAnchor = (x: number): 'start' | 'middle' | 'end' => {
+    if (x < 28) return 'start';
+    if (x > innerW - 28) return 'end';
+    return 'middle';
+  };
+
   return (
     <div
       ref={containerRef}
@@ -157,17 +165,18 @@ export function TrendChart({
         </defs>
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Línea de promedio, punteada y discreta */}
+          {/* Área en degradado (fondo) */}
+          <path d={areaD} fill={`url(#${gradientId})`} />
+
+          {/* Línea de promedio, punteada y discreta - encima del área */}
           {avg !== null && yScale && (
-            <line x1={0} x2={innerW} y1={yScale(avg)} y2={yScale(avg)} stroke="var(--text-muted)" strokeOpacity={0.35} strokeDasharray="3,4" strokeWidth={1} />
+            <line x1={0} x2={innerW} y1={yScale(avg)} y2={yScale(avg)} stroke="var(--text-muted)" strokeOpacity={0.5} strokeDasharray="3,4" strokeWidth={1} />
           )}
 
           {/* Período anterior, gris tenue detrás de la serie actual */}
           {prevPathD && (
             <path d={prevPathD} fill="none" stroke="var(--text-muted)" strokeOpacity={0.3} strokeWidth={1.5} strokeDasharray="2,3" />
           )}
-
-          {/* Área en degradado */}
-          <path d={areaD} fill={`url(#${gradientId})`} />
 
           {/* Línea principal, con animación de dibujo */}
           <path d={pathD} fill="none" stroke={color} strokeWidth={2.25} className="trend-chart-draw" pathLength={1} />
@@ -176,7 +185,14 @@ export function TrendChart({
           {maxPoint && xScale && yScale && (
             <g transform={`translate(${xScale(new Date(`${maxPoint.fecha}T00:00:00`))},${yScale(maxPoint.valor)})`}>
               <circle r={3} fill={color} />
-              <text y={-9} textAnchor="middle" fontSize={10} fontWeight={700} fill="var(--text)">
+              <text
+                y={-9}
+                dx={edgeAnchor(xScale(new Date(`${maxPoint.fecha}T00:00:00`))) === 'start' ? 4 : edgeAnchor(xScale(new Date(`${maxPoint.fecha}T00:00:00`))) === 'end' ? -4 : 0}
+                textAnchor={edgeAnchor(xScale(new Date(`${maxPoint.fecha}T00:00:00`)))}
+                fontSize={10}
+                fontWeight={700}
+                fill="var(--text)"
+              >
                 {formatValue(maxPoint.valor)}
               </text>
             </g>
@@ -184,7 +200,14 @@ export function TrendChart({
           {minPoint && xScale && yScale && (
             <g transform={`translate(${xScale(new Date(`${minPoint.fecha}T00:00:00`))},${yScale(minPoint.valor)})`}>
               <circle r={3} fill={color} opacity={0.7} />
-              <text y={16} textAnchor="middle" fontSize={10} fontWeight={600} fill="var(--text-muted)">
+              <text
+                y={16}
+                dx={edgeAnchor(xScale(new Date(`${minPoint.fecha}T00:00:00`))) === 'start' ? 4 : edgeAnchor(xScale(new Date(`${minPoint.fecha}T00:00:00`))) === 'end' ? -4 : 0}
+                textAnchor={edgeAnchor(xScale(new Date(`${minPoint.fecha}T00:00:00`)))}
+                fontSize={10}
+                fontWeight={600}
+                fill="var(--text-muted)"
+              >
                 {formatValue(minPoint.valor)}
               </text>
             </g>
@@ -193,7 +216,7 @@ export function TrendChart({
           {/* Eje X - ticks reducidos en compact */}
           {xScale &&
             (xTicks ?? xScale.ticks(Math.min(6, validPoints.length))).map((d, i) => (
-              <text key={i} x={xScale(d)} y={innerH + 16} textAnchor="middle" fontSize={10} fill="var(--text-muted)">
+              <text key={i} x={xScale(d)} y={innerH + 16} textAnchor={edgeAnchor(xScale(d))} fontSize={10} fill="var(--text-muted)">
                 {formatDate(d.toISOString().slice(0, 10))}
               </text>
             ))}
