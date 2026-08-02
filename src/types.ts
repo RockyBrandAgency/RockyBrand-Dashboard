@@ -208,6 +208,22 @@ export interface SocialMetrics {
   guardados_totales: number | null;
   guardados_promedio: number | null;
   compartidos_totales: number | null;
+  // Publicación destacada del período (2026-08-02, pedido explícito de
+  // Mato) - la de mayor alcance real, con la variación real de
+  // seguidores del mismo día. null si ninguna publicación del rango
+  // tiene dato de alcance.
+  insight_post: InstagramInsightPost | null;
+}
+
+export interface InstagramInsightPost {
+  media_id: string;
+  fecha: string;
+  permalink: string;
+  formato: string;
+  alcance: number;
+  shares: number | null;
+  guardados: number | null;
+  seguidores_netos_ese_dia: number | null;
 }
 
 export interface FacebookVisualizacionPoint {

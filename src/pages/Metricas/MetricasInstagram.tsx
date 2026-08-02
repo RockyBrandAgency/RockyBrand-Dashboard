@@ -6,7 +6,7 @@ import { MetricNotAvailable } from '../../components/MetricNotAvailable';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
-import type { InstagramPost } from '../../types';
+import type { InstagramPost, InstagramInsightPost } from '../../types';
 
 function formatDateShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -86,6 +86,53 @@ function PostRow({ post }: { post: InstagramPost }) {
   );
 }
 
+// Insight de la publicación destacada (2026-08-02, pedido explícito de
+// Mato) - siempre con datos reales: la variación de seguidores es la
+// del MISMO día real (correlación, no una atribución causal inventada).
+// Si no hay dato de esa variación para el día, se omite esa frase en
+// vez de mostrar un 0 falso.
+function InsightBanner({ post }: { post: InstagramInsightPost }) {
+  const n = post.seguidores_netos_ese_dia;
+  let seguidoresClause = '';
+  if (n !== null) {
+    if (n > 0) seguidoresClause = ` Ese día ganaste ${n.toLocaleString('es-CL')} seguidor${n === 1 ? '' : 'es'} nuevo${n === 1 ? '' : 's'}.`;
+    else if (n < 0) seguidoresClause = ` Ese día perdiste ${Math.abs(n).toLocaleString('es-CL')} seguidor${Math.abs(n) === 1 ? '' : 'es'}.`;
+    else seguidoresClause = ' Ese día no hubo cambio neto de seguidores.';
+  }
+
+  return (
+    <a
+      href={post.permalink}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        background: 'var(--white)',
+        border: '1px solid var(--border)',
+        borderLeft: '4px solid #E1306C',
+        borderRadius: 10,
+        padding: '14px 18px',
+        marginBottom: 28,
+        textDecoration: 'none',
+      }}
+    >
+      <span style={{ fontSize: 20, flexShrink: 0 }}>💡</span>
+      <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
+        Tu publicación del {formatDateShort(post.fecha)} ({post.formato.toLowerCase()}) logró el mayor alcance del período:{' '}
+        <strong>{post.alcance.toLocaleString('es-CL')} cuentas alcanzadas</strong>
+        {post.shares !== null && (
+          <>
+            {' '}y <strong>{post.shares.toLocaleString('es-CL')} compartidos</strong>
+          </>
+        )}
+        {post.guardados !== null && <>, {post.guardados.toLocaleString('es-CL')} guardados</>}.{seguidoresClause}
+      </div>
+    </a>
+  );
+}
+
 // Detalle real de Instagram (meta_snapshot#, campo cuenta) - pedido
 // explícito de Mato (2026-08-01): panel ejecutivo por canal. Las 6
 // métricas y el orden vienen exactos de su spec; "mensajes iniciados"
@@ -102,6 +149,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
     const rows: (string | number | null)[][] = [
       ['Instagram', `últimos ${days} días`],
       [],
+      ['Seguidores actuales', ig.seguidores_actuales],
       ['Alcance en no-seguidores (%, últimos 30 días)', ig.alcance_no_seguidores_pct],
       ['Guardados totales', ig.guardados_totales],
       ['Guardados promedio por publicación', ig.guardados_promedio],
@@ -123,7 +171,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
     downloadCsv(`metricas-instagram-${days}d.csv`, rows);
   };
 
-  const kpiGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 12 };
+  const kpiGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)', gap: 12 };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
@@ -141,6 +189,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
           {ig && (
             <>
               <div style={{ ...kpiGrid, marginBottom: 28 }}>
+                <KpiCard label="Seguidores actuales" value={num(ig.seguidores_actuales)} />
                 <KpiCard label="Alcance en no-seguidores" value={ig.alcance_no_seguidores_pct !== null ? `${ig.alcance_no_seguidores_pct}%` : '—'} sub="últimos 30 días" />
                 <KpiCard
                   label="Guardados por publicación"
@@ -152,6 +201,8 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
                 <MetricNotAvailable label="Mensajes iniciados" reason="Meta no otorga este permiso a la app hoy." />
                 <KpiCard label="Seguidores netos" value={signedNum(ig.cambio_neto_periodo)} sub={`7 días: ${signedNum(ig.cambio_neto_7d)}`} />
               </div>
+
+              {ig.insight_post && <InsightBanner post={ig.insight_post} />}
 
               <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Seguidores en el tiempo</div>
