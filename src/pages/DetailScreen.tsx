@@ -66,7 +66,7 @@ export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
             >
               <div style={{ fontSize: 28, marginBottom: 10 }}>📭</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Sin llegadas en las próximas 48 horas</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Ninguna reserva real de alto-castillo hace check-in en esta ventana ahora mismo.</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>Ninguna reserva real hace check-in en esta ventana ahora mismo.</div>
             </div>
           )}
 

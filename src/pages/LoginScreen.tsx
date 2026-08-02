@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { LogoPlaceholder } from '../components/LogoPlaceholder';
 import { useAuth } from '../context/AuthContext';
-import { applyClientTheme, CLIENT_BRANDING, clientIdFromHostname } from '../branding';
+import { applyClientTheme, applyClientTitle, CLIENT_BRANDING, clientIdFromHostname } from '../branding';
 
 // El Make solo traia un campo de email (sin password) - Cognito real
 // necesita ambos, se agrega el campo con el mismo lenguaje visual.
@@ -19,6 +19,7 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
 
   useEffect(() => {
     applyClientTheme(clientId);
+    applyClientTitle(clientId);
   }, [clientId]);
 
   const handleSubmit = async (e: FormEvent) => {

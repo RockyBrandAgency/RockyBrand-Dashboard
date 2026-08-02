@@ -82,6 +82,19 @@ export function applyClientTheme(clientId: string | null): void {
   root.setProperty('--sage-mid', theme.sageMid);
 }
 
+const DEFAULT_TITLE = 'RockyBrand — Panel';
+
+// Título de la pestaña del navegador (index.html traía "Alto Castillo
+// Lodge" fijo para CUALQUIER cliente - bug real encontrado por Mato
+// 2026-08-02: Chile Fly Fishing veía el título de otro cliente en su
+// propia pestaña. Mismo mecanismo que applyClientTheme: sin client_id
+// conocido, vuelve a un default neutro, nunca se queda "pegado" el
+// nombre de un cliente anterior.
+export function applyClientTitle(clientId: string | null): void {
+  const branding = clientId ? CLIENT_BRANDING[clientId] : null;
+  document.title = branding ? `${branding.logoAlt} — Panel` : DEFAULT_TITLE;
+}
+
 // Ubicación real por cliente para WeatherWidget - antes de este cambio
 // (2026-08-01) el widget tenía Cerro Castillo hardcodeado para TODOS los
 // paneles ("portado tal cual del Make", comentario propio del componente

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTokenClaims, LoginError } from '../api/cognitoAuth';
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
-import { applyClientTheme, CLIENT_BRANDING } from '../branding';
+import { applyClientTheme, applyClientTitle, CLIENT_BRANDING } from '../branding';
 import type { ClientServices } from '../types';
 
 interface AuthContextValue {
@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // a LoginScreen). El reset real pasa solo al volver a esa
         // pantalla (mount fresco, mismo mecanismo por hostname).
         applyClientTheme(me.client_id);
+        applyClientTitle(me.client_id);
       })
       .catch((e: unknown) => {
         if (cancelled) return;
