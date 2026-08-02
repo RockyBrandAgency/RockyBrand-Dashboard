@@ -9,7 +9,7 @@ function StatusBadge({ status }: { status: string }) {
     bounced: { label: 'Rebotado', bg: '#FDECEC', text: '#B3261E' },
     complained: { label: 'Marcó como spam', bg: '#FDECEC', text: '#B3261E' },
   };
-  const m = map[status] ?? { label: status, bg: '#F2F2F2', text: '#6B6B6B' };
+  const m = map[status] ?? { label: status || 'Sin estado', bg: '#F2F2F2', text: '#6B6B6B' };
   return (
     <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: m.bg, color: m.text, whiteSpace: 'nowrap' }}>
       {m.label}

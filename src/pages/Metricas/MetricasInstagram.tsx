@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { KpiRow } from '../../components/KpiRow';
-import { LineChart } from '../../components/LineChart';
+import { TrendChart } from '../../components/TrendChart';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
@@ -103,10 +103,12 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
 
               <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Seguidores en el tiempo</div>
-                <LineChart
+                <TrendChart
                   points={ig.snapshots.map((s) => ({ fecha: s.fecha, valor: s.seguidores }))}
                   color="#E1306C"
                   formatDate={formatDateShort}
+                  compact={!isDesktop}
+                  unitLabel="seguidores"
                 />
               </div>
 
