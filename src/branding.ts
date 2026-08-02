@@ -82,6 +82,25 @@ export function applyClientTheme(clientId: string | null): void {
   root.setProperty('--sage-mid', theme.sageMid);
 }
 
+// Ubicación real por cliente para WeatherWidget - antes de este cambio
+// (2026-08-01) el widget tenía Cerro Castillo hardcodeado para TODOS los
+// paneles ("portado tal cual del Make", comentario propio del componente
+// viejo), así que Chile Fly Fishing (con base en Coyhaique, no Cerro
+// Castillo) mostraba el pronóstico equivocado - encontrado por Mato en
+// vivo. Coordenadas reales de cada ciudad, mismo criterio de "nunca
+// inventar" del resto de la sesión.
+export interface ClientLocation {
+  label: string;
+  region: string;
+  lat: number;
+  lon: number;
+}
+
+export const CLIENT_LOCATION: Record<string, ClientLocation> = {
+  'alto-castillo': { label: 'Cerro Castillo', region: 'Región de Aysén', lat: -46.12, lon: -72.15 },
+  'chile-fly-fishing': { label: 'Coyhaique', region: 'Región de Aysén', lat: -45.5752, lon: -72.0662 },
+};
+
 // Antes de loguearse no hay ningún dato de identidad todavía (sin sesión,
 // sin JWT) - el único indicio real de qué cliente es este es el
 // subdominio real (nombredelcliente.panel.rockybrand.cl, ver

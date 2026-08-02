@@ -7,6 +7,7 @@ import { AsyncState } from '../components/AsyncState';
 import { STATUS } from '../components/status';
 import { getSemaforo, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
+import { CLIENT_LOCATION } from '../branding';
 import type { SemaforoResponse } from '../types';
 
 function formatMonto(montoPorMoneda: Record<string, number>): string {
@@ -30,7 +31,8 @@ function greetingByHour(): string {
 // (MetricasResumen.tsx), misma fuente de datos (getSemaforo), solo
 // cambia dónde se muestra.
 export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
-  const { handleUnauthorized } = useAuth();
+  const { handleUnauthorized, clientId } = useAuth();
+  const location = clientId ? CLIENT_LOCATION[clientId] : undefined;
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +160,7 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                 </div>
               </div>
 
-              <WeatherWidget />
+              {location && <WeatherWidget location={location} />}
             </>
           )}
         </AsyncState>

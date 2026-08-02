@@ -24,6 +24,10 @@ interface AuthContextValue {
   // client_id real (no por el subdominio - ya hay sesión, se usa el dato
   // de verdad). null si el cliente no tiene logo cargado todavía.
   clientLogoSrc: string | null;
+  // client_id real (no el subdominio) - lo necesitan componentes que
+  // varían por cliente pero no tienen su propio branding (ej.
+  // WeatherWidget, ubicación real). null mientras carga.
+  clientId: string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -45,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientDisplaySubtitle, setClientDisplaySubtitle] = useState('');
   const [clientServices, setClientServices] = useState<ClientServices | null>(null);
   const [clientLogoSrc, setClientLogoSrc] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setClientDisplaySubtitle('');
       setClientServices(null);
       setClientLogoSrc(null);
+      setClientId(null);
       return;
     }
     let cancelled = false;
@@ -62,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientDisplaySubtitle(me.display_subtitle);
         setClientServices(me.services);
         setClientLogoSrc(CLIENT_BRANDING[me.client_id]?.logoSrcDark ?? null);
+        setClientId(me.client_id);
         // Solo SETEA acá, nunca resetea (ver la rama !isAuthenticated de
         // arriba) - si reseteara en cada mount, pisaría el theme que
         // LoginScreen ya aplicó por subdominio antes del login (efectos
@@ -133,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clientDisplaySubtitle,
         clientServices,
         clientLogoSrc,
+        clientId,
       }}
     >
       {children}

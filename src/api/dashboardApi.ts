@@ -1,6 +1,15 @@
 import { DASHBOARD_API_URL } from '../config';
 import { getStoredSession, refreshSession, SessionExpiredError } from './cognitoAuth';
-import type { SemaforoResponse, LlegadasResponse, DisponibilidadResponse, MeResponse, ReservasResumenResponse, MetricsReportResponse } from '../types';
+import type {
+  SemaforoResponse,
+  LlegadasResponse,
+  DisponibilidadResponse,
+  MeResponse,
+  ReservasResumenResponse,
+  MetricsReportResponse,
+  EmailContact,
+  EmailSegment,
+} from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
 // (o refresh fallido) burbujea como UnauthorizedError para que AuthContext
@@ -11,19 +20,24 @@ export class UnauthorizedError extends Error {
   }
 }
 
-async function authedFetch(path: string): Promise<Response> {
+async function authedFetch(path: string, method: string, body?: unknown): Promise<Response> {
   const session = getStoredSession();
   if (!session) throw new UnauthorizedError();
   return fetch(`${DASHBOARD_API_URL}${path}`, {
-    headers: { Authorization: `Bearer ${session.idToken}` },
+    method,
+    headers: {
+      Authorization: `Bearer ${session.idToken}`,
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 }
 
 // El client_id SIEMPRE sale del claim del ID token en el backend (nunca de
-// un parametro) - este cliente no manda ni podria mandar un client_id, ni
-// falta que lo haga.
-async function request<T>(path: string): Promise<T> {
-  let res = await authedFetch(path);
+// un parametro ni del body) - este cliente no manda ni podria mandar un
+// client_id, ni falta que lo haga.
+async function request<T>(path: string, method: string = 'GET', body?: unknown): Promise<T> {
+  let res = await authedFetch(path, method, body);
 
   if (res.status === 401) {
     try {
@@ -32,7 +46,7 @@ async function request<T>(path: string): Promise<T> {
       if (e instanceof SessionExpiredError) throw new UnauthorizedError();
       throw e;
     }
-    res = await authedFetch(path);
+    res = await authedFetch(path, method, body);
   }
 
   if (res.status === 401) throw new UnauthorizedError();
@@ -69,4 +83,28 @@ export function getReservasResumen(): Promise<ReservasResumenResponse> {
 
 export function getMetricsReport(days = 30): Promise<MetricsReportResponse> {
   return request(`/dashboard/metrics-report?days=${days}`);
+}
+
+// Público de Email Marketing + envío manual, desde el panel propio del
+// cliente (2026-08-01, pedido explícito de Mato) - pantallas nuevas,
+// mismo mecanismo de aislamiento (client_id siempre del JWT en el
+// backend), nunca acceso a la herramienta de staff.
+export function getEmailContacts(): Promise<{ client_id: string; contacts: EmailContact[] }> {
+  return request('/dashboard/email/contacts');
+}
+
+export function upsertEmailContact(email: string, name: string, tags: string[]): Promise<{ ok: boolean }> {
+  return request('/dashboard/email/contacts', 'POST', { email, name, tags });
+}
+
+export function deleteEmailContact(email: string): Promise<{ ok: boolean }> {
+  return request('/dashboard/email/contacts', 'DELETE', { email });
+}
+
+export function sendTestEmail(subject: string, html_body: string, test_email: string): Promise<{ ok: boolean; enviado_a: string }> {
+  return request('/dashboard/email/test-send', 'POST', { subject, html_body, test_email });
+}
+
+export function sendEmailNow(subject: string, html_body: string, segment: EmailSegment, name?: string): Promise<{ ok: boolean; campaign_id: string }> {
+  return request('/dashboard/email/send', 'POST', { subject, html_body, segment, name });
 }

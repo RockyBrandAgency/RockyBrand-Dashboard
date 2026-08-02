@@ -146,6 +146,20 @@ export interface EmailCampaignSummary {
   aperturas: number;
 }
 
+export interface EmailContact {
+  client_id: string;
+  email: string;
+  name?: string;
+  tags?: string[];
+  status: string;
+  created_at?: string;
+}
+
+export interface EmailSegment {
+  type: 'all' | 'tag';
+  value?: string;
+}
+
 export interface EmailMetrics {
   enviados: number;
   aperturas: number;

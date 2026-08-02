@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from './Card';
 import { STATUS } from './status';
+import type { ClientLocation } from '../branding';
 
 type WeatherDay = { date: string; max: number; min: number; code: number };
 
@@ -27,16 +28,21 @@ function buildInsight(days: WeatherDay[]) {
 }
 
 // Fuente real (Open-Meteo, API publica) - no depende del backend de la
-// Sesion 1, se porta tal cual del Make.
-export function WeatherWidget() {
+// Sesion 1, se porta tal cual del Make. Ubicación real por cliente
+// (branding.ts CLIENT_LOCATION) - antes estaba hardcodeada a Cerro
+// Castillo para cualquier cliente, bug real encontrado por Mato
+// (2026-08-01): Chile Fly Fishing (Coyhaique) mostraba el pronóstico de
+// Alto Castillo.
+export function WeatherWidget({ location }: { location: ClientLocation }) {
   const [days, setDays] = useState<WeatherDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const DAY = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
   useEffect(() => {
+    setLoading(true);
     fetch(
-      'https://api.open-meteo.com/v1/forecast?latitude=-46.12&longitude=-72.15&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America%2FSantiago'
+      `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America%2FSantiago`
     )
       .then((r) => r.json())
       .then((d) => {
@@ -61,16 +67,16 @@ export function WeatherWidget() {
         setOffline(true);
         setLoading(false);
       });
-  }, []);
+  }, [location.lat, location.lon]);
 
   return (
     <Card>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <span style={{ fontSize: 16 }}>🌦️</span>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>Clima — Cerro Castillo</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>Clima — {location.label}</div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Pronóstico 5 días · Región de Aysén
+            Pronóstico 5 días · {location.region}
             {offline && ' · datos estimados'}
           </div>
         </div>
