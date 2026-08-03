@@ -5,11 +5,15 @@ import type { NavLeaf } from '../screens';
 
 const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
   agents: { label: 'Agentes de IA', icon: '◈' },
+  // Misma etiqueta e icono que Sidebar.tsx. Faltaba desde el commit 6cca3d3,
+  // que agrego 'content_approval' a ServiceKey pero no actualizo este Record:
+  // el tipo lo exige, asi que el build de main quedo roto para todos.
+  content_approval: { label: 'Revisión de Contenido', icon: '✓' },
   pms: { label: 'PMS', icon: '⌂' },
   crm: { label: 'CRM', icon: '☎' },
   email_marketing: { label: 'Email Marketing', icon: '✉' },
 };
-const SERVICE_ORDER: ServiceKey[] = ['agents', 'pms', 'crm', 'email_marketing'];
+const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'pms', 'crm', 'email_marketing'];
 
 function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
   return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
