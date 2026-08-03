@@ -1,9 +1,24 @@
 import { useEffect, useState, useCallback } from 'react';
 import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
-import { getEmailMetrics, getEmailInsights, UnauthorizedError } from '../../../api/dashboardApi';
-import type { EmailMetrics as Datos, EmailInsights } from '../../../types';
-import { Card, Vacio, Aviso, Tabla, formatTasa, formatFecha, saludRebotes, saludQuejas } from './shared';
+import { getEmailMetrics, getEmailInsights, getEmailContacts, UnauthorizedError } from '../../../api/dashboardApi';
+import type { EmailMetrics as Datos, EmailInsights, EmailContact } from '../../../types';
+import { Card, MiniDash, Vacio, Aviso, Tabla, formatTasa, formatFecha, saludRebotes, saludQuejas } from './shared';
+
+// El embudo: mismo componente que en el panel principal. Muestra la caída de
+// enviados → aperturas → clics en una sola mirada, que es lo que una tabla de
+// porcentajes no deja ver.
+function FilaEmbudo({ label, valor, max }: { label: string; valor: number; max: number }) {
+  return (
+    <div className="crm-funnel-row">
+      <span className="crm-funnel-label">{label}</span>
+      <div className="crm-funnel-track">
+        <div className="crm-funnel-fill" style={{ width: `${max ? (valor / max) * 100 : 0}%` }} />
+      </div>
+      <span className="crm-funnel-value">{valor.toLocaleString('es-CL')}</span>
+    </div>
+  );
+}
 
 const colorSalud = (s: ReturnType<typeof saludRebotes>) =>
   ({ ok: '#216b35', alerta: '#8a6116', critico: '#b42318', 'sin-datos': 'var(--text-muted)' })[s];
@@ -18,14 +33,15 @@ export function MetricasEmail() {
   const { handleUnauthorized } = useAuth();
   const [datos, setDatos] = useState<Datos | null>(null);
   const [insights, setInsights] = useState<EmailInsights | null>(null);
+  const [contactos, setContactos] = useState<EmailContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const cargar = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([getEmailMetrics(), getEmailInsights()])
-      .then(([m, i]) => { setDatos(m); setInsights(i); })
+    Promise.all([getEmailMetrics(), getEmailInsights(), getEmailContacts()])
+      .then(([m, i, c]) => { setDatos(m); setInsights(i); setContactos(c.contacts); })
       .catch((e: unknown) => {
         if (e instanceof UnauthorizedError) return handleUnauthorized();
         setError(e instanceof Error ? e.message : 'Error de red.');
@@ -36,12 +52,79 @@ export function MetricasEmail() {
   useEffect(cargar, [cargar]);
 
   const h = insights?.horario;
+
+  // Base de contactos por estado, y el desglose por etiqueta: los mismos
+  // números que muestra el panel principal.
+  const suscritos = contactos.filter((c) => c.status === 'subscribed').length;
+  const desuscritos = contactos.filter((c) => c.status === 'unsubscribed').length;
+  const rebotados = contactos.filter((c) => c.status === 'bounced').length;
+  const porEtiqueta = Array.from(new Set(contactos.flatMap((c) => c.tags || [])))
+    .map((tag) => ({ tag, cuantos: contactos.filter((c) => (c.tags || []).includes(tag)).length }))
+    .sort((a, b) => b.cuantos - a.cuantos);
+
+  // Rebote PROMEDIO MENSUAL: se agrupan las campañas por mes, se calcula la
+  // tasa de cada mes y se promedian los meses con envíos. No es lo mismo que
+  // el rebote acumulado — un mes malo se nota acá y se diluye en el total.
+  const porMes = new Map<string, { enviados: number; rebotes: number }>();
+  (datos?.por_campana ?? []).forEach((c) => {
+    const mes = (c.sent_at || '').slice(0, 7);
+    if (!mes) return;
+    const acc = porMes.get(mes) || { enviados: 0, rebotes: 0 };
+    acc.enviados += c.enviados;
+    acc.rebotes += Math.round((c.bounce_rate ?? 0) / 100 * c.enviados);
+    porMes.set(mes, acc);
+  });
+  const tasasMensuales = Array.from(porMes.values()).filter((m) => m.enviados > 0)
+    .map((m) => (m.rebotes / m.enviados) * 100);
+  const reboteMensual = tasasMensuales.length
+    ? tasasMensuales.reduce((a, b) => a + b, 0) / tasasMensuales.length
+    : null;
   const maxAperturas = h ? Math.max(1, ...h.por_hora.map((p) => p.aperturas)) : 1;
 
   return (
     <AsyncState loading={loading} error={error} onRetry={cargar}>
       {datos && (
         <>
+          <MiniDash
+            items={[
+              { label: 'Suscritos activos', value: suscritos.toLocaleString('es-CL'), sub: `de ${contactos.length.toLocaleString('es-CL')} en la base total` },
+              { label: 'Base total', value: contactos.length.toLocaleString('es-CL'), sub: 'todos los estados' },
+              { label: 'Desuscritos', value: desuscritos.toLocaleString('es-CL'), sub: `${rebotados} marcados como rebotados` },
+              {
+                label: 'Rebote promedio mensual',
+                value: formatTasa(reboteMensual),
+                sub: tasasMensuales.length ? `${tasasMensuales.length} mes(es) con envíos` : 'Sin envíos todavía',
+              },
+            ]}
+          />
+
+          <Card title="Embudo acumulado — todas las campañas enviadas">
+            {datos.totales.enviados === 0 ? (
+              <Vacio>Todavía no hay envíos que medir.</Vacio>
+            ) : (
+              <>
+                <FilaEmbudo label="Enviados" valor={datos.totales.enviados} max={datos.totales.enviados} />
+                <FilaEmbudo label="Aperturas" valor={datos.totales.aperturas} max={datos.totales.enviados} />
+                <FilaEmbudo label="Clics" valor={datos.totales.clics} max={datos.totales.enviados} />
+              </>
+            )}
+          </Card>
+
+          <Card title="Desglose por etiqueta" pad={false}>
+            {porEtiqueta.length === 0 ? (
+              <Vacio>Ningún contacto tiene etiquetas asignadas todavía.</Vacio>
+            ) : (
+              <Tabla cols={[{ label: 'Etiqueta' }, { label: 'Contactos', num: true }]}>
+                {porEtiqueta.map((t) => (
+                  <tr key={t.tag}>
+                    <td className="crm-cell-name">{t.tag}</td>
+                    <td className="num">{t.cuantos.toLocaleString('es-CL')}</td>
+                  </tr>
+                ))}
+              </Tabla>
+            )}
+          </Card>
+
           <Card title="Acumulado de todas las campañas enviadas">
             {datos.campanas_enviadas === 0 ? (
               <Vacio>Todavía no hay campañas enviadas, así que no hay nada que medir.</Vacio>

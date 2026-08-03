@@ -12,9 +12,10 @@ import { Boton, Vacio, Pill, Tabla, formatTasa, formatFecha, estadoCampana } fro
 // están atadas a ese contenido, y editarla convertiría el historial en una
 // mentira. El backend lo rechaza igual — acá simplemente no se ofrece el
 // botón, para no invitar a un error que después no se puede deshacer.
-export function CampanasEmail({ onEditar, onNueva }: {
+export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
   onEditar: (campaignId: string) => void;
   onNueva: () => void;
+  onVerDetalle: (campaignId: string) => void;
 }) {
   const { handleUnauthorized } = useAuth();
   const [campanas, setCampanas] = useState<EmailCampaign[] | null>(null);
@@ -80,7 +81,14 @@ export function CampanasEmail({ onEditar, onNueva }: {
             const tasa = (n: unknown) =>
               c.status === 'sent' && enviados ? formatTasa((Number(n ?? 0) / enviados) * 100) : '—';
             return (
-              <tr key={c.campaign_id}>
+              // La fila entera abre el detalle, igual que en el panel
+              // principal. Los botones de la derecha paran la propagación
+              // para que "Eliminar" no termine abriendo la campaña.
+              <tr
+                key={c.campaign_id}
+                onClick={() => onVerDetalle(c.campaign_id)}
+                style={{ cursor: 'pointer' }}
+              >
                 <td>
                   <div className="crm-cell-name">{c.name || 'Sin nombre'}</div>
                   <div className="crm-cell-sub">{c.subject}</div>
@@ -91,7 +99,7 @@ export function CampanasEmail({ onEditar, onNueva }: {
                 <td className="num">{tasa(s.aperturas)}</td>
                 <td className="num">{tasa(s.clics)}</td>
                 <td className="num">{tasa(s.rebotes)}</td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <div className="crm-row-actions">
                     {c.status === 'draft' && <Boton sm onClick={() => onEditar(c.campaign_id)}>Retomar</Boton>}
                     {c.status === 'draft' && <Boton sm tipo="danger" onClick={() => borrar(c)}>Eliminar</Boton>}

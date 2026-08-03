@@ -10,6 +10,7 @@ import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { ResumenEmail } from './Email/Resumen';
 import { PendientesEmail } from './Email/Pendientes';
 import { CampanasEmail } from './Email/Campanas';
+import { CampanaDetalle } from './Email/CampanaDetalle';
 import { NuevaCampana } from './Email/NuevaCampana';
 import { AudienciasEmail } from './Email/Audiencias';
 import { TemplatesEmail } from './Email/Templates';
@@ -46,6 +47,10 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
   const [tab, setTab] = useState<Tab>('resumen');
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  // El detalle vive DENTRO de la pestaña Campañas, no como pestaña propia:
+  // en el panel principal es una ruta hija de campañas, y una pestaña extra
+  // que solo tiene sentido con una campaña elegida sobra en la barra.
+  const [detalleId, setDetalleId] = useState<string | null>(null);
 
   const [contacts, setContacts] = useState<EmailContact[] | null>(null);
   const [contactsLoading, setContactsLoading] = useState(true);
@@ -100,7 +105,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
             <button
               key={t.id}
               className={`crm-tab${tab === t.id ? ' active' : ''}`}
-              onClick={() => { setTab(t.id); if (t.id !== 'nueva') setEditandoId(null); }}
+              onClick={() => { setTab(t.id); setDetalleId(null); if (t.id !== 'nueva') setEditandoId(null); }}
             >
               {t.label}
             </button>
@@ -112,7 +117,9 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
         <ErrorBoundary nombre={`la sección ${TABS.find((t) => t.id === tab)?.label ?? ''}`} key={tab}>
           {tab === 'resumen' && <ResumenEmail />}
           {tab === 'pendientes' && <PendientesEmail />}
-          {tab === 'campanas' && <CampanasEmail onEditar={irANueva} onNueva={() => irANueva(null)} />}
+          {tab === 'campanas' && (detalleId
+            ? <CampanaDetalle campaignId={detalleId} onVolver={() => setDetalleId(null)} />
+            : <CampanasEmail onEditar={irANueva} onNueva={() => irANueva(null)} onVerDetalle={setDetalleId} />)}
           {tab === 'nueva' && (
             <NuevaCampana
               campaignId={editandoId}

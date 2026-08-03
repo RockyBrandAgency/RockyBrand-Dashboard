@@ -491,3 +491,21 @@ export interface EmailPendientes {
     por_cerrar: number;
   };
 }
+
+// Un destinatario del registro de envios (rockybrand-email-send-log): la
+// evidencia por persona de que salio, se abrio y se clickeo.
+export interface CampaignRecipient {
+  contact_email: string;
+  sent_at?: string;
+  opened?: boolean;
+  opened_at?: string;
+  clicked?: boolean;
+  clicked_at?: string;
+  clicked_links?: string[];
+  bounced?: boolean;
+}
+
+export interface EmailCampaignDetalle {
+  campana: EmailCampaign;
+  destinatarios: CampaignRecipient[];
+}

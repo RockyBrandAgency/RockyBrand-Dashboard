@@ -18,6 +18,7 @@ import type {
   EmailImportResult,
   SubjectCheck,
   EmailPendientes,
+  EmailCampaignDetalle,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -190,4 +191,15 @@ export function importEmailCsv(csv: string, vista_previa: boolean): Promise<Emai
 // y a tiempo en el otro.
 export function getEmailPendientes(): Promise<EmailPendientes> {
   return request('/dashboard/email/pendientes');
+}
+
+// El detalle con destinatarios uno por uno. Sale por la misma ruta que la
+// campana, con ?detalle=1: es el mismo recurso visto con mas profundidad, no
+// otro distinto.
+export function getEmailCampaignDetalle(id: string): Promise<EmailCampaignDetalle> {
+  return request(`/dashboard/email/campaigns?detalle=1&campaign_id=${encodeURIComponent(id)}`);
+}
+
+export function scheduleEmailCampaign(campaign_id: string, scheduled_at: string): Promise<{ ok: boolean }> {
+  return request('/dashboard/email/campaigns', 'POST', { accion: 'programar', campaign_id, scheduled_at });
 }
