@@ -5,6 +5,11 @@ import type { EmailContact } from '../../types';
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; bg: string; text: string }> = {
     subscribed: { label: 'Suscrito', bg: '#E3F5E8', text: '#1E7B3C' },
+    // `pending` lo introdujo la importación con doble opt-in (2026-08-03) y
+    // este mapa se quedó sin él: el cliente veía la palabra "pending" cruda
+    // en su propia pantalla. Ámbar y no verde a propósito - todavía NO recibe
+    // campañas, y pintarlo como suscrito haría creer que sí.
+    pending: { label: 'Sin confirmar', bg: '#FBF3E2', text: '#8A6116' },
     unsubscribed: { label: 'Dado de baja', bg: '#F2F2F2', text: '#6B6B6B' },
     bounced: { label: 'Rebotado', bg: '#FDECEC', text: '#B3261E' },
     complained: { label: 'Marcó como spam', bg: '#FDECEC', text: '#B3261E' },

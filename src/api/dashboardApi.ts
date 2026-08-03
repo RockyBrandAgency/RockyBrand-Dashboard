@@ -9,6 +9,14 @@ import type {
   MetricsReportResponse,
   EmailContact,
   EmailSegment,
+  EmailResumen,
+  EmailCampaign,
+  EmailTemplate,
+  EmailMetrics,
+  EmailInsights,
+  EmailJourneysResponse,
+  EmailImportResult,
+  SubjectCheck,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -107,4 +115,71 @@ export function sendTestEmail(subject: string, html_body: string, test_email: st
 
 export function sendEmailNow(subject: string, html_body: string, segment: EmailSegment, name?: string): Promise<{ ok: boolean; campaign_id: string }> {
   return request('/dashboard/email/send', 'POST', { subject, html_body, segment, name });
+}
+
+// Las 6 secciones de Email Marketing (2026-08-03). Mismo backend compartido
+// que el panel de staff: dos implementaciones distintas del mismo calculo
+// terminan mostrando dos numeros distintos y nadie sabe cual creer.
+export function getEmailResumen(): Promise<EmailResumen> {
+  return request('/dashboard/email/resumen');
+}
+
+export function getEmailCampaigns(): Promise<{ campanas: EmailCampaign[] }> {
+  return request('/dashboard/email/campaigns');
+}
+
+export function getEmailCampaign(id: string): Promise<{ campana: EmailCampaign }> {
+  return request(`/dashboard/email/campaigns?campaign_id=${encodeURIComponent(id)}`);
+}
+
+export function saveEmailCampaign(campana: Partial<EmailCampaign>): Promise<{ ok: boolean; campaign_id: string; asunto: SubjectCheck }> {
+  return request('/dashboard/email/campaigns', 'POST', campana);
+}
+
+export function deleteEmailCampaign(campaign_id: string): Promise<{ ok: boolean }> {
+  return request('/dashboard/email/campaigns', 'DELETE', { campaign_id });
+}
+
+export function getEmailTemplates(): Promise<{ templates: EmailTemplate[] }> {
+  return request('/dashboard/email/templates');
+}
+
+export function getEmailTemplate(id: string): Promise<{ template: EmailTemplate }> {
+  return request(`/dashboard/email/templates?template_id=${encodeURIComponent(id)}`);
+}
+
+export function saveEmailTemplate(t: Partial<EmailTemplate>): Promise<{ ok: boolean; template_id: string }> {
+  return request('/dashboard/email/templates', 'POST', t);
+}
+
+export function deleteEmailTemplate(template_id: string): Promise<{ ok: boolean }> {
+  return request('/dashboard/email/templates', 'DELETE', { template_id });
+}
+
+export function getEmailMetrics(): Promise<EmailMetrics> {
+  return request('/dashboard/email/metrics');
+}
+
+export function getEmailInsights(): Promise<EmailInsights> {
+  return request('/dashboard/email/insights');
+}
+
+export function getEmailJourneys(): Promise<EmailJourneysResponse> {
+  return request('/dashboard/email/journeys');
+}
+
+export function toggleEmailJourney(track_id: string, activo: boolean): Promise<{ ok: boolean }> {
+  return request('/dashboard/email/journeys', 'POST', { track_id, activo });
+}
+
+export function deleteEmailJourney(track_id: string): Promise<{ ok: boolean }> {
+  return request('/dashboard/email/journeys', 'DELETE', { track_id });
+}
+
+// vista_previa=true no escribe nada: devuelve el informe de que pasaria.
+// Importar una base sucia es la principal fuente de rebotes duros, y la
+// cuenta de SES es COMPARTIDA entre todos los clientes - una base mala de
+// uno le sube el bounce rate a todos.
+export function importEmailCsv(csv: string, vista_previa: boolean): Promise<EmailImportResult> {
+  return request('/dashboard/email/import', 'POST', { csv, vista_previa });
 }

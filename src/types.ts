@@ -313,3 +313,155 @@ export interface MetricsReportResponse {
   youtube: YoutubeMetrics;
   seo: SeoMetrics;
 }
+
+// --- Email Marketing: las 6 secciones (2026-08-03) -------------------------
+//
+// Las tasas son `number | null`, no `number`. El backend devuelve null cuando
+// no hay denominador, y esa distincion es el punto: un 0% con denominador 0
+// se lee como "malisimo" cuando en realidad es "todavia no se sabe".
+export interface SubjectCheck {
+  largo: number;
+  estado: 'vacio' | 'corto' | 'optimo' | 'largo' | 'problema';
+  avisos: string[];
+  optimo: [number, number];
+  visible_movil?: number;
+}
+
+export interface EmailAudiencia {
+  total: number;
+  activos_marketing: number;
+  por_estado: Record<string, number>;
+  etiquetas: { tag: string; contactos: number }[];
+  pendientes_confirmacion: number;
+}
+
+export interface EmailCampaignStats {
+  campaign_id: string;
+  name: string;
+  subject: string;
+  sent_at: string;
+  enviados: number;
+  open_rate: number | null;
+  click_rate: number | null;
+  bounce_rate: number | null;
+  complaint_rate: number | null;
+}
+
+export interface EmailUmbrales {
+  quejas_alerta: number;
+  quejas_critico: number;
+  rebotes_alerta: number;
+  rebotes_critico: number;
+}
+
+export interface EmailResumen {
+  audiencia: EmailAudiencia;
+  campanas_enviadas: number;
+  open_rate: number | null;
+  click_rate: number | null;
+  bounce_rate: number | null;
+  complaint_rate: number | null;
+  umbrales: EmailUmbrales;
+  ultimas: EmailCampaignStats[];
+}
+
+export interface EmailCampaign {
+  campaign_id: string;
+  name: string;
+  subject: string;
+  html_body: string;
+  template_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  sent_at: string;
+  segment?: EmailSegment;
+  consent_type?: string;
+  stats?: Record<string, number>;
+}
+
+export interface EmailTemplate {
+  template_id: string;
+  name: string;
+  html_body?: string;
+  updated_at: string;
+  tiene_unsubscribe: boolean;
+}
+
+export interface EmailMetrics {
+  campanas_enviadas: number;
+  totales: { enviados: number; aperturas: number; clics: number; rebotes: number; quejas: number };
+  open_rate: number | null;
+  click_rate: number | null;
+  bounce_rate: number | null;
+  complaint_rate: number | null;
+  umbrales: EmailUmbrales;
+  por_campana: EmailCampaignStats[];
+}
+
+// `suficiente: false` NO trae mejor_hora. La ausencia del campo es
+// deliberada del backend: recomendar un horario con 9 aperturas seria
+// inventar. La pantalla tiene que mostrar la nota, no un horario.
+export interface EmailInsights {
+  horario: {
+    aperturas_analizadas: number;
+    minimo_necesario: number;
+    suficiente: boolean;
+    nota?: string;
+    por_hora: { hora: number; aperturas: number }[];
+    mejor_hora?: number;
+    mejor_dia?: string;
+  };
+  asunto_guia: { min: number; optimo_max: number; visible_movil: number; max_duro: number };
+}
+
+export interface EmailJourneyStep {
+  step_id: string;
+  tipo: string;
+  template: string | null;
+  subject: string | null;
+  delay_horas: number | null;
+  categoria: string | null;
+  descripcion: string | null;
+  next_step: string | null;
+  if_true: string | null;
+  if_false: string | null;
+  condition_field: string | null;
+}
+
+export interface EmailJourney {
+  track_id: string;
+  descripcion: string | null;
+  trigger_event: string;
+  activo: boolean;
+  correos: number;
+  pasos: EmailJourneyStep[];
+}
+
+// `configurado: false` no es lo mismo que `journeys: []`. Uno significa "este
+// cliente nunca monto automatizaciones", el otro "las monto y no queda
+// ninguna". Decirle "sin automatizaciones" al primero es mentirle.
+export interface EmailJourneysResponse {
+  configurado: boolean;
+  version?: string;
+  actualizado?: string;
+  journeys: EmailJourney[];
+}
+
+export interface EmailImportResult {
+  vista_previa?: boolean;
+  importados?: number;
+  ya_existian?: number;
+  confirmaciones_encoladas?: number;
+  nota?: string;
+  muestra?: { email: string; name: string; tags: string[] }[];
+  informe: {
+    leidas: number;
+    validas: number;
+    descartadas: number;
+    email_invalido: string[];
+    duplicadas_en_archivo: string[];
+    sin_email: number;
+    truncado: boolean;
+  };
+}

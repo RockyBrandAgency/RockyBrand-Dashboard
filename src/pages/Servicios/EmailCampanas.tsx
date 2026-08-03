@@ -1,7 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AsyncState } from '../../components/AsyncState';
-import { KpiRow } from '../../components/KpiRow';
-import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { useAuth } from '../../context/AuthContext';
 import {
   getEmailContacts,
@@ -11,36 +8,37 @@ import {
   sendEmailNow,
   UnauthorizedError,
 } from '../../api/dashboardApi';
-import { EmailPublico } from './EmailPublico';
 import { EmailEnviar } from './EmailEnviar';
+import { ResumenEmail } from './Email/Resumen';
+import { CampanasEmail } from './Email/Campanas';
+import { AudienciasEmail } from './Email/Audiencias';
+import { TemplatesEmail } from './Email/Templates';
+import { MetricasEmail } from './Email/Metricas';
+import { AutomatizacionesEmail } from './Email/Automatizaciones';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 import type { EmailContact, EmailSegment } from '../../types';
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+type Tab = 'resumen' | 'campanas' | 'audiencias' | 'templates' | 'metricas' | 'automatizaciones' | 'enviar';
 
-function pct(part: number, total: number): string {
-  if (total <= 0) return '—';
-  return `${((part / total) * 100).toFixed(1)}%`;
-}
+// Plataforma de Email Marketing dentro del propio panel del cliente - pedido
+// explícito de Mato (2026-08-01, ampliado a las 6 secciones el 2026-08-03).
+// Se construye DENTRO del panel del cliente: nunca acceso a 05-panel-web, que
+// es la herramienta de staff. El aislamiento no depende de esta pantalla -
+// el client_id sale siempre del JWT en el backend, y estas pantallas no
+// pueden mandar uno aunque quisieran.
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'resumen', label: 'Resumen' },
+  { id: 'campanas', label: 'Campañas' },
+  { id: 'audiencias', label: 'Audiencias' },
+  { id: 'templates', label: 'Plantillas' },
+  { id: 'metricas', label: 'Métricas' },
+  { id: 'automatizaciones', label: 'Automatizaciones' },
+  { id: 'enviar', label: 'Enviar' },
+];
 
-type Tab = 'resumen' | 'publico' | 'enviar';
-
-// Plataforma de Email Marketing dentro del propio panel del cliente -
-// pedido explícito de Mato (2026-08-01): "vea las métricas y un botón
-// donde solo vea el panel de administración... enviar un email manual...
-// agregar manualmente un público y segmentarlo". Alcance confirmado: se
-// construye DENTRO del panel del cliente (nunca acceso a 05-panel-web,
-// la herramienta de staff) - mismo aislamiento de siempre, client_id
-// siempre del JWT en el backend.
 export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
   const [tab, setTab] = useState<Tab>('resumen');
-  const { data, loading, error, reload } = useMetricsReport();
-  const email = data?.email;
 
   const [contacts, setContacts] = useState<EmailContact[] | null>(null);
   const [contactsLoading, setContactsLoading] = useState(true);
@@ -83,12 +81,6 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
     await sendEmailNow(subject, htmlBody, segment, name);
   };
 
-  const TABS: { id: Tab; label: string }[] = [
-    { id: 'resumen', label: 'Resumen' },
-    { id: 'publico', label: 'Público' },
-    { id: 'enviar', label: 'Enviar' },
-  ];
-
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
@@ -99,81 +91,43 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
           <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Email Marketing</h1>
         </div>
 
-        <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  all: 'unset',
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: active ? 700 : 500,
-                  color: active ? '#fff' : 'var(--text-muted)',
-                  background: active ? 'var(--primary)' : 'var(--white)',
-                  cursor: 'pointer',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {t.label}
-              </button>
-            );
-          })}
+        {/* Con 7 pestañas ya no entran en una fila en móvil: se dejan
+            desbordar horizontalmente en su propio contenedor en vez de
+            empujar el ancho de la página. */}
+        <div style={{ overflowX: 'auto', marginBottom: 24, paddingBottom: 2 }}>
+          <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  style={{
+                    all: 'unset',
+                    padding: '8px 16px',
+                    fontSize: 13,
+                    fontWeight: active ? 700 : 500,
+                    color: active ? '#fff' : 'var(--text-muted)',
+                    background: active ? 'var(--primary)' : 'var(--white)',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {tab === 'resumen' && (
-          <AsyncState loading={loading} error={error} onRetry={reload}>
-            {email && (
-              <>
-                <div style={{ marginBottom: 28 }}>
-                  <KpiRow
-                    items={[
-                      { label: 'Enviados', value: email.enviados },
-                      { label: 'Aperturas', value: email.aperturas },
-                      { label: 'Clics', value: email.clics },
-                      { label: 'Rebotes', value: email.rebotes },
-                    ]}
-                  />
-                </div>
-
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', padding: '18px 16px 6px' }}>Campañas</div>
-                  {email.campaigns.length === 0 ? (
-                    <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>Sin campañas en el rango</div>
-                  ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                            <th style={{ textAlign: 'left', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Campaña</th>
-                            <th style={{ textAlign: 'left', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Fecha</th>
-                            <th style={{ textAlign: 'right', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Enviados</th>
-                            <th style={{ textAlign: 'right', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Open rate</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {email.campaigns.map((c, i) => (
-                            <tr key={i} style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                              <td style={{ padding: '10px 16px', color: 'var(--text)' }}>{c.name ?? 'Sin nombre'}</td>
-                              <td style={{ padding: '10px 16px', color: 'var(--text-muted)' }}>{formatDate(c.sent_at)}</td>
-                              <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--text)' }}>{c.enviados}</td>
-                              <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--text)', fontWeight: 700 }}>{pct(c.aperturas, c.enviados)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </AsyncState>
-        )}
-
-        {tab === 'publico' && (
-          <EmailPublico
+        {/* Cada sección va envuelta por separado: si una revienta al dibujar,
+            se cae ESA y no las otras seis. La pestaña sigue navegable. */}
+        <ErrorBoundary nombre={`la sección ${TABS.find((t) => t.id === tab)?.label ?? ''}`} key={tab}>
+        {tab === 'resumen' && <ResumenEmail />}
+        {tab === 'campanas' && <CampanasEmail />}
+        {tab === 'audiencias' && (
+          <AudienciasEmail
             contacts={contacts}
             loading={contactsLoading}
             error={contactsError}
@@ -182,8 +136,11 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
             onDelete={handleDeleteContact}
           />
         )}
-
+        {tab === 'templates' && <TemplatesEmail />}
+        {tab === 'metricas' && <MetricasEmail />}
+        {tab === 'automatizaciones' && <AutomatizacionesEmail />}
         {tab === 'enviar' && <EmailEnviar contacts={contacts} onSendTest={handleSendTest} onSendNow={handleSendNow} />}
+        </ErrorBoundary>
       </div>
     </div>
   );
