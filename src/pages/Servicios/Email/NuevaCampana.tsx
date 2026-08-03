@@ -45,7 +45,6 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
   const [campana, setCampana] = useState<Partial<EmailCampaign>>({ name: '', subject: '', html_body: '', template_id: '' });
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [cargando, setCargando] = useState(!!campaignId);
-  const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [correoPrueba, setCorreoPrueba] = useState('');
   const [avisoPrueba, setAvisoPrueba] = useState<string | null>(null);
@@ -92,7 +91,6 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
     if (accion === 'programar' && !programarPara) { setError('Elige la fecha y hora de envío.'); return; }
 
     setOcupado(accion);
-    setGuardando(accion === 'guardar');
     setError(null);
     try {
       const conSegmento = { ...campana, segment: segmentoDesde(audiencia) };
@@ -113,7 +111,6 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
       setError(e instanceof Error ? e.message : 'No se pudo completar la acción.');
     } finally {
       setOcupado(null);
-      setGuardando(false);
     }
   }
 
