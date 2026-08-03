@@ -19,6 +19,9 @@ import type {
   SubjectCheck,
   EmailPendientes,
   EmailCampaignDetalle,
+  ContentPiecesResponse,
+  ContentPiece,
+  HorarioSugerido,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -184,6 +187,34 @@ export function deleteEmailJourney(track_id: string): Promise<{ ok: boolean }> {
 // uno le sube el bounce rate a todos.
 export function importEmailCsv(csv: string, vista_previa: boolean): Promise<EmailImportResult> {
   return request('/dashboard/email/import', 'POST', { csv, vista_previa });
+}
+
+
+// ------------------------------- aprobación de contenido de redes --
+
+export async function getContentPieces(filtros?: {
+  estado?: string; plataforma?: string; desde?: string; hasta?: string;
+}): Promise<ContentPiecesResponse> {
+  const qs = new URLSearchParams();
+  Object.entries(filtros || {}).forEach(([k, v]) => { if (v) qs.set(k, v); });
+  const sufijo = qs.toString() ? `?${qs}` : '';
+  return request<ContentPiecesResponse>(`/dashboard/content/pieces${sufijo}`, 'GET');
+}
+
+export async function getHorarioSugerido(): Promise<HorarioSugerido> {
+  return request<HorarioSugerido>('/dashboard/content/timing', 'GET');
+}
+
+export async function aprobarPieza(pieceId: string, comentario = ''):
+  Promise<{ ok: boolean; pieza: ContentPiece; arte_solicitada: boolean }> {
+  return request(`/dashboard/content/pieces/${encodeURIComponent(pieceId)}/approve`, 'POST', { comentario });
+}
+
+// El comentario es obligatorio y lo valida el backend, no esta función: una
+// regla que vive solo en el cliente se la saltea cualquier otro llamador.
+export async function rechazarPieza(pieceId: string, comentario: string):
+  Promise<{ ok: boolean; pieza: ContentPiece }> {
+  return request(`/dashboard/content/pieces/${encodeURIComponent(pieceId)}/reject`, 'POST', { comentario });
 }
 
 // Mismo calculo que el panel de staff, no una copia: el backend lo resuelve

@@ -106,7 +106,7 @@ export interface DisponibilidadResponse {
   nota?: string;
 }
 
-export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing';
+export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing' | 'content_approval';
 
 export type ClientServices = Record<ServiceKey, boolean>;
 
@@ -464,6 +464,95 @@ export interface EmailImportResult {
     sin_email: number;
     truncado: boolean;
   };
+}
+
+
+// --------------------------------------- aprobación de contenido de redes --
+// Espeja el esquema real de rockybrand-content-pieces. Solo cubre contenido
+// PUBLICABLE que producen Dave y Jimi: los reportes de Neil/Slash/Cameron y
+// las directivas de Rox son informes internos y no pasan por acá.
+
+export interface AdvertenciaPieza {
+  regla: string;
+  plataforma: string;
+  formato: string;
+  limite: number | null;
+  valor: number | string;
+  exceso: number | null;
+  mensaje: string;
+}
+
+export interface ActivoVisual {
+  activos: { nombre_archivo: string; justificacion: string | null }[];
+  formato_generado?: string;
+  generado_at?: string;
+  nota?: string;
+}
+
+export interface Adaptacion {
+  plataforma: string;
+  formato: string;
+  headline: string;
+  cuerpo: string;
+  cta?: string;
+  hashtags?: string[];
+  duracion_seg?: number;
+  nota_visual_para_art_director?: string;
+  advertencias?: AdvertenciaPieza[];
+  activo_visual?: ActivoVisual | null;
+}
+
+export interface RevisionEntry {
+  quien: string;
+  cuando: string;
+  decision: 'aprobada' | 'rechazada';
+  comentario: string;
+}
+
+export type EstadoPieza = 'pendiente' | 'aprobada' | 'rechazada' | 'publicada';
+
+export interface ContentPiece {
+  client_id: string;
+  piece_id: string;
+  generado_por: string;
+  generated_at: string;
+  fecha_publicacion_propuesta: string;
+  objetivo: string;
+  concepto: string;
+  estado: EstadoPieza;
+  adaptaciones: Adaptacion[];
+  historial_revision: RevisionEntry[];
+  arte_generado_at?: string;
+  pilar?: string;
+  validacion?: {
+    advertencias_total: number;
+    reglas_sin_verificar: string[];
+    specs_actualizadas_en: string | null;
+  };
+}
+
+export interface ContentPiecesResponse {
+  piezas: ContentPiece[];
+  total: number;
+  pendientes: number;
+}
+
+// Siempre la misma forma, con o sin datos suficientes. `hay_recomendacion`
+// es lo primero que hay que mirar: cuando es false, `mensaje` ya trae el
+// texto honesto con el N real y la vista no redacta nada.
+export interface HorarioSugerido {
+  hay_recomendacion: boolean;
+  publicaciones_analizadas: number;
+  minimo_requerido?: number;
+  mensaje?: string;
+  franja?: string;
+  publicaciones_en_la_franja?: number;
+  rendimiento_promedio_franja?: number;
+  rendimiento_promedio_resto?: number;
+  diferencia_pct?: number | null;
+  detalle_por_franja?: { franja: string; publicaciones: number; rendimiento_promedio: number }[];
+  metrica?: string;
+  fuente?: string;
 }
 
 // Pendientes de gestion: el MISMO calculo que ve el equipo de RockyBrand en

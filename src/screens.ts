@@ -22,6 +22,7 @@ export type Screen =
   | 'metricas-tiktok'
   | 'servicio-pms-reservas'
   | 'servicio-email-campanas'
+  | 'servicio-contenido-revision'
   | 'settings'
   | 'login';
 
@@ -79,4 +80,8 @@ export const NAV_SECTIONS: NavSection[] = [
 export const SERVICE_ENTRY_SCREEN: Partial<Record<ServiceKey, Screen>> = {
   pms: 'servicio-pms-reservas',
   email_marketing: 'servicio-email-campanas',
+  // Aprobación de contenido de redes (2026-08-03). Entra como servicio
+  // propio y no dentro de "Agentes de IA": es una capacidad que se
+  // contrata aparte, y su gate en el backend es services.content_approval.
+  content_approval: 'servicio-contenido-revision',
 };

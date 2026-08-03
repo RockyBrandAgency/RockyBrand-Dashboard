@@ -7,6 +7,7 @@ import { LoginScreen } from './pages/LoginScreen';
 import { Overview } from './pages/Overview';
 import { DetailScreen } from './pages/DetailScreen';
 import { ReservasResumen } from './pages/Reservas/ReservasResumen';
+import { RevisionContenido } from './pages/Contenido/RevisionContenido';
 import { EmailCampanas } from './pages/Servicios/EmailCampanas';
 import { MetricasResumen } from './pages/Metricas/MetricasResumen';
 import { MetricasFacebook } from './pages/Metricas/MetricasFacebook';
@@ -44,7 +45,7 @@ function isScreenVisible(screen: Screen, clientServices: ClientServices | null):
     const item = section.items.find((i) => i.id === screen);
     if (item) return isVisible(item, clientServices);
   }
-  if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas') return isServiceEntryVisible(screen, clientServices);
+  if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas' || screen === 'servicio-contenido-revision') return isServiceEntryVisible(screen, clientServices);
   return true;
 }
 
@@ -110,6 +111,7 @@ function AuthenticatedShell() {
             {screen === 'metricas-tiktok' && <MetricasTiktok isDesktop={isDesktop} />}
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
             {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}
+            {screen === 'servicio-contenido-revision' && <RevisionContenido />}
             {screen === 'settings' && <SettingsScreen isDesktop={isDesktop} />}
           </>
         )}
