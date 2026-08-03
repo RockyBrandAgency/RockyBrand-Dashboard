@@ -66,13 +66,24 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
         <AsyncState loading={loading} error={error} onRetry={load}>
           {s && (
             <>
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>
-                  {new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </div>
-                <h1 style={{ margin: 0, fontSize: isDesktop ? 30 : 24, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
+                  gap: 12,
+                  paddingBottom: 'var(--space-7)',
+                  borderBottom: '1px solid var(--border)',
+                  marginBottom: 'var(--space-8)',
+                }}
+              >
+                <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                   {greetingByHour()}
                 </h1>
+                <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+                  {new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </div>
               </div>
 
               {conBanderas > 0 && (
@@ -87,19 +98,15 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                     boxSizing: 'border-box',
                     cursor: 'pointer',
                     background: STATUS.atencion.tagBg,
-                    border: '1px solid #F5C87A',
-                    borderLeft: `4px solid ${STATUS.atencion.dot}`,
-                    borderRadius: 10,
-                    padding: '14px 18px',
-                    marginBottom: 28,
+                    borderRadius: 'var(--radius-md)',
+                    padding: 'var(--space-5) var(--space-7)',
+                    marginBottom: 'var(--space-6)',
                   }}
                 >
-                  <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: STATUS.atencion.tagText }}>1 tema requiere tu atención</div>
-                    <div style={{ fontSize: 12, color: STATUS.atencion.tagText, opacity: 0.75, marginTop: 2 }}>
-                      Llegadas próximas 48 hrs — {conBanderas} huésped{conBanderas === 1 ? '' : 'es'} con indicaciones especiales
-                    </div>
+                  <span style={{ fontSize: 16, flexShrink: 0, color: STATUS.atencion.dot }}>▲</span>
+                  <div style={{ flex: 1, fontSize: 13, color: STATUS.atencion.tagText }}>
+                    {conBanderas} huésped{conBanderas === 1 ? '' : 'es'} con indicaciones especiales llegan en las próximas 48 horas.
+                    Haz clic para ver detalles.
                   </div>
                   <span style={{ fontSize: 16, color: STATUS.atencion.dot, flexShrink: 0, fontWeight: 700 }}>→</span>
                 </button>
@@ -112,22 +119,22 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                   gap: 12,
                   background: 'var(--white)',
                   border: '1px solid var(--border)',
-                  borderLeft: '4px solid var(--primary)',
-                  borderRadius: 10,
-                  padding: '14px 18px',
-                  marginBottom: 28,
+                  borderRadius: 'var(--radius-md)',
+                  padding: 'var(--space-5) var(--space-7)',
+                  marginBottom: 'var(--space-8)',
+                  boxShadow: 'var(--shadow-card)',
                 }}
               >
-                <span style={{ fontSize: 20, flexShrink: 0 }}>📝</span>
-                <div style={{ fontSize: 14, color: 'var(--text)' }}>
-                  Esta semana <strong>{s.formulario_reservas_7d.cantidad}</strong>{' '}
-                  {s.formulario_reservas_7d.cantidad === 1 ? 'usuario completó' : 'usuarios completaron'} el formulario de reservas
+                <span style={{ fontSize: 16, flexShrink: 0, color: 'var(--status-bien-dot)' }}>✓</span>
+                <div style={{ fontSize: 13, color: 'var(--text)' }}>
+                  {s.formulario_reservas_7d.cantidad}{' '}
+                  {s.formulario_reservas_7d.cantidad === 1 ? 'usuario completó' : 'usuarios completaron'} el formulario de reservas esta semana.
                 </div>
               </div>
 
-              <div style={{ marginBottom: 40 }}>
-                <SectionHead icon="🏠">Ocupación</SectionHead>
-                <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 12 }}>
+              <div style={{ marginBottom: 'var(--space-10)' }}>
+                <SectionHead>Ocupación de Habitaciones</SectionHead>
+                <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 'var(--space-6)' }}>
                   <MetricCard
                     title="Ocupación próximos 30 días"
                     estado={s.ocupacion_30d.estado}
@@ -141,14 +148,14 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                     sub={formatMonto(s.reservas_nuevas_7d.valor.monto_por_moneda)}
                   />
                 </div>
-                <div style={{ marginTop: 14 }}>
+                <div style={{ marginTop: 'var(--space-6)' }}>
                   <RoomGrid isDesktop={isDesktop} />
                 </div>
               </div>
 
-              <div style={{ marginBottom: 40 }}>
-                <SectionHead icon="⚙️">Operación</SectionHead>
-                <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 12 }}>
+              <div style={{ marginBottom: 'var(--space-10)' }}>
+                <SectionHead>Operación</SectionHead>
+                <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 'var(--space-6)' }}>
                   <MetricCard
                     title="Llegadas próximas 48 hrs"
                     estado={s.llegadas_48h.estado}

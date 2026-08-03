@@ -14,10 +14,10 @@ function formatDateShort(iso: string): string {
 
 function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em' }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginTop: 6, letterSpacing: '-0.01em' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 3 }}>{sub}</div>}
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', boxShadow: 'var(--shadow-card)' }}>
+      <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{label}</div>
+      <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--text)', marginTop: 8, letterSpacing: '-0.01em' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
@@ -65,8 +65,8 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
-          title="Facebook"
-          subtitle={fb?.nombre_pagina}
+          breadcrumb="Métricas > Facebook"
+          title={fb?.nombre_pagina ? `Facebook — ${fb.nombre_pagina}` : 'Métricas Facebook'}
           isDesktop={isDesktop}
           days={days}
           onDaysChange={setDays}
@@ -77,7 +77,7 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
         <AsyncState loading={loading} error={error} onRetry={reload}>
           {fb && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, 1fr)' : 'repeat(1, 1fr)', gap: 12, marginBottom: 28 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, 1fr)' : 'repeat(1, 1fr)', gap: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
                 <KpiCard
                   label="Seguidores netos de la Página"
                   value={signedOrDash(fb.cambio_neto_7d)}
@@ -87,8 +87,8 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
                 <MetricNotAvailable label="Mensajes recibidos" reason="Requiere el permiso pages_messaging, que no tenemos hoy." />
               </div>
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Seguidores en el tiempo</div>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-6)' }}>Seguidores en el tiempo</div>
                 <TrendChart
                   points={fb.snapshots.map((s) => ({ fecha: s.fecha, valor: s.seguidores }))}
                   color="#1877F2"
@@ -98,8 +98,8 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
                 />
               </div>
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Visualizaciones de página</div>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', boxShadow: 'var(--shadow-card)' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-6)' }}>Visualizaciones de página</div>
                 <TrendChart
                   points={fb.visualizaciones_snapshots.map((s) => ({ fecha: s.fecha, valor: s.visualizaciones }))}
                   color="#42A5F5"

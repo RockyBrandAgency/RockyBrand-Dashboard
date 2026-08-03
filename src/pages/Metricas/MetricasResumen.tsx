@@ -119,6 +119,7 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
+          breadcrumb="Métricas"
           title="Resumen"
           isDesktop={isDesktop}
           days={days}

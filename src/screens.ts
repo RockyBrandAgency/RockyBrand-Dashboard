@@ -26,7 +26,7 @@ export type Screen =
   | 'settings'
   | 'login';
 
-export const SIDEBAR_W = 220;
+export const SIDEBAR_W = 280;
 
 // serviceKeys: de qué servicio(s) depende ver este item - visible si
 // CUALQUIERA de los listados está contratado (mismo criterio "OR" que ya

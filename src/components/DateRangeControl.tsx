@@ -12,7 +12,15 @@ const PRESETS: { days: DateRangeDays; label: string }[] = [
 // precision que la API no tiene.
 export function DateRangeControl({ value, onChange }: { value: DateRangeDays; onChange: (days: DateRangeDays) => void }) {
   return (
-    <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+    <div
+      style={{
+        display: 'inline-flex',
+        background: 'var(--surface-2)',
+        borderRadius: 'var(--radius-md)',
+        padding: 4,
+        flexShrink: 0,
+      }}
+    >
       {PRESETS.map((p) => {
         const active = value === p.days;
         return (
@@ -21,13 +29,16 @@ export function DateRangeControl({ value, onChange }: { value: DateRangeDays; on
             onClick={() => onChange(p.days)}
             style={{
               all: 'unset',
-              padding: '7px 12px',
-              fontSize: 12,
-              fontWeight: active ? 700 : 500,
-              color: active ? '#fff' : 'var(--text-muted)',
-              background: active ? 'var(--primary)' : 'var(--white)',
-              cursor: 'pointer',
               boxSizing: 'border-box',
+              padding: '6px 16px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 13,
+              fontWeight: active ? 600 : 500,
+              color: active ? 'var(--text)' : 'var(--text-sub)',
+              background: active ? 'var(--white)' : 'transparent',
+              boxShadow: active ? '0 1px 1px rgba(0,0,0,0.04)' : 'none',
+              cursor: 'pointer',
+              transition: 'background 0.12s, color 0.12s',
             }}
           >
             {p.label}

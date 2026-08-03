@@ -1,19 +1,8 @@
 export function SectionHead({ children, icon }: { children: string; icon?: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, marginTop: 4 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--space-6)' }}>
       {icon && <span style={{ fontSize: 14 }}>{icon}</span>}
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 800,
-          letterSpacing: '0.16em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-        }}
-      >
-        {children}
-      </span>
-      <div style={{ flex: 1, height: 1, background: 'var(--border-soft)' }} />
+      <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.005em' }}>{children}</h2>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { DownloadIcon } from './icons/RockyIcons';
+
 export function ExportButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
     <button
@@ -5,22 +7,24 @@ export function ExportButton({ onClick, disabled }: { onClick: () => void; disab
       disabled={disabled}
       style={{
         all: 'unset',
+        boxSizing: 'border-box',
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '7px 14px',
-        fontSize: 12,
-        fontWeight: 700,
-        color: disabled ? 'var(--text-muted)' : '#fff',
-        background: disabled ? 'var(--border)' : 'var(--primary)',
-        borderRadius: 8,
+        gap: 8,
+        padding: '8px 16px',
+        fontSize: 13,
+        fontWeight: 600,
+        color: disabled ? 'var(--text-faint)' : 'var(--text-sub)',
+        background: 'var(--white)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)',
         cursor: disabled ? 'default' : 'pointer',
-        boxSizing: 'border-box',
         flexShrink: 0,
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      ⬇ Exportar
+      <DownloadIcon size={14} />
+      Exportar CSV
     </button>
   );
 }

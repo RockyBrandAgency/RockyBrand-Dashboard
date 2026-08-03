@@ -6,9 +6,9 @@ export function Card({ children, style }: { children: ReactNode; style?: CSSProp
       style={{
         background: 'var(--white)',
         border: '1px solid var(--border)',
-        borderRadius: 12,
-        padding: '20px 22px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        borderRadius: 'var(--radius-md)',
+        padding: 'var(--space-8)',
+        boxShadow: 'var(--shadow-card)',
         ...style,
       }}
     >
