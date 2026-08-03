@@ -465,3 +465,29 @@ export interface EmailImportResult {
     truncado: boolean;
   };
 }
+
+// Pendientes de gestion: el MISMO calculo que ve el equipo de RockyBrand en
+// su panel (email_crm_service.pendientes en el backend). `horas_restantes_sla`
+// es `number | null`: null significa que el contacto no tiene fecha de
+// creacion, no que le queden 0 horas.
+export interface PendienteSinResponder {
+  email: string;
+  name: string;
+  created_at: string;
+  horas_restantes_sla: number | null;
+  vencido: boolean;
+}
+
+export interface EmailPendientes {
+  sin_responder: PendienteSinResponder[];
+  sin_confirmar: { email: string; name: string; tipo_programa: string; fecha_llegada: string }[];
+  sin_registrar_vuelo: { email: string; name: string; fecha_llegada: string }[];
+  por_cerrar: { email: string; name: string; fecha_salida: string }[];
+  totales: {
+    sin_responder: number;
+    vencidos_sla: number;
+    sin_confirmar: number;
+    sin_registrar_vuelo: number;
+    por_cerrar: number;
+  };
+}

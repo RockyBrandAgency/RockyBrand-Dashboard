@@ -3,7 +3,7 @@ import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailTemplates, getEmailTemplate, saveEmailTemplate, deleteEmailTemplate, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailTemplate } from '../../../types';
-import { Panel, Boton, Campo, inputStyle, Vacio, Aviso, Tabla, td, tdMuted, trStyle, formatFecha } from './shared';
+import { Card, Boton, Campo, Vacio, Aviso, Tabla, formatFecha } from './shared';
 
 // Ver, editar, borrar, agregar y previsualizar plantillas.
 //
@@ -79,12 +79,12 @@ export function TemplatesEmail() {
     const pesoKb = new Blob([html]).size / 1024;
 
     return (
-      <Panel
+      <Card
         title={editando.template_id ? `Editar: ${editando.name}` : 'Nueva plantilla'}
         right={
-          <span style={{ display: 'inline-flex', gap: 8 }}>
-            <Boton tipo={vista === 'editor' ? 'primario' : 'normal'} onClick={() => setVista('editor')}>Editor</Boton>
-            <Boton tipo={vista === 'previa' ? 'primario' : 'normal'} onClick={() => setVista('previa')}>Vista previa</Boton>
+          <span className="crm-row-actions">
+            <Boton tipo={vista === 'editor' ? 'primary' : 'ghost'} onClick={() => setVista('editor')}>Editor</Boton>
+            <Boton tipo={vista === 'previa' ? 'primary' : 'ghost'} onClick={() => setVista('previa')}>Vista previa</Boton>
           </span>
         }
       >
@@ -104,13 +104,13 @@ export function TemplatesEmail() {
         )}
 
         <Campo label="Nombre">
-          <input style={inputStyle} value={editando.name ?? ''} onChange={(e) => setEditando({ ...editando, name: e.target.value })} />
+          <input className="crm-input" value={editando.name ?? ''} onChange={(e) => setEditando({ ...editando, name: e.target.value })} />
         </Campo>
 
         {vista === 'editor' ? (
           <Campo label="HTML" hint="Marcadores disponibles: {{name}} · {{unsubscribe_link}}">
             <textarea
-              style={{ ...inputStyle, minHeight: 320, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12 }}
+              className="crm-input mono" style={{ minHeight: 320 }}
               value={html}
               onChange={(e) => setEditando({ ...editando, html_body: e.target.value })}
             />
@@ -131,44 +131,44 @@ export function TemplatesEmail() {
         )}
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <Boton tipo="primario" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</Boton>
+          <Boton tipo="primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</Boton>
           <Boton onClick={() => { setEditando(null); setErrorForm(null); }}>Cancelar</Boton>
         </div>
-      </Panel>
+      </Card>
     );
   }
 
   return (
     <AsyncState loading={loading} error={error} onRetry={cargar}>
-      <Panel
+      <Card
         title={`Plantillas (${templates?.length ?? 0})`}
-        right={<Boton tipo="primario" onClick={() => { setVista('editor'); setEditando({ name: '', html_body: '' }); }}>Nueva plantilla</Boton>}
+        right={<Boton tipo="primary" onClick={() => { setVista('editor'); setEditando({ name: '', html_body: '' }); }}>Nueva plantilla</Boton>}
         pad={false}
       >
         {!templates || templates.length === 0 ? (
           <Vacio>Sin plantillas todavía.</Vacio>
         ) : (
-          <Tabla cols={[{ label: 'Plantilla' }, { label: 'Modificada' }, { label: 'Enlace de baja' }, { label: '', alinear: 'right' }]}>
+          <Tabla cols={[{ label: 'Plantilla' }, { label: 'Modificada' }, { label: 'Enlace de baja' }, { label: '' }]}>
             {templates.map((t) => (
-              <tr key={t.template_id} style={trStyle}>
-                <td style={{ ...td, fontWeight: 600 }}>{t.name}</td>
-                <td style={tdMuted}>{formatFecha(t.updated_at)}</td>
-                <td style={td}>
+              <tr key={t.template_id}>
+                <td className="crm-cell-name">{t.name}</td>
+                <td className="crm-cell-sub">{formatFecha(t.updated_at)}</td>
+                <td>
                   <span style={{ color: t.tiene_unsubscribe ? '#216b35' : '#b42318', fontWeight: 600, fontSize: 12 }}>
                     {t.tiene_unsubscribe ? 'Sí' : 'Falta'}
                   </span>
                 </td>
-                <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <span style={{ display: 'inline-flex', gap: 8 }}>
+                <td>
+                  <span className="crm-row-actions">
                     <Boton onClick={() => abrir(t)}>Abrir</Boton>
-                    <Boton tipo="peligro" onClick={() => borrar(t)}>Borrar</Boton>
+                    <Boton tipo="danger" onClick={() => borrar(t)}>Borrar</Boton>
                   </span>
                 </td>
               </tr>
             ))}
           </Tabla>
         )}
-      </Panel>
+      </Card>
     </AsyncState>
   );
 }

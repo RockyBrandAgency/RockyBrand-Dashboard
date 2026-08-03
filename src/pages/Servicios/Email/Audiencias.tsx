@@ -1,30 +1,41 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailResumen, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailContact, EmailAudiencia } from '../../../types';
-import { EmailPublico } from '../EmailPublico';
 import { ImportarCsv } from './ImportarCsv';
-import { Panel, Aviso } from './shared';
+import { Card, Boton, Campo, Aviso, Vacio, Pill, Tabla, estadoContacto, formatFecha } from './shared';
 
-// El público, con dos cosas que antes no estaban: de dónde salió cada
-// contacto (estado de suscripción) y una vía para cargar una base entera.
+// Misma pantalla que Audiencias del panel principal: barra de segmentos a la
+// izquierda, buscador y las DOS vías de alta arriba (a mano o por archivo),
+// tabla de contactos abajo.
 //
-// La distinción entre "total" y "puede recibir marketing" es el número que
-// más importa de esta pantalla. Alguien que está en la lista pero no confirmó
-// su suscripción NO recibe campañas, y mostrar solo el total haría creer que
-// el alcance es mayor de lo que es.
+// La distinción entre "Todos" y "Suscritos activos" es el número que más
+// importa acá: alguien que está en la lista pero no confirmó NO recibe
+// campañas, y mirar solo el total hace creer que el alcance es mayor.
 
-const GLOSA_ESTADO: Record<string, { label: string; nota: string; color: string }> = {
-  subscribed: { label: 'Suscritos', nota: 'reciben campañas', color: '#216b35' },
-  pending: { label: 'Sin confirmar', nota: 'no reciben campañas hasta confirmar', color: '#8a6116' },
-  unsubscribed: { label: 'Dados de baja', nota: 'pidieron no recibir más', color: 'var(--text-muted)' },
-  bounced: { label: 'Rebotados', nota: 'la dirección no existe o rechaza', color: '#b42318' },
-  complained: { label: 'Marcaron spam', nota: 'nunca se les vuelve a escribir', color: '#b42318' },
-};
+interface Segmento {
+  key: string;
+  label: string;
+  filtro: (c: EmailContact) => boolean;
+}
 
-export function AudienciasEmail({
-  contacts, loading, error, onReload, onAdd, onDelete,
-}: {
+// Mismos segmentos que managementSegments() en el panel principal.
+function segmentos(contacts: EmailContact[]): Segmento[] {
+  const base: Segmento[] = [
+    { key: 'all', label: 'Todos', filtro: () => true },
+    { key: 'subscribed', label: 'Suscritos activos', filtro: (c) => c.status === 'subscribed' },
+    { key: 'pending', label: 'Sin confirmar', filtro: (c) => c.status === 'pending' },
+    { key: 'unsubscribed', label: 'No suscritos', filtro: (c) => c.status === 'unsubscribed' },
+    { key: 'bounced', label: 'Rebotados', filtro: (c) => c.status === 'bounced' },
+    { key: 'complained', label: 'Marcaron spam', filtro: (c) => c.status === 'complained' },
+  ];
+  const tags = new Set<string>();
+  contacts.forEach((c) => (c.tags || []).forEach((t) => tags.add(t)));
+  Array.from(tags).sort().forEach((t) => base.push({ key: `tag:${t}`, label: t, filtro: (c) => (c.tags || []).includes(t) }));
+  return base;
+}
+
+export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
   contacts: EmailContact[] | null;
   loading: boolean;
   error: string | null;
@@ -34,82 +45,137 @@ export function AudienciasEmail({
 }) {
   const { handleUnauthorized } = useAuth();
   const [audiencia, setAudiencia] = useState<EmailAudiencia | null>(null);
+  const [segActivo, setSegActivo] = useState('all');
+  const [busqueda, setBusqueda] = useState('');
+  const [verForm, setVerForm] = useState(false);
+  const [verImport, setVerImport] = useState(false);
+  const [nombre, setNombre] = useState('');
+  const [correo, setCorreo] = useState('');
+  const [tags, setTags] = useState('');
+  const [errorForm, setErrorForm] = useState<string | null>(null);
 
   const cargarResumen = useCallback(() => {
     getEmailResumen()
       .then((r) => setAudiencia(r.audiencia))
       .catch((e: unknown) => {
-        if (e instanceof UnauthorizedError) handleUnauthorized();
         // Un fallo acá no debe tapar la lista de contactos, que es lo
         // principal de la pantalla: se omite el resumen y ya.
+        if (e instanceof UnauthorizedError) handleUnauthorized();
       });
   }, [handleUnauthorized]);
 
   useEffect(cargarResumen, [cargarResumen]);
 
+  const lista = contacts ?? [];
+  const segs = useMemo(() => segmentos(lista), [lista]);
+  const seg = segs.find((s) => s.key === segActivo) ?? segs[0];
+  const filtrados = lista.filter(seg.filtro).filter((c) => {
+    const q = busqueda.toLowerCase();
+    return !q || (c.email || '').toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q);
+  });
+
   const recargarTodo = () => { onReload(); cargarResumen(); };
+
+  async function guardar() {
+    if (!correo.trim() || !correo.includes('@')) {
+      setErrorForm('Ingresa un correo válido.');
+      return;
+    }
+    setErrorForm(null);
+    await onAdd(correo.trim(), nombre.trim(), tags.split(',').map((t) => t.trim()).filter(Boolean));
+    setNombre(''); setCorreo(''); setTags(''); setVerForm(false);
+    cargarResumen();
+  }
+
+  async function borrar(email: string) {
+    if (!confirm(`¿Eliminar a ${email} de la audiencia?`)) return;
+    await onDelete(email);
+    cargarResumen();
+  }
 
   return (
     <>
-      {audiencia && (
-        <Panel title="Estado del público">
-          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600 }}>Pueden recibir marketing</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', marginTop: 4 }}>{audiencia.activos_marketing.toLocaleString('es-CL')}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>de {audiencia.total.toLocaleString('es-CL')} en la lista</div>
-            </div>
-            {Object.entries(audiencia.por_estado).map(([estado, n]) => {
-              const g = GLOSA_ESTADO[estado] ?? { label: estado, nota: '', color: 'var(--text)' };
-              return (
-                <div key={estado}>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600 }}>{g.label}</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: g.color, marginTop: 4 }}>{n.toLocaleString('es-CL')}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{g.nota}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          {audiencia.pendientes_confirmacion > 0 && (
-            <Aviso tono="info">
-              {audiencia.pendientes_confirmacion} {audiencia.pendientes_confirmacion === 1 ? 'persona recibió' : 'personas recibieron'} el
-              correo de confirmación y todavía no {audiencia.pendientes_confirmacion === 1 ? 'lo confirma' : 'lo confirman'}.
-              Hasta que lo hagan no entran en ninguna campaña.
-            </Aviso>
-          )}
-
-          {audiencia.etiquetas.length > 0 && (
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Etiquetas</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {audiencia.etiquetas.map((t) => (
-                  <span key={t.tag} style={{
-                    fontSize: 12, padding: '4px 10px', borderRadius: 20,
-                    background: 'var(--border-soft)', color: 'var(--text-sub)', fontWeight: 600,
-                  }}>
-                    {t.tag} · {t.contactos}
-                  </span>
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                Las etiquetas sirven para segmentar a quién le llega cada campaña.
-              </div>
-            </div>
-          )}
-        </Panel>
+      {audiencia && audiencia.pendientes_confirmacion > 0 && (
+        <Aviso tono="info">
+          {audiencia.pendientes_confirmacion}{' '}
+          {audiencia.pendientes_confirmacion === 1 ? 'persona recibió' : 'personas recibieron'} el correo de confirmación
+          y todavía no {audiencia.pendientes_confirmacion === 1 ? 'lo confirma' : 'lo confirman'}. Hasta que lo hagan no
+          entran en ninguna campaña.
+        </Aviso>
       )}
 
-      <ImportarCsv onImportado={recargarTodo} />
+      <div className="crm-aud-layout">
+        <div className="crm-card" style={{ padding: '8px 0' }}>
+          {segs.map((s) => (
+            <div
+              key={s.key}
+              className={`crm-seg-item${s.key === segActivo ? ' active' : ''}`}
+              onClick={() => setSegActivo(s.key)}
+            >
+              <span>{s.label}</span>
+              <span className="crm-seg-count">{lista.filter(s.filtro).length}</span>
+            </div>
+          ))}
+        </div>
 
-      <EmailPublico
-        contacts={contacts}
-        loading={loading}
-        error={error}
-        onReload={recargarTodo}
-        onAdd={async (e, n, t) => { await onAdd(e, n, t); cargarResumen(); }}
-        onDelete={async (e) => { await onDelete(e); cargarResumen(); }}
-      />
+        <div>
+          <div className="crm-toolbar">
+            <input
+              className="crm-search"
+              placeholder="Buscar contacto..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+            {/* Las dos vías de alta, igual que en el panel principal: a mano
+                para un contacto suelto, archivo para una base entera. */}
+            <Boton sm onClick={() => { setVerImport((v) => !v); setVerForm(false); }}>⇪ Importar CSV</Boton>
+            <Boton sm tipo="primary" onClick={() => { setVerForm((v) => !v); setVerImport(false); }}>+ Agregar contacto</Boton>
+          </div>
+
+          {verImport && <ImportarCsv onImportado={() => { setVerImport(false); recargarTodo(); }} />}
+
+          {verForm && (
+            <Card>
+              {errorForm && <Aviso tono="critico">{errorForm}</Aviso>}
+              <Campo label="Nombre">
+                <input className="crm-input" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              </Campo>
+              <Campo label="Correo">
+                <input className="crm-input" placeholder="nombre@dominio.com" value={correo} onChange={(e) => setCorreo(e.target.value)} />
+              </Campo>
+              <Campo label="Tags (separados por coma)" hint="Sirven para segmentar a quién le llega cada campaña.">
+                <input className="crm-input" placeholder="cliente anterior, VIP" value={tags} onChange={(e) => setTags(e.target.value)} />
+              </Campo>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Boton sm tipo="primary" onClick={guardar}>Guardar contacto</Boton>
+                <Boton sm onClick={() => { setVerForm(false); setErrorForm(null); }}>Cancelar</Boton>
+              </div>
+            </Card>
+          )}
+
+          <div className="crm-card">
+            <Tabla cols={[{ label: 'Contacto' }, { label: 'Estado' }, { label: 'Tags' }, { label: 'Alta' }, { label: '' }]}>
+              {filtrados.map((c) => (
+                <tr key={c.email}>
+                  <td>
+                    <div className="crm-cell-name">{c.name || '(sin nombre)'}</div>
+                    <div className="crm-cell-sub">{c.email}</div>
+                  </td>
+                  <td><Pill estado={c.status}>{estadoContacto(c.status)}</Pill></td>
+                  <td>{(c.tags || []).map((t) => <span className="crm-tag" key={t}>{t}</span>)}</td>
+                  <td className="crm-cell-sub">{formatFecha(c.created_at)}</td>
+                  <td>
+                    <div className="crm-row-actions">
+                      <Boton sm tipo="danger" onClick={() => borrar(c.email)}>Eliminar</Boton>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Tabla>
+            {!filtrados.length && <Vacio>Sin contactos en este segmento todavía.</Vacio>}
+          </div>
+        </div>
+      </div>
     </>
   );
 }

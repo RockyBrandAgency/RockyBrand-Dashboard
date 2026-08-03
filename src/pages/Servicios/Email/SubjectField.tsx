@@ -1,4 +1,3 @@
-import { inputStyle } from './shared';
 
 // Campo de asunto con el largo óptimo a la vista, pedido explícito de Mato.
 //
@@ -94,7 +93,7 @@ export function SubjectField({ value, onChange }: { value: string; onChange: (v:
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>Asunto</div>
+        <div className="crm-field-label" style={{ marginBottom: 0 }}>Asunto</div>
         <div style={{ fontSize: 11, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>
           {ev.largo} · {GLOSA[ev.estado]}
         </div>
@@ -105,7 +104,8 @@ export function SubjectField({ value, onChange }: { value: string; onChange: (v:
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="La temporada de mosca seca abre en Coyhaique"
-        style={{ ...inputStyle, borderColor: ev.estado === 'problema' ? '#f0c4c0' : 'var(--border)' }}
+        className="crm-input"
+        style={{ borderColor: ev.estado === 'problema' ? '#f0c4c0' : undefined }}
       />
 
       {/* La barra marca dónde queda el rango óptimo y dónde corta el móvil,

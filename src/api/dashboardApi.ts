@@ -17,6 +17,7 @@ import type {
   EmailJourneysResponse,
   EmailImportResult,
   SubjectCheck,
+  EmailPendientes,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -182,4 +183,11 @@ export function deleteEmailJourney(track_id: string): Promise<{ ok: boolean }> {
 // uno le sube el bounce rate a todos.
 export function importEmailCsv(csv: string, vista_previa: boolean): Promise<EmailImportResult> {
   return request('/dashboard/email/import', 'POST', { csv, vista_previa });
+}
+
+// Mismo calculo que el panel de staff, no una copia: el backend lo resuelve
+// en un modulo compartido para que un contacto no salga vencido en un panel
+// y a tiempo en el otro.
+export function getEmailPendientes(): Promise<EmailPendientes> {
+  return request('/dashboard/email/pendientes');
 }

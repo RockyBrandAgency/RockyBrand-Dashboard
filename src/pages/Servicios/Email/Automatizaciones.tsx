@@ -3,7 +3,7 @@ import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailJourneys, toggleEmailJourney, deleteEmailJourney, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailJourney, EmailJourneysResponse, EmailJourneyStep } from '../../../types';
-import { Panel, Boton, Vacio, Aviso, formatFecha } from './shared';
+import { Card, Boton, Vacio, Aviso, formatFecha } from './shared';
 
 // Los correos que salen solos cuando pasa algo (alguien manda el formulario,
 // confirma una reserva, termina un viaje).
@@ -90,18 +90,18 @@ export function AutomatizacionesEmail() {
         // "No configurado" y "configurado pero vacío" son cosas distintas.
         // Decirle "sin automatizaciones" a quien nunca montó ninguna suena a
         // que se borraron.
-        <Panel title="Automatizaciones">
+        <Card title="Automatizaciones">
           <Vacio>
             Todavía no hay automatizaciones montadas para esta cuenta.
             <div style={{ marginTop: 8, fontSize: 12 }}>Se configuran junto con el equipo de RockyBrand al activar el servicio.</div>
           </Vacio>
-        </Panel>
+        </Card>
       )}
 
       {datos?.configurado && (
         <>
           {datos.journeys.length === 0 ? (
-            <Panel title="Automatizaciones"><Vacio>No queda ninguna automatización activa ni apagada.</Vacio></Panel>
+            <Card title="Automatizaciones"><Vacio>No queda ninguna automatización activa ni apagada.</Vacio></Card>
           ) : (
             <>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
@@ -110,11 +110,11 @@ export function AutomatizacionesEmail() {
               </div>
 
               {datos.journeys.map((j) => (
-                <Panel
+                <Card
                   key={j.track_id}
                   title={j.track_id}
                   right={
-                    <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span className="crm-row-actions">
                       <span style={{ fontSize: 11.5, fontWeight: 700, color: j.activo ? '#216b35' : 'var(--text-muted)' }}>
                         {j.activo ? 'Funcionando' : 'Apagada'}
                       </span>
@@ -122,7 +122,7 @@ export function AutomatizacionesEmail() {
                       <Boton onClick={() => setAbierta(abierta === j.track_id ? null : j.track_id)}>
                         {abierta === j.track_id ? 'Ocultar pasos' : `Ver ${j.pasos.length} ${j.pasos.length === 1 ? 'paso' : 'pasos'}`}
                       </Boton>
-                      <Boton tipo="peligro" onClick={() => borrar(j)} disabled={ocupada === j.track_id}>Borrar</Boton>
+                      <Boton tipo="danger" onClick={() => borrar(j)} disabled={ocupada === j.track_id}>Borrar</Boton>
                     </span>
                   }
                 >
@@ -145,7 +145,7 @@ export function AutomatizacionesEmail() {
                       {j.pasos.map((p, i) => <Paso key={p.step_id} paso={p} numero={i + 1} />)}
                     </div>
                   )}
-                </Panel>
+                </Card>
               ))}
             </>
           )}
@@ -157,14 +157,9 @@ export function AutomatizacionesEmail() {
 
 function Paso({ paso, numero }: { paso: EmailJourneyStep; numero: number }) {
   return (
-    <div style={{ display: 'flex', gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border-soft)' }}>
-      <div style={{
-        flexShrink: 0, width: 24, height: 24, borderRadius: 12, background: 'var(--border-soft)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-sub)',
-      }}>
-        {numero}
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
+    <div className="crm-step">
+      <div className="crm-step-num">{numero}</div>
+      <div className="crm-step-body">
         <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>
           {GLOSA_PASO[paso.tipo] ?? paso.tipo}
           {paso.tipo === 'delay' && <span style={{ fontWeight: 500 }}> {esperaLegible(paso.delay_horas)}</span>}

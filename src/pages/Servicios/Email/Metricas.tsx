@@ -3,7 +3,10 @@ import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailMetrics, getEmailInsights, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailMetrics as Datos, EmailInsights } from '../../../types';
-import { Panel, Vacio, Aviso, Tabla, td, tdMuted, trStyle, formatTasa, formatFecha, saludRebotes, saludQuejas, colorSalud } from './shared';
+import { Card, Vacio, Aviso, Tabla, formatTasa, formatFecha, saludRebotes, saludQuejas } from './shared';
+
+const colorSalud = (s: ReturnType<typeof saludRebotes>) =>
+  ({ ok: '#216b35', alerta: '#8a6116', critico: '#b42318', 'sin-datos': 'var(--text-muted)' })[s];
 
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
@@ -39,11 +42,11 @@ export function MetricasEmail() {
     <AsyncState loading={loading} error={error} onRetry={cargar}>
       {datos && (
         <>
-          <Panel title="Acumulado de todas las campañas enviadas">
+          <Card title="Acumulado de todas las campañas enviadas">
             {datos.campanas_enviadas === 0 ? (
               <Vacio>Todavía no hay campañas enviadas, así que no hay nada que medir.</Vacio>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
+              <div className="crm-import-cifras">
                 {[
                   { l: 'Enviados', v: datos.totales.enviados.toLocaleString('es-CL'), c: 'var(--text)' },
                   { l: 'Aperturas', v: formatTasa(datos.open_rate), c: 'var(--text)' },
@@ -52,15 +55,15 @@ export function MetricasEmail() {
                   { l: 'Quejas', v: formatTasa(datos.complaint_rate), c: colorSalud(saludQuejas(datos.complaint_rate, datos.umbrales)) },
                 ].map((m) => (
                   <div key={m.l}>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600 }}>{m.l}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: m.c, marginTop: 4 }}>{m.v}</div>
+                    <div className="crm-mini-label">{m.l}</div>
+                    <div className="crm-import-num" style={{ color: m.c }}>{m.v}</div>
                   </div>
                 ))}
               </div>
             )}
-          </Panel>
+          </Card>
 
-          <Panel title="Cuándo abre tu audiencia">
+          <Card title="Cuándo abre tu audiencia">
             {!h ? (
               <Vacio>Sin datos.</Vacio>
             ) : !h.suficiente ? (
@@ -80,29 +83,29 @@ export function MetricasEmail() {
                 <BarrasPorHora porHora={h.por_hora} max={maxAperturas} destacar={h.mejor_hora} />
               </>
             )}
-          </Panel>
+          </Card>
 
-          <Panel title="Campaña por campaña" pad={false}>
+          <Card title="Campaña por campaña" pad={false}>
             {datos.por_campana.length === 0 ? (
               <Vacio>Sin campañas enviadas.</Vacio>
             ) : (
-              <Tabla cols={[{ label: 'Campaña' }, { label: 'Enviada' }, { label: 'Enviados', alinear: 'right' }, { label: 'Aperturas', alinear: 'right' }, { label: 'Clics', alinear: 'right' }, { label: 'Rebotes', alinear: 'right' }]}>
+              <Tabla cols={[{ label: 'Campaña' }, { label: 'Enviada' }, { label: 'Enviados', num: true }, { label: 'Aperturas', num: true }, { label: 'Clics', num: true }, { label: 'Rebotes', num: true }]}>
                 {datos.por_campana.map((c) => (
-                  <tr key={c.campaign_id} style={trStyle}>
-                    <td style={td}>
+                  <tr key={c.campaign_id}>
+                    <td>
                       <div style={{ fontWeight: 600 }}>{c.name || 'Sin nombre'}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.subject}</div>
                     </td>
-                    <td style={tdMuted}>{formatFecha(c.sent_at)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{c.enviados.toLocaleString('es-CL')}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{formatTasa(c.open_rate)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{formatTasa(c.click_rate)}</td>
-                    <td style={{ ...td, textAlign: 'right', color: colorSalud(saludRebotes(c.bounce_rate, datos.umbrales)) }}>{formatTasa(c.bounce_rate)}</td>
+                    <td className="crm-cell-sub">{formatFecha(c.sent_at)}</td>
+                    <td className="num">{c.enviados.toLocaleString('es-CL')}</td>
+                    <td className="num">{formatTasa(c.open_rate)}</td>
+                    <td className="num">{formatTasa(c.click_rate)}</td>
+                    <td className="num" style={{ color: colorSalud(saludRebotes(c.bounce_rate, datos.umbrales)) }}>{formatTasa(c.bounce_rate)}</td>
                   </tr>
                 ))}
               </Tabla>
             )}
-          </Panel>
+          </Card>
         </>
       )}
     </AsyncState>

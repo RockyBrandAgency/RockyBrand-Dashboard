@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { importEmailCsv, UnauthorizedError } from '../../../api/dashboardApi';
 import { useAuth } from '../../../context/AuthContext';
 import type { EmailImportResult } from '../../../types';
-import { Panel, Boton, Aviso, Vacio, Tabla, td, tdMuted, trStyle } from './shared';
+import { Card, Boton, Aviso, Tabla } from './shared';
 
 // Carga de una base de contactos desde CSV.
 //
@@ -56,7 +56,7 @@ export function ImportarCsv({ onImportado }: { onImportado: () => void }) {
   const inf = (previa ?? resultado)?.informe;
 
   return (
-    <Panel title="Importar contactos desde un archivo">
+    <Card title="Importar contactos desde un archivo">
       <Aviso tono="info">
         El archivo tiene que tener una primera fila con los nombres de columna e incluir una columna
         de correo (<code>email</code> o <code>correo</code>). Opcionales: <code>nombre</code> y <code>etiquetas</code>.
@@ -65,7 +65,7 @@ export function ImportarCsv({ onImportado }: { onImportado: () => void }) {
         Si tienes un Excel, guárdalo como CSV antes de subirlo.
       </Aviso>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div className="crm-import-actions">
         <label style={{ cursor: 'pointer' }}>
           <input
             type="file"
@@ -73,22 +73,20 @@ export function ImportarCsv({ onImportado }: { onImportado: () => void }) {
             style={{ display: 'none' }}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) leerArchivo(f); }}
           />
-          <span style={{ display: 'inline-block', padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: 'var(--white)', color: 'var(--text)', border: '1px solid var(--border)' }}>
-            Elegir archivo CSV
-          </span>
+          <span className="crm-btn crm-btn-ghost crm-btn-sm">Elegir archivo CSV</span>
         </label>
-        {nombreArchivo && <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{nombreArchivo}</span>}
+        {nombreArchivo && <span className="crm-cell-sub">{nombreArchivo}</span>}
       </div>
 
       {error && <Aviso tono="critico">{error}</Aviso>}
 
       {csv.trim() && !resultado && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-          <Boton onClick={() => ejecutar(true)} disabled={cargando}>
+        <div className="crm-import-actions">
+          <Boton sm onClick={() => ejecutar(true)} disabled={cargando}>
             {cargando ? 'Revisando…' : 'Revisar antes de importar'}
           </Boton>
           {previa && (previa.informe?.validas ?? 0) > 0 && (
-            <Boton tipo="primario" onClick={() => ejecutar(false)} disabled={cargando}>
+            <Boton sm tipo="primary" onClick={() => ejecutar(false)} disabled={cargando}>
               Importar {previa.informe.validas} {previa.informe.validas === 1 ? 'contacto' : 'contactos'}
             </Boton>
           )}
@@ -105,15 +103,15 @@ export function ImportarCsv({ onImportado }: { onImportado: () => void }) {
 
       {inf && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 14, marginBottom: 14 }}>
+          <div className="crm-import-cifras">
             {[
-              { l: 'Filas leídas', v: inf.leidas, c: 'var(--text)' },
-              { l: 'Válidas', v: inf.validas, c: '#216b35' },
-              { l: 'Descartadas', v: inf.descartadas, c: inf.descartadas > 0 ? '#8a6116' : 'var(--text-muted)' },
+              { l: 'Filas leídas', v: inf.leidas, cls: '' },
+              { l: 'Válidas', v: inf.validas, cls: ' ok' },
+              { l: 'Descartadas', v: inf.descartadas, cls: inf.descartadas > 0 ? ' alerta' : '' },
             ].map((m) => (
               <div key={m.l}>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600 }}>{m.l}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: m.c, marginTop: 4 }}>{m.v.toLocaleString('es-CL')}</div>
+                <div className="crm-mini-label">{m.l}</div>
+                <div className={`crm-import-num${m.cls}`}>{m.v.toLocaleString('es-CL')}</div>
               </div>
             ))}
           </div>
@@ -124,7 +122,7 @@ export function ImportarCsv({ onImportado }: { onImportado: () => void }) {
               silencio: casi siempre es una columna mal exportada, y verlo es
               lo único que permite corregirla. */}
           {inf.descartadas > 0 && (
-            <div style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-sub)' }}>
+            <div className="crm-import-descartes">
               {inf.email_invalido.length > 0 && <div><strong>Correos mal escritos ({inf.email_invalido.length}):</strong> {inf.email_invalido.slice(0, 8).join(', ')}{inf.email_invalido.length > 8 ? '…' : ''}</div>}
               {inf.duplicadas_en_archivo.length > 0 && <div><strong>Repetidos dentro del archivo ({inf.duplicadas_en_archivo.length}):</strong> {inf.duplicadas_en_archivo.slice(0, 8).join(', ')}{inf.duplicadas_en_archivo.length > 8 ? '…' : ''}</div>}
               {inf.sin_email > 0 && <div><strong>Filas sin correo:</strong> {inf.sin_email}</div>}
@@ -135,20 +133,18 @@ export function ImportarCsv({ onImportado }: { onImportado: () => void }) {
 
       {previa?.muestra && previa.muestra.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Así se van a importar</div>
-          {previa.muestra.length === 0 ? <Vacio>Nada que importar.</Vacio> : (
-            <Tabla cols={[{ label: 'Correo' }, { label: 'Nombre' }, { label: 'Etiquetas' }]}>
-              {previa.muestra.slice(0, 10).map((m) => (
-                <tr key={m.email} style={trStyle}>
-                  <td style={td}>{m.email}</td>
-                  <td style={tdMuted}>{m.name || '—'}</td>
-                  <td style={tdMuted}>{m.tags.length ? m.tags.join(', ') : '—'}</td>
-                </tr>
-              ))}
-            </Tabla>
-          )}
+          <div className="crm-desc-label">Así se van a importar</div>
+          <Tabla cols={[{ label: 'Correo' }, { label: 'Nombre' }, { label: 'Tags' }]}>
+            {previa.muestra.slice(0, 10).map((m) => (
+              <tr key={m.email}>
+                <td>{m.email}</td>
+                <td className="crm-cell-sub">{m.name || '—'}</td>
+                <td>{m.tags.length ? m.tags.map((t) => <span className="crm-tag" key={t}>{t}</span>) : '—'}</td>
+              </tr>
+            ))}
+          </Tabla>
         </div>
       )}
-    </Panel>
+    </Card>
   );
 }
