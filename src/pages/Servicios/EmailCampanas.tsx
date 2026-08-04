@@ -93,11 +93,13 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 24 }}>
-          <div className="crm-desc-label">Servicios Contratados</div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-            Email Marketing
-          </h1>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, marginBottom: 'var(--space-6)' }}>
+          <div>
+            <div className="crm-desc-label">Email Marketing</div>
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+              Gestión de Campañas y Contactos
+            </h1>
+          </div>
         </div>
 
         <div className="crm-tabbar">

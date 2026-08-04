@@ -122,7 +122,7 @@ export function TemplatesEmail() {
               title="Vista previa de la plantilla"
               sandbox=""
               srcDoc={html.replace(/\{\{name\}\}/g, 'Nombre de ejemplo').replace(/\{\{unsubscribe_link\}\}/g, '#')}
-              style={{ width: '100%', height: 460, border: '1px solid var(--border)', borderRadius: 8, background: '#fff' }}
+              style={{ width: '100%', height: 460, border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--white)' }}
             />
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
               Los marcadores se muestran con valores de ejemplo. Cada cliente de correo renderiza distinto: esto es una referencia, no un espejo exacto.
@@ -154,7 +154,7 @@ export function TemplatesEmail() {
                 <td className="crm-cell-name">{t.name}</td>
                 <td className="crm-cell-sub">{formatFecha(t.updated_at)}</td>
                 <td>
-                  <span style={{ color: t.tiene_unsubscribe ? '#216b35' : '#b42318', fontWeight: 600, fontSize: 12 }}>
+                  <span style={{ color: t.tiene_unsubscribe ? 'var(--status-bien-dot)' : 'var(--status-critico-dot)', fontWeight: 600, fontSize: 12 }}>
                     {t.tiene_unsubscribe ? 'Sí' : 'Falta'}
                   </span>
                 </td>

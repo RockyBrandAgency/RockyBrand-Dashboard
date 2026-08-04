@@ -3,11 +3,61 @@ import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailResumen, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailResumen as Datos } from '../../../types';
-import { Card, MiniDash, Pill, Vacio, Aviso, formatTasa, formatFecha, saludRebotes, saludQuejas, tonoDe } from './shared';
+import { Vacio, Aviso, formatTasa, formatFecha, saludRebotes, saludQuejas, type Salud } from './shared';
 
-// Misma estructura que Resumen del panel principal: 4 tarjetas arriba y la
-// actividad reciente abajo. Se agregan los avisos de salud de envío porque el
-// cliente no tiene a nadie mirando la consola por él.
+// Misma estructura que Resumen del panel principal: KPIs arriba, actividad
+// reciente + salud de envío abajo.
+//
+// El diseño de Figma (frame 11) muestra "Enviados este Mes / Límite: 5.000"
+// y "Reputación del Dominio 99/100 (SPF/DKIM/DMARC)" - ninguno de los dos
+// existe en el backend real (no hay contador de envíos por mes con límite,
+// no hay score de reputación de dominio). Se reemplazó por datos reales:
+// campañas enviadas en vez del límite inventado, y la fila de reputación
+// de dominio se omitió en vez de mostrar un 99/100 falso.
+
+function saludLabel(s: Salud): string {
+  return { ok: 'Saludable', alerta: 'Atención', critico: 'Crítico', 'sin-datos': 'Sin datos' }[s];
+}
+
+function saludBadgeColors(s: Salud): { bg: string; text: string } {
+  if (s === 'critico') return { bg: 'var(--status-critico-bg)', text: 'var(--status-critico-dot)' };
+  if (s === 'alerta') return { bg: 'var(--status-atencion-bg)', text: 'var(--status-atencion-dot)' };
+  if (s === 'sin-datos') return { bg: 'var(--surface-2)', text: 'var(--text-faint)' };
+  return { bg: 'var(--status-bien-bg)', text: 'var(--status-bien-dot)' };
+}
+
+function KpiCard({ label, value, badge }: { label: string; value: string; badge?: { label: string; bg: string; text: string } }) {
+  return (
+    <div style={{ flex: 1, minWidth: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', boxShadow: 'var(--shadow-card)' }}>
+      <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8 }}>
+        <div style={{ fontSize: 'var(--font-size-4xl)', fontWeight: 700, color: 'var(--text)' }}>{value}</div>
+        {badge && (
+          <div style={{ background: badge.bg, color: badge.text, fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--radius-xs)' }}>
+            {badge.label}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SaludRow({ label, value, salud, sub }: { label: string; value: string; salud: Salud; sub: string }) {
+  const c = saludBadgeColors(salud);
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-sub)' }}>{label}</div>
+        <div style={{ background: c.bg, color: c.text, fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 'var(--radius-xs)' }}>
+          {saludLabel(salud)}
+        </div>
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginTop: 8 }}>{value}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4 }}>{sub}</div>
+    </div>
+  );
+}
+
 export function ResumenEmail() {
   const { handleUnauthorized } = useAuth();
   const [datos, setDatos] = useState<Datos | null>(null);
@@ -55,30 +105,52 @@ export function ResumenEmail() {
             </Aviso>
           )}
 
-          <MiniDash
-            items={[
-              { label: 'Contactos activos', value: datos.audiencia.activos_marketing.toLocaleString('es-CL'), sub: `${datos.audiencia.total.toLocaleString('es-CL')} en la lista` },
-              { label: 'Tasa de apertura promedio', value: formatTasa(datos.open_rate) },
-              { label: 'Campañas enviadas', value: datos.campanas_enviadas },
-              { label: 'Tasa de rebote', value: formatTasa(datos.bounce_rate), tono: tonoDe(saludRebotes(datos.bounce_rate, datos.umbrales)) },
-            ]}
-          />
+          <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap', marginBottom: 'var(--space-7)' }}>
+            <KpiCard label="Contactos activos" value={datos.audiencia.activos_marketing.toLocaleString('es-CL')} />
+            <KpiCard label="Tasa de apertura promedio" value={formatTasa(datos.open_rate)} />
+            <KpiCard label="Tasa de clic promedio" value={formatTasa(datos.click_rate)} />
+            <KpiCard label="Campañas enviadas" value={String(datos.campanas_enviadas)} />
+          </div>
 
-          <Card title="Actividad reciente">
-            {datos.ultimas.length === 0 ? (
-              <Vacio>Todavía no hay campañas.</Vacio>
-            ) : (
-              datos.ultimas.map((c) => (
-                <div className="crm-timeline-item" key={c.campaign_id}>
-                  <div>
-                    <div className="crm-timeline-text">{c.name || 'Sin nombre'}</div>
-                    <div className="crm-timeline-when">{formatFecha(c.sent_at)}</div>
-                  </div>
-                  <Pill estado="sent">{formatTasa(c.open_rate)} apertura</Pill>
+          <div style={{ display: 'flex', gap: 'var(--space-7)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div style={{ flex: '2 1 480px', minWidth: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', boxShadow: 'var(--shadow-card)' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 'var(--space-6)' }}>Actividad Reciente</div>
+              {datos.ultimas.length === 0 ? (
+                <Vacio>Todavía no hay campañas.</Vacio>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+                  {datos.ultimas.map((c) => (
+                    <div key={c.campaign_id} style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'center' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 4, background: 'var(--primary)', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{c.name || 'Sin nombre'}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
+                          {formatFecha(c.sent_at)} · {formatTasa(c.open_rate)} de apertura
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))
-            )}
-          </Card>
+              )}
+            </div>
+
+            <div style={{ flex: '1 1 320px', minWidth: 280, maxWidth: 420, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Salud de Envío</div>
+              <SaludRow
+                label="Tasa de Rebote"
+                value={formatTasa(datos.bounce_rate)}
+                salud={saludRebotes(datos.bounce_rate, datos.umbrales)}
+                sub={`Límite crítico: ${datos.umbrales.rebotes_critico}%`}
+              />
+              <div style={{ height: 1, background: 'var(--border)' }} />
+              <SaludRow
+                label="Tasa de Quejas (Spam)"
+                value={formatTasa(datos.complaint_rate)}
+                salud={saludQuejas(datos.complaint_rate, datos.umbrales)}
+                sub={`Límite recomendado: ${datos.umbrales.quejas_alerta}%`}
+              />
+            </div>
+          </div>
         </>
       )}
     </AsyncState>

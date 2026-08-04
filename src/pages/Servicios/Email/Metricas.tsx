@@ -21,7 +21,7 @@ function FilaEmbudo({ label, valor, max }: { label: string; valor: number; max: 
 }
 
 const colorSalud = (s: ReturnType<typeof saludRebotes>) =>
-  ({ ok: '#216b35', alerta: '#8a6116', critico: '#b42318', 'sin-datos': 'var(--text-muted)' })[s];
+  ({ ok: 'var(--status-bien-dot)', alerta: 'var(--status-atencion-dot)', critico: 'var(--status-critico-dot)', 'sin-datos': 'var(--text-muted)' })[s];
 
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 

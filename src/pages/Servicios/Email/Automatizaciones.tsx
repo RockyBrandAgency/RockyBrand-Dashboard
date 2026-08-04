@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { AsyncState } from '../../../components/AsyncState';
+import { Toggle } from '../../../components/Toggle';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailJourneys, toggleEmailJourney, deleteEmailJourney, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailJourney, EmailJourneysResponse, EmailJourneyStep } from '../../../types';
-import { Card, Boton, Vacio, Aviso, formatFecha } from './shared';
+import { Card, Vacio, Aviso, formatFecha } from './shared';
 
 // Los correos que salen solos cuando pasa algo (alguien manda el formulario,
 // confirma una reserva, termina un viaje).
@@ -11,6 +12,13 @@ import { Card, Boton, Vacio, Aviso, formatFecha } from './shared';
 // El interruptor de cada automatización escribe `activo` en el flujo que lee
 // el motor de envío, no un estado de pantalla: apagarla acá la apaga de
 // verdad. Se verificó contra el motor, no contra la interfaz.
+//
+// El diseño de Figma (frame 18) muestra columnas "Última Ejecución" y
+// "Envíos Totales" — ese dato no existe en el backend real
+// (EmailJourney no trae timestamp de última corrida ni contador de envíos
+// por automatización, solo `correos` = cantidad de pasos de envío en el
+// flujo). Se adaptó la tabla al layout del diseño pero con datos reales:
+// "Correos en el flujo" en vez de un número de envíos inventado.
 
 const GLOSA_TRIGGER: Record<string, string> = {
   form_submitted: 'Cuando alguien envía el formulario del sitio',
@@ -100,54 +108,80 @@ export function AutomatizacionesEmail() {
 
       {datos?.configurado && (
         <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-sub)' }}>
+              Campañas Automatizadas por Eventos
+              {datos.actualizado && (
+                <span style={{ fontSize: 12, color: 'var(--text-faint)', marginLeft: 8 }}>
+                  · última modificación {formatFecha(datos.actualizado)}
+                </span>
+              )}
+            </div>
+          </div>
+
           {datos.journeys.length === 0 ? (
-            <Card title="Automatizaciones"><Vacio>No queda ninguna automatización activa ni apagada.</Vacio></Card>
+            <div className="crm-empty">No queda ninguna automatización activa ni apagada.</div>
           ) : (
-            <>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
-                {datos.journeys.filter((j) => j.activo).length} de {datos.journeys.length} funcionando
-                {datos.actualizado && <> · última modificación {formatFecha(datos.actualizado)}</>}
-              </div>
-
-              {datos.journeys.map((j) => (
-                <Card
-                  key={j.track_id}
-                  title={j.track_id}
-                  right={
-                    <span className="crm-row-actions">
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: j.activo ? '#216b35' : 'var(--text-muted)' }}>
-                        {j.activo ? 'Funcionando' : 'Apagada'}
-                      </span>
-                      <Boton onClick={() => alternar(j)} disabled={ocupada === j.track_id}>{j.activo ? 'Apagar' : 'Encender'}</Boton>
-                      <Boton onClick={() => setAbierta(abierta === j.track_id ? null : j.track_id)}>
-                        {abierta === j.track_id ? 'Ocultar pasos' : `Ver ${j.pasos.length} ${j.pasos.length === 1 ? 'paso' : 'pasos'}`}
-                      </Boton>
-                      <Boton tipo="danger" onClick={() => borrar(j)} disabled={ocupada === j.track_id}>Borrar</Boton>
-                    </span>
-                  }
-                >
-                  <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 6 }}>
-                    {GLOSA_TRIGGER[j.trigger_event] ?? j.trigger_event}
-                  </div>
-                  {j.descripcion && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>{j.descripcion}</div>}
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {j.correos} {j.correos === 1 ? 'correo' : 'correos'} en {j.pasos.length} {j.pasos.length === 1 ? 'paso' : 'pasos'}
-                  </div>
-
-                  {!j.activo && (
-                    <div style={{ marginTop: 12 }}>
-                      <Aviso tono="alerta">Apagada: nadie nuevo entra a esta automatización. Los pasos se conservan.</Aviso>
-                    </div>
-                  )}
-
-                  {abierta === j.track_id && (
-                    <div style={{ marginTop: 16, borderTop: '1px solid var(--border-soft)', paddingTop: 14 }}>
-                      {j.pasos.map((p, i) => <Paso key={p.step_id} paso={p} numero={i + 1} />)}
-                    </div>
-                  )}
-                </Card>
-              ))}
-            </>
+            <div className="crm-table-wrap">
+              <table className="crm-table">
+                <thead>
+                  <tr>
+                    <th>Nombre de Automatización / Trigger</th>
+                    <th style={{ width: 100 }}>Estado</th>
+                    <th style={{ width: 170 }}>Correos en el flujo</th>
+                    <th style={{ width: 170, textAlign: 'right' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datos.journeys.map((j) => (
+                    <Fragment key={j.track_id}>
+                      <tr>
+                        <td>
+                          <div className="crm-cell-name">{j.track_id}</div>
+                          <div className="crm-cell-sub">Trigger: {GLOSA_TRIGGER[j.trigger_event] ?? j.trigger_event}</div>
+                        </td>
+                        <td>
+                          <Toggle size="sm" on={j.activo} onToggle={() => alternar(j)} disabled={ocupada === j.track_id} />
+                        </td>
+                        <td>
+                          {j.correos} {j.correos === 1 ? 'correo' : 'correos'} · {j.pasos.length} {j.pasos.length === 1 ? 'paso' : 'pasos'}
+                        </td>
+                        <td>
+                          <div className="crm-row-actions">
+                            <button type="button" className="crm-btn crm-btn-ghost crm-btn-sm" onClick={() => setAbierta(abierta === j.track_id ? null : j.track_id)}>
+                              {abierta === j.track_id ? 'Ocultar' : 'Ver pasos'}
+                            </button>
+                            <button
+                              type="button"
+                              className="crm-btn crm-btn-sm"
+                              onClick={() => borrar(j)}
+                              disabled={ocupada === j.track_id}
+                              style={{ background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)' }}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {!j.activo && (
+                        <tr>
+                          <td colSpan={4} style={{ padding: '0 var(--space-6) var(--space-4)' }}>
+                            <Aviso tono="alerta">Apagada: nadie nuevo entra a esta automatización. Los pasos se conservan.</Aviso>
+                          </td>
+                        </tr>
+                      )}
+                      {abierta === j.track_id && (
+                        <tr>
+                          <td colSpan={4} style={{ padding: 'var(--space-2) var(--space-6) var(--space-6)', background: 'var(--bg)' }}>
+                            {j.pasos.map((p, i) => <Paso key={p.step_id} paso={p} numero={i + 1} />)}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </>
       )}

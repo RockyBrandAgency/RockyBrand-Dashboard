@@ -52,7 +52,7 @@ export function CampanaDetalle({ campaignId, onVolver }: { campaignId: string; o
 
       <div style={{ marginBottom: 20 }}>
         <div className="crm-desc-label">Campaña</div>
-        <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--text)' }}>
           {c.name || 'Sin nombre'}
         </h2>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

@@ -71,10 +71,10 @@ export function evaluarAsunto(texto: string): Evaluacion {
 
 const COLOR: Record<Evaluacion['estado'], string> = {
   vacio: 'var(--text-muted)',
-  corto: '#8a6116',
-  optimo: '#216b35',
-  largo: '#8a6116',
-  problema: '#b42318',
+  corto: 'var(--status-atencion-dot)',
+  optimo: 'var(--status-bien-dot)',
+  largo: 'var(--status-atencion-dot)',
+  problema: 'var(--status-critico-dot)',
 };
 
 const GLOSA: Record<Evaluacion['estado'], string> = {
@@ -105,7 +105,7 @@ export function SubjectField({ value, onChange }: { value: string; onChange: (v:
         onChange={(e) => onChange(e.target.value)}
         placeholder="La temporada de mosca seca abre en Coyhaique"
         className="crm-input"
-        style={{ borderColor: ev.estado === 'problema' ? '#f0c4c0' : undefined }}
+        style={{ borderColor: ev.estado === 'problema' ? 'var(--status-critico-dot)' : undefined }}
       />
 
       {/* La barra marca dónde queda el rango óptimo y dónde corta el móvil,
@@ -114,7 +114,7 @@ export function SubjectField({ value, onChange }: { value: string; onChange: (v:
         <div style={{
           position: 'absolute', left: `${(SUBJECT_MIN / SUBJECT_MAX_DURO) * 100}%`,
           width: `${((SUBJECT_OPTIMO_MAX - SUBJECT_MIN) / SUBJECT_MAX_DURO) * 100}%`,
-          top: 0, bottom: 0, background: '#cde6d4', borderRadius: 2,
+          top: 0, bottom: 0, background: 'var(--status-bien-bg)', borderRadius: 2,
         }} />
         <div style={{ position: 'absolute', left: `${(SUBJECT_VISIBLE_MOVIL / SUBJECT_MAX_DURO) * 100}%`, top: -3, bottom: -3, width: 1, background: 'var(--text-muted)' }} />
         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${proporcion * 100}%`, background: color, borderRadius: 2, opacity: 0.85 }} />
