@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { initButtonHoverGsap } from './lib/buttonHoverGsap';
 import { useIsDesktop } from './hooks/useIsDesktop';
 import { Sidebar } from './components/Sidebar';
 import { MobileBar } from './components/MobileBar';
@@ -127,6 +128,12 @@ function Root() {
 }
 
 export default function App() {
+  // Un solo listener global para el hover de TODOS los botones (ver
+  // buttonHoverGsap.ts) - vive acá, en el componente raíz montado una
+  // sola vez para toda la sesión (login incluido, LoginScreen también
+  // tiene botones), no en cada pantalla.
+  useEffect(() => initButtonHoverGsap(), []);
+
   return (
     <AuthProvider>
       <Root />

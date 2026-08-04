@@ -1,3 +1,6 @@
+import { useRef, useLayoutEffect } from 'react';
+import { gsap } from 'gsap';
+
 // Interruptor genérico — geometría exacta del spec de Figma (37 — Spec:
 // Estados Botones, "Toggles/Switches"). 'sm' (40x20) es el tamaño real que
 // usan TANTO la tabla de Automatizaciones COMO la pantalla de
@@ -13,6 +16,16 @@
 // por Mato en vivo, 2026-08-03: "los switch cuando están activos deben
 // ser #2D5A3D y cuando están inactivos #E4E4E7". Corregido a los 2 tokens
 // fijos (ver index.css) que no dependen del cliente logueado.
+//
+// Animación con GSAP (2026-08-04, pedido explícito de Mato): antes el
+// knob se movía con una transición CSS de "left" (recalcula layout en
+// cada frame - mueve la propiedad, no un transform). Ahora el knob queda
+// fijo en left:inset y GSAP anima translateX con un leve overshoot
+// ("back.out") + un squash-and-stretch chico (se achica de alto/se
+// estira de ancho a mitad de camino y vuelve) - el mismo lenguaje de
+// micro-interacción "con peso" que ya usa 05-panel-web con GSAP. El
+// primer render NUNCA anima (gsap.set, no .to): si animara, todos los
+// switches "saltarían" a su posición apenas carga la pantalla.
 export function Toggle({
   on,
   onToggle,
@@ -35,6 +48,34 @@ export function Toggle({
   const h = size === 'sm' ? 20 : 24;
   const knob = size === 'sm' ? 16 : 20;
   const inset = 2;
+  const knobRef = useRef<HTMLDivElement>(null);
+  const mounted = useRef(false);
+
+  useLayoutEffect(() => {
+    const el = knobRef.current;
+    if (!el) return;
+    const x = on ? w - knob - inset * 2 : 0;
+
+    if (!mounted.current) {
+      gsap.set(el, { x });
+      mounted.current = true;
+      return;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      gsap.set(el, { x });
+      return;
+    }
+
+    const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+    tl.to(el, { x, duration: 0.32, ease: 'back.out(2.2)' }, 0)
+      .to(el, { scaleX: 1.22, scaleY: 0.82, duration: 0.12 }, 0)
+      .to(el, { scaleX: 1, scaleY: 1, duration: 0.2 }, 0.12);
+    return () => {
+      tl.kill();
+    };
+  }, [on, w, knob, inset]);
+
   return (
     <button
       role="switch"
@@ -50,21 +91,21 @@ export function Toggle({
         cursor: disabled ? 'default' : 'pointer',
         background: on ? 'var(--toggle-on)' : 'var(--toggle-off)',
         position: 'relative',
-        transition: 'background 0.18s',
+        transition: 'background 0.22s ease',
         flexShrink: 0,
         opacity: disabled ? 0.4 : 1,
       }}
     >
       <div
+        ref={knobRef}
         style={{
           position: 'absolute',
           top: inset,
-          left: on ? w - knob - inset : inset,
+          left: inset,
           width: knob,
           height: knob,
           borderRadius: '50%',
           background: '#fff',
-          transition: 'left 0.18s',
         }}
       />
     </button>
