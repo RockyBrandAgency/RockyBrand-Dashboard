@@ -1,6 +1,10 @@
 // Interruptor genérico — geometría exacta del spec de Figma (37 — Spec:
-// Estados Botones, "Toggles/Switches"; y la tabla de Automatizaciones).
-// 'sm' = fila de tabla (40x20), 'md' = pantalla de Configuración (44x24).
+// Estados Botones, "Toggles/Switches"). 'sm' (40x20) es el tamaño real que
+// usan TANTO la tabla de Automatizaciones COMO la pantalla de
+// Configuración (confirmado en el frame real "05 — Configuración",
+// 2026-08-03 - el comentario original asumía 'md' ahí a partir de la spec
+// sheet abstracta, sin haber mirado todavía el frame real). 'md' (44x24)
+// queda disponible para si aparece otro lugar que sí lo use.
 export function Toggle({ on, onToggle, size = 'md', disabled }: { on: boolean; onToggle: () => void; size?: 'sm' | 'md'; disabled?: boolean }) {
   const w = size === 'sm' ? 40 : 44;
   const h = size === 'sm' ? 20 : 24;

@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { OriginBadge } from '../../components/OriginBadge';
+import { SearchIcon, CalendarIcon } from '../../components/icons/RockyIcons';
 import { getReservasResumen, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
+import { CLIENT_LOCATION } from '../../branding';
 import type { ReservaResumenItem } from '../../types';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -11,23 +13,58 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: 'Cancelada',
 };
 
-function formatDateRange(checkIn: string, checkOut: string): string {
-  const fmt = (iso: string) => {
-    const d = new Date(`${iso}T00:00:00`);
-    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
-  };
-  return `${fmt(checkIn)} → ${fmt(checkOut)}`;
+// bg/dot exactos de --status-bien/-atencion/-critico (Figma frame
+// "19 — Reservas Resumen": Confirmada #dcfce7/#16a34a, Pendiente
+// #fef3c7/#d97706, Cancelada #fee2e2/#ef4444 - los 3 coinciden byte a
+// byte con el token "-dot" de cada estado, no con "-text").
+const STATUS_COLOR: Record<string, { bg: string; dot: string }> = {
+  CONFIRMED: { bg: 'var(--status-bien-bg)', dot: 'var(--status-bien-dot)' },
+  PENDING: { bg: 'var(--status-atencion-bg)', dot: 'var(--status-atencion-dot)' },
+  CANCELLED: { bg: 'var(--status-critico-bg)', dot: 'var(--status-critico-dot)' },
+};
+
+const TABS: { key: string; label: string }[] = [
+  { key: 'ALL', label: 'Todas' },
+  { key: 'CONFIRMED', label: 'Confirmada' },
+  { key: 'PENDING', label: 'Pendiente' },
+  { key: 'CANCELLED', label: 'Cancelada' },
+];
+
+const PAGE_SIZE = 15;
+
+function fmtDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-// "Reservas → Resumen": detalle de las reservas al día (pedido explícito
-// de Mato, 2026-08-01) - distinto de "Estado Actual", que es un resumen
-// ejecutivo. Esto es el listado/bitácora completo dentro de la ventana
-// real que trae el backend (compute_reservas_resumen).
+function nights(checkIn: string, checkOut: string): number {
+  const inD = new Date(`${checkIn}T00:00:00`);
+  const outD = new Date(`${checkOut}T00:00:00`);
+  return Math.max(0, Math.round((outD.getTime() - inD.getTime()) / 86400000));
+}
+
+// "Julio 2026" en el Figma es un selector de mes - acá se arma de verdad
+// a partir de los check-in reales de las reservas ya cargadas (no hay
+// filtro server-side por mes, así que se filtra sobre lo que ya trajo el
+// backend, nunca se inventa un rango de fechas que no exista en los datos).
+function monthKey(iso: string): string {
+  return iso.slice(0, 7);
+}
+function monthLabel(key: string): string {
+  const d = new Date(`${key}-01T00:00:00`);
+  const label = d.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized } = useAuth();
+  const { handleUnauthorized, clientDisplayName, clientId } = useAuth();
   const [reservas, setReservas] = useState<ReservaResumenItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [month, setMonth] = useState('ALL');
+  const [tab, setTab] = useState('ALL');
+  const [page, setPage] = useState(0);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -48,70 +85,247 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
     load();
   }, [load]);
 
+  const months = useMemo(() => {
+    const keys = new Set((reservas ?? []).map((r) => monthKey(r.CheckIn)));
+    return Array.from(keys).sort();
+  }, [reservas]);
+
+  const filtered = useMemo(() => {
+    return (reservas ?? []).filter((r) => {
+      if (tab !== 'ALL' && r.Status !== tab) return false;
+      if (month !== 'ALL' && monthKey(r.CheckIn) !== month) return false;
+      if (search.trim() && !r.GuestName.toLowerCase().includes(search.trim().toLowerCase())) return false;
+      return true;
+    });
+  }, [reservas, tab, month, search]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, pageCount - 1);
+  const pageItems = filtered.slice(pageSafe * PAGE_SIZE, pageSafe * PAGE_SIZE + PAGE_SIZE);
+
+  const location = clientId ? CLIENT_LOCATION[clientId] : undefined;
+  const fecha = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const fechaCap = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+
+  const col = (w: number, extra?: React.CSSProperties): React.CSSProperties => ({ flexShrink: 0, width: w, ...extra });
+
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-            Reservas
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: 12,
+            paddingBottom: 'var(--space-7)',
+            borderBottom: '1px solid var(--border)',
+            marginBottom: 'var(--space-8)',
+          }}
+        >
+          <div>
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+              Reservas
+            </h1>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
+              Administra y visualiza todas las estancias en {clientDisplayName ?? 'tu negocio'}.
+            </div>
           </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Resumen</h1>
+          {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCap}</div>}
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>
           {reservas && reservas.length === 0 && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Sin reservas en el período reciente</div>
             </div>
           )}
 
           {reservas && reservas.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {reservas.map((r) => (
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', alignItems: 'center', marginBottom: 'var(--space-7)' }}>
                 <div
-                  key={r.BookingID}
+                  className="crm-search-wrap"
+                  style={{ width: isDesktop ? 320 : '100%' }}
+                >
+                  <SearchIcon size={14} color="var(--text-faint)" />
+                  <input
+                    className="crm-search"
+                    placeholder="Buscar huésped…"
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(0);
+                    }}
+                  />
+                </div>
+                <div
                   style={{
                     display: 'flex',
-                    flexDirection: isDesktop ? 'row' : 'column',
-                    alignItems: isDesktop ? 'center' : 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: 10,
+                    alignItems: 'center',
+                    gap: 8,
                     background: 'var(--white)',
                     border: '1px solid var(--border)',
-                    borderRadius: 12,
-                    padding: '16px 20px',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 12px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{r.GuestName}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        {r.RoomID} · {formatDateRange(r.CheckIn, r.CheckOut)}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                    <OriginBadge source={r.Source} />
-                    <span
+                  <CalendarIcon size={14} color="var(--text-sub)" />
+                  <select
+                    value={month}
+                    onChange={(e) => {
+                      setMonth(e.target.value);
+                      setPage(0);
+                    }}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer' }}
+                  >
+                    <option value="ALL">Todos los meses</option>
+                    {months.map((m) => (
+                      <option key={m} value={m}>
+                        {monthLabel(m)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 'var(--radius-md)' }}>
+                  {TABS.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => {
+                        setTab(t.key);
+                        setPage(0);
+                      }}
                       style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: '4px 10px',
-                        borderRadius: 20,
-                        background: r.Status === 'CANCELLED' ? 'var(--status-critico-bg)' : r.Status === 'CONFIRMED' ? 'var(--status-bien-bg)' : 'var(--status-atencion-bg)',
-                        color: r.Status === 'CANCELLED' ? 'var(--status-critico-text)' : r.Status === 'CONFIRMED' ? 'var(--status-bien-text)' : 'var(--status-atencion-text)',
+                        all: 'unset',
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: 13,
+                        fontWeight: tab === t.key ? 600 : 500,
+                        color: tab === t.key ? 'var(--text)' : 'var(--text-sub)',
+                        background: tab === t.key ? 'var(--white)' : 'transparent',
+                        cursor: 'pointer',
                       }}
                     >
-                      {STATUS_LABEL[r.Status] ?? r.Status}
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', minWidth: 90, textAlign: 'right' }}>
-                      {r.Currency} {r.TotalAmount.toLocaleString('es-CL')}
-                    </span>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filtered.length === 0 ? (
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Ninguna reserva coincide con el filtro.
+                </div>
+              ) : (
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                  {isDesktop && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: 'var(--surface-2)',
+                        borderBottom: '1px solid var(--border)',
+                        padding: '12px 24px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--text-sub)',
+                      }}
+                    >
+                      <span style={col(150)}>Huésped</span>
+                      <span style={col(130)}>Habitación</span>
+                      <span style={col(95)}>Check-in</span>
+                      <span style={col(95)}>Check-out</span>
+                      <span style={col(70, { textAlign: 'center' })}>Noches</span>
+                      <span style={col(130)}>Origen</span>
+                      <span style={col(105)}>Estado</span>
+                      <span style={{ flex: 1, textAlign: 'right' }}>Monto Total</span>
+                    </div>
+                  )}
+                  {pageItems.map((r) => {
+                    const sc = STATUS_COLOR[r.Status];
+                    return (
+                      <div
+                        key={r.BookingID}
+                        style={{
+                          display: 'flex',
+                          flexDirection: isDesktop ? 'row' : 'column',
+                          alignItems: isDesktop ? 'center' : 'flex-start',
+                          gap: isDesktop ? 0 : 6,
+                          padding: isDesktop ? '16px 24px' : '14px 16px',
+                          borderBottom: '1px solid var(--border-soft)',
+                        }}
+                      >
+                        <span style={isDesktop ? col(150, { fontWeight: 600, color: 'var(--text)', fontSize: 14 }) : { fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>
+                          {r.GuestName}
+                        </span>
+                        <span style={isDesktop ? col(130, { fontSize: 14, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
+                          {r.RoomID} {!isDesktop && `· ${fmtDate(r.CheckIn)} → ${fmtDate(r.CheckOut)}`}
+                        </span>
+                        {isDesktop && (
+                          <>
+                            <span style={col(95, { fontSize: 14, color: 'var(--text-sub)' })}>{fmtDate(r.CheckIn)}</span>
+                            <span style={col(95, { fontSize: 14, color: 'var(--text-sub)' })}>{fmtDate(r.CheckOut)}</span>
+                            <span style={col(70, { fontSize: 14, color: 'var(--text-sub)', textAlign: 'center' })}>{nights(r.CheckIn, r.CheckOut)}</span>
+                          </>
+                        )}
+                        <span style={isDesktop ? col(130) : { marginTop: 2 }}>
+                          <OriginBadge source={r.Source} />
+                        </span>
+                        <span style={isDesktop ? col(105) : { marginTop: 2 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: sc?.bg ?? 'var(--status-neutro-bg)', color: sc?.dot ?? 'var(--status-neutro-text)' }}>
+                            {STATUS_LABEL[r.Status] ?? r.Status}
+                          </span>
+                        </span>
+                        <span style={isDesktop ? { flex: 1, textAlign: 'right', fontWeight: 700, color: 'var(--text)', fontSize: 14 } : { fontWeight: 700, color: 'var(--text)', fontSize: 14, marginTop: 2 }}>
+                          {r.Currency} {r.TotalAmount.toLocaleString('es-CL')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-7)' }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+                      Mostrando {pageSafe * PAGE_SIZE + 1}–{Math.min(filtered.length, pageSafe * PAGE_SIZE + PAGE_SIZE)} de {filtered.length} reserva{filtered.length === 1 ? '' : 's'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => setPage((p) => Math.max(0, p - 1))}
+                        disabled={pageSafe === 0}
+                        style={{
+                          all: 'unset',
+                          padding: '6px 12px',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: pageSafe === 0 ? 'var(--text-faint)' : 'var(--text-sub)',
+                          cursor: pageSafe === 0 ? 'default' : 'pointer',
+                        }}
+                      >
+                        Anterior
+                      </button>
+                      <button
+                        onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                        disabled={pageSafe >= pageCount - 1}
+                        style={{
+                          all: 'unset',
+                          padding: '6px 12px',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: pageSafe >= pageCount - 1 ? 'var(--text-faint)' : 'var(--text-sub)',
+                          cursor: pageSafe >= pageCount - 1 ? 'default' : 'pointer',
+                        }}
+                      >
+                        Siguiente
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </AsyncState>
       </div>

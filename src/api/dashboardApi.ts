@@ -78,6 +78,13 @@ export function getMe(): Promise<MeResponse> {
   return request('/dashboard/me');
 }
 
+// El cliente sube su propio logo desde Configuración (pedido explícito de
+// Mato, 2026-08-03) - logoDataUrl ya viene redimensionado/comprimido a
+// data URL desde el frontend (ver SettingsScreen.tsx), acá solo se manda.
+export function uploadClientLogo(logoDataUrl: string): Promise<{ ok: true }> {
+  return request('/dashboard/logo', 'PUT', { logo_data_url: logoDataUrl });
+}
+
 export function getSemaforo(): Promise<SemaforoResponse> {
   return request('/dashboard/semaforo');
 }

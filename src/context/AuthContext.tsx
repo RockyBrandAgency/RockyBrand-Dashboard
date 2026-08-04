@@ -20,14 +20,32 @@ interface AuthContextValue {
   clientDisplayName: string | null;
   clientDisplaySubtitle: string;
   clientServices: ClientServices | null;
-  // Logo real del cliente logueado (branding.ts), resuelto por su
-  // client_id real (no por el subdominio - ya hay sesión, se usa el dato
-  // de verdad). null si el cliente no tiene logo cargado todavía.
-  clientLogoSrc: string | null;
+  // Logo real del cliente logueado, en sus 2 variantes (mismo criterio que
+  // ya usaba LoginScreen con CLIENT_BRANDING: "Light" para fondo claro -
+  // Sidebar -, "Dark" para fondo oscuro/de marca - MobileBar). El que subió
+  // desde Configuración (rockybrand-client-config.logo_data_url) tiene
+  // prioridad y se usa para AMBAS variantes (es un solo archivo, no hay
+  // par claro/oscuro de una subida del cliente) - si no hay uno, cada
+  // variante cae a su equivalente estático de branding.ts. null si
+  // ninguno de los dos existe todavía.
+  //
+  // Bug real encontrado con Playwright antes de este cambio (2026-08-03):
+  // un solo `clientLogoSrc` compartido usaba siempre logoSrcDark - el
+  // logo de Alto Castillo es blanco/transparente (invisible sobre blanco,
+  // ver el comentario de CLIENT_BRANDING), y el Sidebar tiene fondo
+  // blanco, así que el logo real de Alto Castillo desaparecía por completo
+  // ahí (el MobileBar, con fondo --primary oscuro, sí lo mostraba bien -
+  // por eso el bug no se notaba antes: el Sidebar nunca había usado el
+  // logo real todavía).
+  clientLogoSrcLight: string | null;
+  clientLogoSrcDark: string | null;
   // client_id real (no el subdominio) - lo necesitan componentes que
   // varían por cliente pero no tienen su propio branding (ej.
   // WeatherWidget, ubicación real). null mientras carga.
   clientId: string | null;
+  // SettingsScreen la llama después de subir un logo nuevo, para que el
+  // Sidebar/MobileBar lo reflejen sin esperar a un remount de toda la app.
+  setUploadedLogo: (src: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -48,15 +66,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
   const [clientDisplaySubtitle, setClientDisplaySubtitle] = useState('');
   const [clientServices, setClientServices] = useState<ClientServices | null>(null);
-  const [clientLogoSrc, setClientLogoSrc] = useState<string | null>(null);
+  const [clientLogoSrcLight, setClientLogoSrcLight] = useState<string | null>(null);
+  const [clientLogoSrcDark, setClientLogoSrcDark] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+
+  const setUploadedLogo = useCallback((src: string) => {
+    setClientLogoSrcLight(src);
+    setClientLogoSrcDark(src);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setClientDisplayName(null);
       setClientDisplaySubtitle('');
       setClientServices(null);
-      setClientLogoSrc(null);
+      setClientLogoSrcLight(null);
+      setClientLogoSrcDark(null);
       setClientId(null);
       return;
     }
@@ -67,7 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientDisplayName(me.display_name);
         setClientDisplaySubtitle(me.display_subtitle);
         setClientServices(me.services);
-        setClientLogoSrc(CLIENT_BRANDING[me.client_id]?.logoSrcDark ?? null);
+        setClientLogoSrcLight(me.logo_data_url ?? CLIENT_BRANDING[me.client_id]?.logoSrcLight ?? null);
+        setClientLogoSrcDark(me.logo_data_url ?? CLIENT_BRANDING[me.client_id]?.logoSrcDark ?? null);
         setClientId(me.client_id);
         // Solo SETEA acá, nunca resetea (ver la rama !isAuthenticated de
         // arriba) - si reseteara en cada mount, pisaría el theme que
@@ -140,8 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clientDisplayName,
         clientDisplaySubtitle,
         clientServices,
-        clientLogoSrc,
+        clientLogoSrcLight,
+        clientLogoSrcDark,
         clientId,
+        setUploadedLogo,
       }}
     >
       {children}

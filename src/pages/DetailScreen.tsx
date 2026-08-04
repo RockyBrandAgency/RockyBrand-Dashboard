@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { SectionHead } from '../components/SectionHead';
 import { GuestCard, hasAlert } from '../components/GuestCard';
 import { AsyncState } from '../components/AsyncState';
-import { StatusDot } from '../components/StatusDot';
 import { getLlegadas, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import type { LlegadaGuest } from '../types';
@@ -38,18 +37,26 @@ export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 60px' : '20px 16px 80px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            flexWrap: 'wrap',
+            gap: 12,
+            paddingBottom: 'var(--space-7)',
+            borderBottom: '1px solid var(--border)',
+            marginBottom: 'var(--space-8)',
+          }}
+        >
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-              Operación
-            </div>
-            <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-              Llegadas próximas 48 hrs
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+              Llegadas próximas 48 horas
             </h1>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
+              Revisa los ingresos y requerimientos especiales de los huéspedes.
+            </div>
           </div>
-          {llegadas && (
-            <StatusDot status={alertG.length > 0 ? 'atencion' : 'bien'} label={alertG.length > 0 ? `${alertG.length} requieren atención` : 'Sin novedades'} />
-          )}
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>
@@ -82,7 +89,9 @@ export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
             >
               {alertG.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <SectionHead>Requieren atención</SectionHead>
+                  <SectionHead count={{ label: `${alertG.length} alerta${alertG.length === 1 ? '' : 's'}`, tone: 'atencion' }}>
+                    Requieren atención
+                  </SectionHead>
                   {alertG.map((g) => (
                     <GuestCard key={g.BookingID} guest={g} isDesktop={isDesktop} />
                   ))}
@@ -90,7 +99,7 @@ export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
               )}
               {clearG.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <SectionHead>Sin novedades</SectionHead>
+                  <SectionHead count={{ label: `${clearG.length}`, tone: 'bien' }}>Sin novedades</SectionHead>
                   {clearG.map((g) => (
                     <GuestCard key={g.BookingID} guest={g} isDesktop={isDesktop} />
                   ))}

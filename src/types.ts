@@ -114,6 +114,9 @@ export interface MeResponse {
   client_id: string;
   display_name: string;
   display_subtitle: string;
+  // null si el cliente no subió un logo propio todavía (Configuración,
+  // 2026-08-03) - el frontend cae a CLIENT_BRANDING/LogoPlaceholder.
+  logo_data_url: string | null;
   services: ClientServices;
 }
 

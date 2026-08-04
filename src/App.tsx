@@ -91,7 +91,7 @@ function AuthenticatedShell() {
         </>
       ) : (
         <>
-          <MobileBar screen={screen} setScreen={setScreen} userEmail={userEmail} />
+          <MobileBar screen={screen} setScreen={setScreen} />
           <div style={{ height: 56, flexShrink: 0, width: '100%' }} />
         </>
       )}
@@ -111,7 +111,7 @@ function AuthenticatedShell() {
             {screen === 'metricas-tiktok' && <MetricasTiktok isDesktop={isDesktop} />}
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
             {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}
-            {screen === 'servicio-contenido-revision' && <RevisionContenido />}
+            {screen === 'servicio-contenido-revision' && <RevisionContenido isDesktop={isDesktop} />}
             {screen === 'settings' && <SettingsScreen isDesktop={isDesktop} />}
           </>
         )}

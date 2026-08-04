@@ -38,7 +38,7 @@ export function Sidebar({
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientServices } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight } = useAuth();
   const showOverview = isVisible(OVERVIEW, clientServices);
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
@@ -69,20 +69,38 @@ export function Sidebar({
       }}
     >
       <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', marginBottom: 'var(--space-9)' }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            flexShrink: 0,
-            borderRadius: 'var(--radius-sm)',
-            background: 'var(--primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <TreePineIcon size={18} color="#fff" />
-        </div>
+        {clientLogoSrcLight ? (
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              flexShrink: 0,
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-soft)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            <img src={clientLogoSrcLight} alt={clientDisplayName ?? ''} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
+        ) : (
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              flexShrink: 0,
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <TreePineIcon size={18} color="#fff" />
+          </div>
+        )}
         <div style={{ minWidth: 0 }}>
           <div
             style={{

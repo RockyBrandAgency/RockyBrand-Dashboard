@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
+import { HomeIcon, ChartColumnIcon, BellIcon } from './icons/RockyIcons';
 import type { ClientServices, ServiceKey } from '../types';
 import type { NavLeaf } from '../screens';
 
@@ -19,25 +21,35 @@ function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolea
   return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
 }
 
+// Rediseño 2026-08-03 contra Figma (frames "21 — Mobile: Overview" y
+// hermanos): el mockup muestra exactamente 4 tabs fijos (Inicio/Métricas/
+// Servicios/Config), cada uno como landing page de su propia sección. La
+// app real tiene más pantallas hoja de las que esos 4 tabs cubren sin
+// ambigüedad (Métricas son 6 pantallas reales, Servicios son 3 páginas
+// propias más 2 solo informativas) - colapsar la navegación a esa
+// estructura de 4 tabs es un cambio de arquitectura de información, no
+// un ajuste visual, y no está confirmado con Mato. Se aplicó el lenguaje
+// visual nuevo (fondo claro, tokens, iconos reales donde había un ícono
+// exacto de Figma para reusar) sin tocar el modelo de navegación real -
+// la barra sigue siendo la lista plana de siempre, para no arriesgar que
+// una pantalla real deje de ser alcanzable desde el celular.
 export function MobileBar({
   screen,
   setScreen,
-  userEmail,
 }: {
   screen: Screen;
   setScreen: (s: Screen) => void;
-  userEmail: string;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrc } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight } = useAuth();
 
-  const bottomItems: { id: Screen; icon: string; label: string }[] = [];
+  const bottomItems: { id: Screen; icon: ReactNode; label: string }[] = [];
   if (isVisible(OVERVIEW, clientServices)) {
-    bottomItems.push({ id: OVERVIEW.id, icon: '◉', label: OVERVIEW.shortLabel });
+    bottomItems.push({ id: OVERVIEW.id, icon: <HomeIcon size={18} />, label: OVERVIEW.shortLabel });
   }
   for (const section of NAV_SECTIONS) {
     for (const item of section.items) {
       if (isVisible(item, clientServices)) {
-        bottomItems.push({ id: item.id, icon: section.icon, label: item.shortLabel });
+        bottomItems.push({ id: item.id, icon: <ChartColumnIcon size={18} />, label: item.shortLabel });
       }
     }
   }
@@ -49,13 +61,14 @@ export function MobileBar({
       }
     }
   }
-  bottomItems.push({ id: 'settings', icon: '🔔', label: 'Avisos' });
+  bottomItems.push({ id: 'settings', icon: <BellIcon size={18} />, label: 'Avisos' });
 
   return (
     <>
       <header
         style={{
-          background: 'var(--primary)',
+          background: 'var(--white)',
+          borderBottom: '1px solid var(--border)',
           padding: '0 16px',
           height: 56,
           display: 'flex',
@@ -66,52 +79,35 @@ export function MobileBar({
           left: 0,
           right: 0,
           zIndex: 50,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {clientLogoSrc && (
-            <img src={clientLogoSrc} alt={clientDisplayName ?? ''} style={{ height: 26, width: 'auto', maxWidth: 90, objectFit: 'contain', display: 'block' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          {clientLogoSrcLight ? (
+            <img src={clientLogoSrcLight} alt={clientDisplayName ?? ''} style={{ height: 28, width: 28, objectFit: 'contain', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--primary)' }} />
           )}
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{clientDisplayName ?? '…'}</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={() => setScreen('settings')}
-            style={{
-              all: 'unset',
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255,255,255,0.10)',
-              borderRadius: 8,
-              cursor: 'pointer',
-              color: 'var(--sage)',
-              fontSize: 15,
-            }}
-          >
-            🔔
-          </button>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              background: 'rgba(255,255,255,0.15)',
-              border: '1.5px solid rgba(255,255,255,0.25)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 12,
-              fontWeight: 800,
-              color: '#fff',
-            }}
-          >
-            {userEmail.charAt(0).toUpperCase()}
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {clientDisplayName ?? '…'}
           </div>
         </div>
+        <button
+          onClick={() => setScreen('settings')}
+          style={{
+            all: 'unset',
+            width: 36,
+            height: 36,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 'var(--radius-pill)',
+            cursor: 'pointer',
+            color: 'var(--text-sub)',
+          }}
+        >
+          <BellIcon size={20} />
+        </button>
       </header>
       <nav
         style={{
@@ -120,8 +116,8 @@ export function MobileBar({
           left: 0,
           right: 0,
           zIndex: 50,
-          background: 'var(--primary)',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--white)',
+          borderTop: '1px solid var(--border)',
           display: 'flex',
           height: 60,
           overflowX: bottomItems.length > 5 ? 'auto' : 'visible',
@@ -142,11 +138,11 @@ export function MobileBar({
                 justifyContent: 'center',
                 gap: 3,
                 cursor: 'pointer',
-                color: active ? '#fff' : 'var(--sage)',
-                borderTop: active ? '2px solid #fff' : '2px solid transparent',
+                color: active ? 'var(--primary)' : 'var(--text-faint)',
+                borderTop: active ? '2px solid var(--primary)' : '2px solid transparent',
               }}
             >
-              <span style={{ fontSize: 17 }}>{item.icon}</span>
+              <span style={{ fontSize: 17, lineHeight: 1, display: 'flex' }}>{item.icon}</span>
               <span style={{ fontSize: 10, fontWeight: 700 }}>{item.label}</span>
             </button>
           );

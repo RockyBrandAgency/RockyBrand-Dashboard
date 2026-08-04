@@ -3,6 +3,8 @@ import {
   getContentPieces, getHorarioSugerido, aprobarPieza, rechazarPieza, UnauthorizedError,
 } from '../../api/dashboardApi';
 import { AsyncState } from '../../components/AsyncState';
+import { useAuth } from '../../context/AuthContext';
+import { CLIENT_LOCATION } from '../../branding';
 import type {
   ContentPiece, Adaptacion, HorarioSugerido, EstadoPieza, AdvertenciaPieza,
 } from '../../types';
@@ -11,10 +13,17 @@ import type {
 // Dave (estratega) y Jimi (director de arte): los reportes de Neil, Slash y
 // Cameron y las directivas de Rox son informes internos y no se aprueban.
 //
-// Mobile primero a pedido explícito: el dueño revisa esto desde el teléfono.
-// Sistema de diseño propio, sin librerías nuevas.
-//
 // El client_id nunca viaja desde acá: sale del claim del JWT en el backend.
+//
+// Rediseño 2026-08-03 contra Figma (frame "20 — Revisión de Contenido"):
+// el mockup muestra una tarjeta simple por pieza (1 plataforma, sin
+// historial, sin advertencias, sin horario sugerido) - pero la pantalla
+// real ya es más completa que eso (multi-plataforma con tabs, advertencias
+// reales de cada spec, activo visual del Art Director, horario sugerido
+// con datos reales, historial de rechazo). Se aplicó el lenguaje visual
+// nuevo (tokens, grid de tarjetas, colores de estado) sin recortar esa
+// funcionalidad real - adaptar el layout a los datos reales, nunca al
+// revés.
 
 const ESTADOS: { id: EstadoPieza | ''; label: string }[] = [
   { id: '', label: 'Todas' },
@@ -23,10 +32,21 @@ const ESTADOS: { id: EstadoPieza | ''; label: string }[] = [
   { id: 'rechazada', label: 'Rechazadas' },
 ];
 
+// Hex literales, no var(--status-*) - Badge combina el color con un sufijo
+// de alpha ("${color}1A"), que solo funciona con un hex real. Son el
+// mismo valor exacto que --status-atencion-dot/--status-bien-dot/
+// --status-critico-dot (confirmado contra el Figma real: "Pendiente"
+// #d97706, "Aprobada"/"Confirmada" #16a34a, "Rechazada"/"Cancelada"
+// #ef4444 - los mismos 3 tokens que ya usa Reservas Resumen). "publicada"
+// quedó fuera de ese set de 3 estados en el Figma real - quedó documentado
+// como pregunta abierta para Mato (¿token --status-info-* nuevo, o un azul
+// propio?) y no fue respondida todavía, así que se mantiene como su propio
+// azul explícito en vez de forzarlo dentro de un token que no le
+// corresponde.
 const COLOR_ESTADO: Record<EstadoPieza, string> = {
-  pendiente: '#B86114',
-  aprobada: '#1F804D',
-  rechazada: '#BF2E2E',
+  pendiente: '#D97706',
+  aprobada: '#16A34A',
+  rechazada: '#EF4444',
   publicada: '#3866BF',
 };
 
@@ -42,7 +62,7 @@ function limiteDe(a: Adaptacion): number | null {
 function Badge({ texto, color }: { texto: string; color: string }) {
   return (
     <span style={{
-      background: `${color}1A`, color, borderRadius: 999, padding: '3px 10px',
+      background: `${color}1A`, color, borderRadius: 'var(--radius-pill)', padding: '3px 10px',
       fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
     }}>{texto}</span>
   );
@@ -53,16 +73,16 @@ function Advertencias({ items }: { items: AdvertenciaPieza[] }) {
   // Imposibles de no ver, pero NUNCA bloquean: quien decide es el cliente.
   return (
     <div style={{
-      background: '#FFF7F0', border: '1px solid #FF9E42', borderRadius: 10,
+      background: 'var(--status-atencion-bg)', border: '1px solid var(--status-atencion-dot)', borderRadius: 'var(--radius-sm)',
       padding: 12, marginTop: 12,
     }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#B86114', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-atencion-text)', marginBottom: 6 }}>
         ⚠ {items.length} {items.length === 1 ? 'advertencia' : 'advertencias'} de plataforma
       </div>
       {items.map((w, i) => (
-        <div key={i} style={{ fontSize: 13, color: '#1E1E1E', lineHeight: 1.5 }}>· {w.mensaje}</div>
+        <div key={i} style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>· {w.mensaje}</div>
       ))}
-      <div style={{ fontSize: 12, color: '#595959', marginTop: 6 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 6 }}>
         No bloquean la aprobación: tú decides.
       </div>
     </div>
@@ -81,9 +101,9 @@ function BotonCopiar({ texto }: { texto: string }) {
         } catch { /* sin portapapeles: el texto igual está a la vista */ }
       }}
       style={{
-        border: '1px solid var(--border)', background: 'var(--surface)', borderRadius: 8,
+        border: '1px solid var(--border)', background: 'var(--surface)', borderRadius: 'var(--radius-sm)',
         padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-        color: copiado ? '#1F804D' : 'inherit',
+        color: copiado ? 'var(--status-bien-text)' : 'inherit',
       }}
     >{copiado ? '✓ Copiado' : 'Copiar texto'}</button>
   );
@@ -102,7 +122,7 @@ function VistaAdaptacion({ a }: { a: Adaptacion }) {
         <Badge texto={a.formato} color="#3866BF" />
         <span style={{
           fontSize: 12, fontWeight: 600,
-          color: excedido ? '#BF2E2E' : '#595959',
+          color: excedido ? 'var(--status-critico-text)' : 'var(--text-sub)',
         }}>
           {largo} {limite !== null ? `/ ${limite}` : ''} caracteres
           {limite === null && ' · sin límite oficial verificado'}
@@ -118,29 +138,29 @@ function VistaAdaptacion({ a }: { a: Adaptacion }) {
 
       {a.activo_visual?.activos?.length ? (
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#595959', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-sub)', marginBottom: 6 }}>
             ACTIVO VISUAL (elegido por el Art Director)
           </div>
           {a.activo_visual.activos.map((act, i) => (
             <div key={i} style={{
-              border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 8,
+              border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 8,
             }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{act.nombre_archivo}</div>
               {act.justificacion && (
-                <div style={{ fontSize: 13, color: '#595959', marginTop: 4 }}>{act.justificacion}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>{act.justificacion}</div>
               )}
             </div>
           ))}
           {a.activo_visual.nota && (
-            <div style={{ fontSize: 12, color: '#B86114' }}>{a.activo_visual.nota}</div>
+            <div style={{ fontSize: 12, color: 'var(--status-atencion-text)' }}>{a.activo_visual.nota}</div>
           )}
         </div>
       ) : (
         // Estado honesto: no es un dato faltante, es que Jimi todavía no
         // corrió. Sólo se dispara al aprobar.
         <div style={{
-          marginTop: 14, fontSize: 13, color: '#595959', background: 'var(--surface-2, #F9F9F9)',
-          borderRadius: 10, padding: 12,
+          marginTop: 14, fontSize: 13, color: 'var(--text-sub)', background: 'var(--surface-2)',
+          borderRadius: 'var(--radius-sm)', padding: 12,
         }}>
           Sin activo visual todavía. El Art Director lo genera después de que apruebes la pieza.
         </div>
@@ -156,7 +176,7 @@ function Campo({ etiqueta, valor, multilinea }: { etiqueta: string; valor?: stri
   if (!valor) return null;
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#595959', marginBottom: 4 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-sub)', marginBottom: 4 }}>
         {etiqueta.toUpperCase()}
       </div>
       <div style={{ fontSize: 15, lineHeight: 1.55, whiteSpace: multilinea ? 'pre-wrap' : 'normal' }}>
@@ -170,22 +190,22 @@ function BloqueHorario({ h }: { h: HorarioSugerido | null }) {
   if (!h) return null;
   return (
     <div style={{
-      border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 20,
-      background: h.hay_recomendacion ? '#EBFFEE' : 'var(--surface)',
+      border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 20,
+      background: h.hay_recomendacion ? 'var(--status-bien-bg)' : 'var(--white)',
     }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#595959', marginBottom: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-sub)', marginBottom: 8 }}>
         HORARIO SUGERIDO DE PUBLICACIÓN
       </div>
       {!h.hay_recomendacion ? (
         <div style={{ fontSize: 14, lineHeight: 1.55 }}>{h.mensaje}</div>
       ) : (
         <>
-          <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{h.franja}</div>
-          <div style={{ fontSize: 13, color: '#1E1E1E', lineHeight: 1.55 }}>
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, marginBottom: 6 }}>{h.franja}</div>
+          <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.55 }}>
             Lo sustentan {h.publicaciones_en_la_franja} de {h.publicaciones_analizadas} publicaciones
             {h.diferencia_pct != null && <> · rinde <strong>{h.diferencia_pct}%</strong> más que el resto</>}
           </div>
-          <div style={{ fontSize: 12, color: '#595959', marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 6 }}>
             Métrica: {h.metrica}. Fuente: {h.fuente}.
           </div>
         </>
@@ -237,29 +257,29 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
 
   return (
     <div style={{
-      border: '1px solid var(--border)', borderRadius: 14, padding: 16,
-      marginBottom: 16, background: 'var(--surface)',
+      border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 16,
+      background: 'var(--white)', boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column',
     }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <Badge texto={p.estado} color={COLOR_ESTADO[p.estado]} />
-        {p.fecha_publicacion_propuesta && <Badge texto={p.fecha_publicacion_propuesta} color="#595959" />}
+        {p.fecha_publicacion_propuesta && <Badge texto={p.fecha_publicacion_propuesta} color="#6B7280" />}
         {p.objetivo ? <Badge texto={p.objetivo} color="#3866BF" />
-          : <Badge texto="sin objetivo" color="#B86114" />}
-        {advertenciasTotal > 0 && <Badge texto={`${advertenciasTotal} advertencia(s)`} color="#B86114" />}
+          : <Badge texto="sin objetivo" color="#D97706" />}
+        {advertenciasTotal > 0 && <Badge texto={`${advertenciasTotal} advertencia(s)`} color="#D97706" />}
       </div>
 
       <div style={{ fontSize: 16, lineHeight: 1.55, marginBottom: 14 }}>{p.concepto}</div>
 
       {ultimoRechazo && (
         <div style={{
-          background: '#FFF5F5', border: '1px solid #FF7556', borderRadius: 10,
+          background: 'var(--status-critico-bg)', border: '1px solid var(--status-critico-dot)', borderRadius: 'var(--radius-sm)',
           padding: 12, marginBottom: 14,
         }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#BF2E2E', marginBottom: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-critico-text)', marginBottom: 4 }}>
             MOTIVO DEL RECHAZO
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.5 }}>{ultimoRechazo.comentario}</div>
-          <div style={{ fontSize: 12, color: '#595959', marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>
             {ultimoRechazo.quien} · {ultimoRechazo.cuando.slice(0, 16).replace('T', ' ')}
           </div>
         </div>
@@ -268,9 +288,9 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
         {adaptaciones.map((a, i) => (
           <button key={i} onClick={() => setTab(i)} style={{
-            border: 'none', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600,
+            all: 'unset', boxSizing: 'border-box', borderRadius: 'var(--radius-pill)', padding: '8px 14px', fontSize: 13, fontWeight: 600,
             cursor: 'pointer', whiteSpace: 'nowrap',
-            background: tab === i ? 'var(--primary, #2A2A2A)' : 'var(--surface-2, #F0F0F0)',
+            background: tab === i ? 'var(--primary)' : 'var(--surface-2)',
             color: tab === i ? '#fff' : 'inherit',
           }}>
             {a.plataforma}{(a.advertencias?.length || 0) > 0 ? ' ⚠' : ''}
@@ -281,27 +301,40 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
       {adaptaciones[tab] && <VistaAdaptacion a={adaptaciones[tab]} />}
 
       {aviso && (
-        <div style={{ marginTop: 12, fontSize: 13, color: '#B86114' }}>{aviso}</div>
+        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--status-atencion-text)' }}>{aviso}</div>
       )}
 
+      <div style={{ flex: 1 }} />
+
       {!decidida && !rechazando && (
-        <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
           <button onClick={aprobar} disabled={enviando} style={{
-            flex: '1 1 140px', border: 'none', borderRadius: 10, padding: '14px 18px',
-            background: '#1F804D', color: '#fff', fontSize: 15, fontWeight: 700,
+            all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', borderRadius: 'var(--radius-sm)', padding: '8px 16px',
+            background: 'var(--primary)', color: '#fff', fontSize: 13, fontWeight: 600,
             cursor: enviando ? 'wait' : 'pointer',
           }}>{enviando ? 'Aprobando…' : 'Aprobar'}</button>
           <button onClick={() => setRechazando(true)} disabled={enviando} style={{
-            flex: '1 1 140px', border: '1px solid #BF2E2E', borderRadius: 10, padding: '14px 18px',
-            background: 'transparent', color: '#BF2E2E', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+            all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', border: '1px solid var(--status-critico-dot)', borderRadius: 'var(--radius-sm)', padding: '8px 16px',
+            background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}>Rechazar</button>
+        </div>
+      )}
+
+      {decidida && !rechazando && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{
+            textAlign: 'center', borderRadius: 'var(--radius-sm)', padding: '8px 16px',
+            background: 'var(--surface-2)', color: 'var(--text-sub)', fontSize: 13, fontWeight: 600,
+          }}>
+            Acción completada
+          </div>
         </div>
       )}
 
       {rechazando && (
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-            ¿Qué hay que mejorar? <span style={{ color: '#BF2E2E' }}>(obligatorio)</span>
+            ¿Qué hay que mejorar? <span style={{ color: 'var(--status-critico-text)' }}>(obligatorio)</span>
           </div>
           <textarea
             value={comentario}
@@ -309,24 +342,24 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
             rows={4}
             placeholder="El agente usa este texto para regenerar la pieza."
             style={{
-              width: '100%', boxSizing: 'border-box', borderRadius: 10, padding: 12,
+              width: '100%', boxSizing: 'border-box', borderRadius: 'var(--radius-sm)', padding: 12,
               border: '1px solid var(--border)', fontSize: 15, fontFamily: 'inherit', resize: 'vertical',
             }}
           />
-          <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button
               onClick={rechazar}
               disabled={!comentario.trim() || enviando}
               style={{
-                flex: '1 1 140px', border: 'none', borderRadius: 10, padding: '14px 18px',
-                background: comentario.trim() ? '#BF2E2E' : '#D9D9D9',
-                color: '#fff', fontSize: 15, fontWeight: 700,
+                all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', borderRadius: 'var(--radius-sm)', padding: '8px 16px',
+                background: comentario.trim() ? 'var(--status-critico-dot)' : 'var(--text-faint)',
+                color: '#fff', fontSize: 13, fontWeight: 600,
                 cursor: comentario.trim() ? 'pointer' : 'not-allowed',
               }}
             >{enviando ? 'Enviando…' : 'Confirmar rechazo'}</button>
             <button onClick={() => { setRechazando(false); setComentario(''); }} style={{
-              flex: '1 1 100px', border: '1px solid var(--border)', borderRadius: 10,
-              padding: '14px 18px', background: 'transparent', fontSize: 15, cursor: 'pointer',
+              all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+              padding: '8px 16px', background: 'transparent', fontSize: 13, cursor: 'pointer',
             }}>Cancelar</button>
           </div>
         </div>
@@ -335,7 +368,8 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
   );
 }
 
-export function RevisionContenido() {
+export function RevisionContenido({ isDesktop }: { isDesktop: boolean }) {
+  const { clientId } = useAuth();
   const [piezas, setPiezas] = useState<ContentPiece[]>([]);
   const [horario, setHorario] = useState<HorarioSugerido | null>(null);
   const [estado, setEstado] = useState<EstadoPieza | ''>('');
@@ -364,61 +398,89 @@ export function RevisionContenido() {
     piezas.flatMap((p) => (p.adaptaciones || []).map((a) => a.plataforma))
   ));
 
+  const location = clientId ? CLIENT_LOCATION[clientId] : undefined;
+  const fecha = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const fechaCap = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+
   return (
-    <div style={{ padding: '20px 16px 90px', maxWidth: 760, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px' }}>Revisión de contenido</h1>
-      <p style={{ fontSize: 14, color: '#595959', margin: '0 0 20px', lineHeight: 1.5 }}>
-        Aprueba o rechaza las piezas antes de publicarlas. Nada se publica automáticamente.
-      </p>
-
-      <BloqueHorario h={horario} />
-
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 8, paddingBottom: 4 }}>
-        {ESTADOS.map((e) => (
-          <button key={e.id} onClick={() => setEstado(e.id)} style={{
-            border: 'none', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', whiteSpace: 'nowrap',
-            background: estado === e.id ? 'var(--primary, #2A2A2A)' : 'var(--surface-2, #F0F0F0)',
-            color: estado === e.id ? '#fff' : 'inherit',
-          }}>{e.label}</button>
-        ))}
-      </div>
-
-      {plataformas.length > 1 && (
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 16, paddingBottom: 4 }}>
-          <button onClick={() => setPlataforma('')} style={chip(plataforma === '')}>Todas</button>
-          {plataformas.map((pl) => (
-            <button key={pl} onClick={() => setPlataforma(pl)} style={chip(plataforma === pl)}>{pl}</button>
-          ))}
-        </div>
-      )}
-
-      <AsyncState loading={cargando} error={error} onRetry={() => void cargar()}>
-        {piezas.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#595959' }}>
-            <div style={{ fontSize: 15, lineHeight: 1.6 }}>
-              {estado || plataforma
-                ? 'No hay piezas que coincidan con estos filtros.'
-                : 'Aún no hay piezas para revisar.'}
+    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
+      <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: 12,
+            paddingBottom: 'var(--space-7)',
+            borderBottom: '1px solid var(--border)',
+            marginBottom: 'var(--space-8)',
+          }}
+        >
+          <div>
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+              Revisión de Contenido
+            </h1>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
+              Piezas de redes sociales generadas por IA para tu aprobación. Nada se publica automáticamente.
             </div>
           </div>
-        ) : (
-          piezas.map((p) => (
-            <Pieza key={p.piece_id} p={p}
-              onCambio={(nueva) => setPiezas((prev) =>
-                prev.map((x) => (x.piece_id === nueva.piece_id ? nueva : x)))} />
-          ))
-        )}
-      </AsyncState>
+          {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCap}</div>}
+        </div>
+
+        <BloqueHorario h={horario} />
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', marginBottom: 'var(--space-7)' }}>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 'var(--radius-md)' }}>
+            {ESTADOS.map((e) => (
+              <button key={e.id} onClick={() => setEstado(e.id)} style={{
+                all: 'unset', boxSizing: 'border-box', borderRadius: 'var(--radius-sm)', padding: '6px 12px', fontSize: 13, fontWeight: estado === e.id ? 600 : 500,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                background: estado === e.id ? 'var(--white)' : 'transparent',
+                color: estado === e.id ? 'var(--text)' : 'var(--text-sub)',
+              }}>{e.label}</button>
+            ))}
+          </div>
+
+          {plataformas.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+              <button onClick={() => setPlataforma('')} style={chip(plataforma === '')}>Todas</button>
+              {plataformas.map((pl) => (
+                <button key={pl} onClick={() => setPlataforma(pl)} style={chip(plataforma === pl)}>{pl}</button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <AsyncState loading={cargando} error={error} onRetry={() => void cargar()}>
+          {piezas.length === 0 ? (
+            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 15, lineHeight: 1.6 }}>
+                {estado || plataforma
+                  ? 'No hay piezas que coincidan con estos filtros.'
+                  : 'Aún no hay piezas para revisar.'}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(auto-fill, minmax(300px, 1fr))' : '1fr', gap: 20 }}>
+              {piezas.map((p) => (
+                <Pieza key={p.piece_id} p={p}
+                  onCambio={(nueva) => setPiezas((prev) =>
+                    prev.map((x) => (x.piece_id === nueva.piece_id ? nueva : x)))} />
+              ))}
+            </div>
+          )}
+        </AsyncState>
+      </div>
     </div>
   );
 }
 
 function chip(activo: boolean): React.CSSProperties {
   return {
-    border: '1px solid var(--border)', borderRadius: 999, padding: '6px 12px',
+    all: 'unset', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '6px 12px',
     fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
-    background: activo ? 'var(--primary, #2A2A2A)' : 'transparent',
-    color: activo ? '#fff' : 'inherit',
+    background: activo ? 'var(--primary)' : 'transparent',
+    color: activo ? '#fff' : 'var(--text-sub)',
   };
 }
