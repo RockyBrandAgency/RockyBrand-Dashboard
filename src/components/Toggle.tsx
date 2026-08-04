@@ -5,6 +5,14 @@
 // 2026-08-03 - el comentario original asumía 'md' ahí a partir de la spec
 // sheet abstracta, sin haber mirado todavía el frame real). 'md' (44x24)
 // queda disponible para si aparece otro lugar que sí lo use.
+//
+// Colores: --toggle-on/--toggle-off, NO var(--primary)/var(--text-faint).
+// Antes usaba --primary, que sigue el theme de marca de cada cliente real
+// (branding.ts) - un cliente con su propio verde/charcoal mostraba el
+// switch en SU color en vez del verde fijo del spec (#2D5A3D). Encontrado
+// por Mato en vivo, 2026-08-03: "los switch cuando están activos deben
+// ser #2D5A3D y cuando están inactivos #E4E4E7". Corregido a los 2 tokens
+// fijos (ver index.css) que no dependen del cliente logueado.
 export function Toggle({ on, onToggle, size = 'md', disabled }: { on: boolean; onToggle: () => void; size?: 'sm' | 'md'; disabled?: boolean }) {
   const w = size === 'sm' ? 40 : 44;
   const h = size === 'sm' ? 20 : 24;
@@ -22,7 +30,7 @@ export function Toggle({ on, onToggle, size = 'md', disabled }: { on: boolean; o
         height: h,
         borderRadius: h / 2,
         cursor: disabled ? 'default' : 'pointer',
-        background: on ? 'var(--primary)' : 'var(--text-faint)',
+        background: on ? 'var(--toggle-on)' : 'var(--toggle-off)',
         position: 'relative',
         transition: 'background 0.18s',
         flexShrink: 0,

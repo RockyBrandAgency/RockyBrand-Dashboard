@@ -63,6 +63,16 @@
   --danger-hover: #dc2626;
   --danger-active: #b91c1c;
 
+  /* Interruptores (Toggle.tsx) - a diferencia de --primary, estos NO
+     siguen el theme de marca del cliente (pedido explícito de Mato,
+     2026-08-03: "revisa si el frontend está óptimo" tras ver un switch
+     con el color de marca de un cliente en vez del verde fijo del
+     sistema). Un switch comunica un estado on/off, no la identidad del
+     cliente - se mantiene fijo en el verde/gris del spec real de Figma
+     (37 — Spec: Estados Botones) para los 2 clientes reales por igual. */
+  --toggle-on: #2d5a3d;
+  --toggle-off: #e4e4e7;
+
   /* Espaciado — base observada en el archivo real (4px a 40px). */
   --space-1: 4px;
   --space-2: 6px;

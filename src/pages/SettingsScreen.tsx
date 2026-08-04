@@ -247,10 +247,12 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
           </div>
         </Card>
 
-        {/* #dc2626 es el rojo exacto del Figma para esta tarjeta de peligro
-            (distinto del rojo de --status-critico-*, que es el de pills de
-            estado normales) - mismo tipo de convivencia de "2 rojos" ya
-            documentada en otras pantallas de la app. */}
+        {/* var(--danger-hover) es el rojo exacto del Figma para esta tarjeta
+            de peligro (distinto del rojo de --status-critico-*, que es el de
+            pills de estado normales) - mismo tipo de convivencia de "2 rojos"
+            ya documentada en otras pantallas de la app. Usa el token
+            existente (index.css ya tenía #dc2626 como --danger-hover) en vez
+            de repetir el hex a mano. */}
         <div
           style={{
             display: 'flex',
@@ -259,20 +261,20 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
             justifyContent: 'space-between',
             gap: 16,
             background: 'var(--status-critico-bg)',
-            border: '1px solid #dc2626',
+            border: '1px solid var(--danger-hover)',
             borderRadius: 'var(--radius-md)',
             padding: 'var(--space-7)',
           }}
         >
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#dc2626' }}>Sesión de Usuario</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--danger-hover)' }}>Sesión de Usuario</div>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>Se cerrará el acceso seguro en este dispositivo de forma inmediata.</div>
           </div>
           <button
             onClick={logout}
             style={{
               all: 'unset',
-              background: '#dc2626',
+              background: 'var(--danger-hover)',
               color: '#fff',
               borderRadius: 'var(--radius-sm)',
               padding: '10px 18px',
