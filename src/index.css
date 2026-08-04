@@ -12,14 +12,22 @@
 
    2026-08-03: valores de neutros/estado/radios/sombras/tipografía
    actualizados 1:1 desde el archivo real de Figma (RockyBrand Design
-   System v1.0.4, specs de estados en las pantallas 36-38). El primary/
-   sage de marca NO se tocan: ese archivo usa nombres de cliente
-   ficticios ("Lodge Bosques del Sur") solo para ilustrar el mecanismo de
-   theming — el color real de cada cliente sigue viniendo de su propio
-   manual de marca, ver CLIENT_THEME en branding.ts. */
+   System v1.0.4, specs de estados en las pantallas 36-38). El primary de
+   cada CLIENTE real (Alto Castillo/Chile Fly Fishing) NO se toca: ese
+   archivo usa nombres de cliente ficticios ("Lodge Bosques del Sur")
+   solo para ilustrar el mecanismo de theming — el color real de cada
+   cliente sigue viniendo de su propio manual de marca, ver CLIENT_THEME
+   en branding.ts.
+
+   2026-08-03 (2): el DEFAULT sin cliente conocido (localhost, dominio
+   genérico de Amplify, antes de que branding.ts detecte un subdominio)
+   sí se actualizó — era el grafito #2a2a2a de antes del rediseño, se
+   veía "negro" y plano. Ahora usa el verde bosque #2D5A3D que es el
+   color base real de todo el archivo de Figma (botones primarios,
+   pestaña activa, foco de accesibilidad — spec 37). */
 :root {
-  --primary: #2a2a2a;
-  --primary-hov: #191919;
+  --primary: #2d5a3d;
+  --primary-hov: #234931;
   --sage: #c2beb3;
   --sage-mid: #b0aa9a;
 
