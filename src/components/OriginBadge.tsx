@@ -26,6 +26,15 @@ export function originLabel(source: string | null | undefined): string {
 // Directo). El resto de los canales reconocidos (Airbnb/Expedia/VRBO/
 // OTA_Headless/Booking CRS) sigue con el estilo neutro de siempre - no se
 // inventa un color que el Figma nunca especificó para ellos.
+//
+// Nota (auditoría capa-por-capa 2026-08-04): frame "03 — Llegadas
+// Detalle" muestra este mismo badge en gris neutro, sin color propio -
+// inconsistente con frame 19. Se mantiene el color de frame 19 en las
+// DOS pantallas a propósito: es el mismo componente compartido
+// (GuestCard también usa OriginBadge), frame 19 es el spec más
+// específico/autoritativo sobre origen de reserva (es su tema central),
+// y forkear el color por pantalla rompería la consistencia del sistema
+// de diseño por una inconsistencia menor entre 2 frames del propio Figma.
 const ORIGIN_COLOR: Partial<Record<string, { bg: string; text: string }>> = {
   'Booking.com': { bg: '#e0e7ff', text: '#4338ca' },
   Direct: { bg: '#e0f2fe', text: '#0369a1' },

@@ -17,14 +17,17 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', boxShadow: 'var(--shadow-card)' }}>
       <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{label}</div>
-      <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--text)', marginTop: 8, letterSpacing: '-0.01em' }}>{value}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', marginTop: 8, letterSpacing: '-0.01em' }}>{value}</div>
       {sub && <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
 
-function signedOrDash(v: number | null): string {
-  if (v === null) return '—';
+// `== null` a propósito (no `===`): cubre `undefined` además de `null` -
+// ver el crash real encontrado en MetricasInstagram.tsx (auditoría
+// 2026-08-04), mismo patrón frágil.
+function signedOrDash(v: number | null | undefined): string {
+  if (v == null) return '—';
   return (v > 0 ? '+' : '') + v.toLocaleString('es-CL');
 }
 
@@ -65,7 +68,7 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
           breadcrumb="Métricas > Facebook"
           title={fb?.nombre_pagina ? `Facebook — ${fb.nombre_pagina}` : 'Métricas Facebook'}

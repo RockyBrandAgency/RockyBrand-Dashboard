@@ -140,10 +140,10 @@ export function RoomGrid({ isDesktop }: { isDesktop: boolean }) {
     : '';
 
   return (
-    <Card style={{ padding: '20px 18px', overflowX: 'auto' }}>
+    <Card style={{ padding: 20, overflowX: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Disponibilidad — próximos 15 días</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Disponibilidad — próximos 15 días</div>
           {rango && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{rango}</div>}
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

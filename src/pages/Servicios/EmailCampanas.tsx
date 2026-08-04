@@ -8,6 +8,7 @@ import {
 } from '../../api/dashboardApi';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { TabsWithIndicator } from '../../components/TabsWithIndicator';
+import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { ResumenEmail } from './Email/Resumen';
 import { PendientesEmail } from './Email/Pendientes';
 import { CampanasEmail } from './Email/Campanas';
@@ -59,6 +60,7 @@ const TAB_TITLES: Record<Tab, string> = {
 
 export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
+  const contextLabel = useClientContextLabel();
   const [tab, setTab] = useState<Tab>('resumen');
   const [editandoId, setEditandoId] = useState<string | null>(null);
   // El detalle vive DENTRO de la pestaña Campañas, no como pestaña propia:
@@ -106,7 +108,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, marginBottom: 'var(--space-6)' }}>
           <div>
             <div className="crm-desc-label">Email Marketing</div>
@@ -114,6 +116,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
               {TAB_TITLES[tab]}
             </h1>
           </div>
+          {contextLabel && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{contextLabel}</div>}
         </div>
 
         <TabsWithIndicator

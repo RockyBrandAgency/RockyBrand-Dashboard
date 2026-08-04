@@ -48,7 +48,7 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
           breadcrumb="Métricas > SEO"
           title="Métricas SEO"
@@ -99,11 +99,11 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                          <th style={{ textAlign: 'left', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Keyword</th>
-                          <th style={{ textAlign: 'right', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Posición</th>
-                          <th style={{ textAlign: 'right', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Cambio</th>
-                          <th style={{ textAlign: 'right', padding: '10px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Impresiones</th>
+                        <tr style={{ background: '#f3f4f6' }}>
+                          <th style={{ textAlign: 'left', padding: 12, color: 'var(--text-sub)', fontWeight: 700, fontSize: 12 }}>Keyword</th>
+                          <th style={{ textAlign: 'right', padding: 12, color: 'var(--text-sub)', fontWeight: 700, fontSize: 12 }}>Posición</th>
+                          <th style={{ textAlign: 'right', padding: 12, color: 'var(--text-sub)', fontWeight: 700, fontSize: 12 }}>Cambio</th>
+                          <th style={{ textAlign: 'right', padding: 12, color: 'var(--text-sub)', fontWeight: 700, fontSize: 12 }}>Impresiones</th>
                         </tr>
                       </thead>
                       <tbody>

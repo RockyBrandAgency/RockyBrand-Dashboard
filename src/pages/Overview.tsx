@@ -62,7 +62,7 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <AsyncState loading={loading} error={error} onRetry={load}>
           {s && (
             <>
@@ -127,7 +127,7 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                   background: 'var(--white)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md)',
-                  padding: 'var(--space-5) var(--space-7)',
+                  padding: 16,
                   marginBottom: 'var(--space-8)',
                   boxShadow: 'var(--shadow-card)',
                 }}

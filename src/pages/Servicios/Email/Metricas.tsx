@@ -10,13 +10,20 @@ import { Card, MiniDash, Vacio, Aviso, Tabla, formatTasa, formatFecha, saludRebo
 // porcentajes no deja ver.
 function FilaEmbudo({ label, valor, max }: { label: string; valor: number; max: number }) {
   const pct = max ? (valor / max) * 100 : 0;
+  const pctLabel = `${pct.toFixed(0)}%`;
+  // Con la barra muy angosta el % no entra adentro (se corta) - en vez de
+  // ocultarlo (bug real de auditoría 2026-08-04: la fila de Clics con
+  // 4.8% quedaba sin ningún número visible), se muestra afuera, a la
+  // derecha de la barra, en texto oscuro.
+  const cabeAdentro = pct >= 12;
   return (
     <div className="crm-funnel-row">
       <span className="crm-funnel-label">{label}</span>
       <div className="crm-funnel-track">
         <div className="crm-funnel-fill" style={{ width: `${Math.max(pct, 8)}%` }}>
-          {pct >= 12 && <span className="crm-funnel-pct">{pct.toFixed(0)}%</span>}
+          {cabeAdentro && <span className="crm-funnel-pct">{pctLabel}</span>}
         </div>
+        {!cabeAdentro && <span className="crm-funnel-pct-outside">{pctLabel}</span>}
       </div>
       <span className="crm-funnel-value">{valor.toLocaleString('es-CL')}</span>
     </div>

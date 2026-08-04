@@ -42,7 +42,7 @@ export function GuestCard({ guest, isDesktop }: { guest: LlegadaGuest; isDesktop
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 22 }}>{countryFlag(guest.OriginCountry)}</span>
           <div>
-            <div style={{ fontSize: isDesktop ? 17 : 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            <div style={{ fontSize: isDesktop ? 16 : 15, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
               {guest.FullName}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{guest.OriginCountry ?? 'País no informado'}</div>

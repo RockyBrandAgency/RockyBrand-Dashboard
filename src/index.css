@@ -271,9 +271,10 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
    (crm-funnel-*), corregido entero. */
 .crm-funnel-row{ display:grid; grid-template-columns:110px 1fr 80px; align-items:center; gap:var(--space-5); margin-bottom:var(--space-4); }
 .crm-funnel-label{ font-size:12px; color:var(--text-sub); }
-.crm-funnel-track{ height:36px; background:var(--surface-2); border-radius:var(--radius-sm); overflow:hidden; position:relative; }
+.crm-funnel-track{ height:36px; background:var(--surface-2); border-radius:var(--radius-sm); display:flex; align-items:center; gap:8px; }
 .crm-funnel-fill{ height:100%; background:var(--primary); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:flex-end; padding:0 10px; box-sizing:border-box; min-width:fit-content; }
 .crm-funnel-pct{ font-size:12px; font-weight:600; color:#fff; white-space:nowrap; }
+.crm-funnel-pct-outside{ font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; }
 .crm-funnel-value{ font-size:13px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; color:var(--text); }
 
 .crm-step{ display:flex; gap:12px; padding-bottom:var(--space-6); margin-bottom:var(--space-6); border-bottom:1px solid var(--border); }

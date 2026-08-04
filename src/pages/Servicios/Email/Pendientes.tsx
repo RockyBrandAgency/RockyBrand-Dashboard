@@ -15,6 +15,14 @@ import { Card, MiniDash, Vacio, Tabla, formatFecha } from './shared';
 // Nunca inventa: si un contacto no tiene fecha de creación, aparece igual
 // pero con el reloj vacío. Un "0 horas restantes" falso haría correr a
 // alguien por nada.
+//
+// Figma (frame 12) muestra un botón de acción por fila ("Revisar y
+// Enviar"/"Omitir"/"Aprobar Envío"/"Completar Datos"). NO se agregan
+// (hallazgo de auditoría 2026-08-04): el backend solo expone
+// GET /dashboard/email/pendientes (dashboardApi.ts) - no existe ningún
+// endpoint para marcar un pendiente como resuelto, aprobar un envío ni
+// completar datos desde acá. Un botón así sería un CTA sin acción real
+// detrás, mismo criterio que "+ Nueva automatización".
 export function PendientesEmail() {
   const { handleUnauthorized } = useAuth();
   const [datos, setDatos] = useState<Datos | null>(null);

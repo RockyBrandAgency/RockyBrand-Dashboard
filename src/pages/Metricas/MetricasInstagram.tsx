@@ -18,14 +18,19 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', boxShadow: 'var(--shadow-card)' }}>
       <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{label}</div>
-      <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--text)', marginTop: 8, letterSpacing: '-0.01em' }}>{value}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', marginTop: 8, letterSpacing: '-0.01em' }}>{value}</div>
       {sub && <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
 
-function num(v: number | null): string {
-  return v === null ? '—' : v.toLocaleString('es-CL');
+// `== null` (no `===`) a propósito: cubre tanto `null` explícito como
+// `undefined` (ej. un campo que el backend omite del dict en vez de
+// mandar `None`) - un `.toLocaleString()` sobre `undefined` tira la
+// página entera al ErrorBoundary raíz, no solo esta tarjeta. Hallazgo
+// real de auditoría 2026-08-04 (crash reproducido con datos mock).
+function num(v: number | null | undefined): string {
+  return v == null ? '—' : v.toLocaleString('es-CL');
 }
 function signedNum(v: number): string {
   return (v > 0 ? '+' : '') + v.toLocaleString('es-CL');
@@ -76,12 +81,12 @@ function PostRow({ post }: { post: InstagramPost }) {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 14, flexShrink: 0, fontSize: 12, color: 'var(--text-sub)', textAlign: 'right' }}>
-        <span title="Alcance">👁 {post.alcance !== null ? post.alcance.toLocaleString('es-CL') : '—'}</span>
+        <span title="Alcance">👁 {num(post.alcance)}</span>
         <span title="Guardados" style={{ fontWeight: 700, color: 'var(--text)' }}>
-          🔖 {post.guardados !== null ? post.guardados.toLocaleString('es-CL') : '—'}
+          🔖 {num(post.guardados)}
         </span>
-        <span title="Compartidos">↗ {post.shares !== null ? post.shares.toLocaleString('es-CL') : '—'}</span>
-        <span title="Comentarios">💬 {post.comentarios}</span>
+        <span title="Compartidos">↗ {num(post.shares)}</span>
+        <span title="Comentarios">💬 {post.comentarios ?? '—'}</span>
       </div>
     </a>
   );
@@ -95,7 +100,7 @@ function PostRow({ post }: { post: InstagramPost }) {
 function InsightBanner({ post }: { post: InstagramInsightPost }) {
   const n = post.seguidores_netos_ese_dia;
   let seguidoresClause = '';
-  if (n !== null) {
+  if (n != null) {
     if (n > 0) seguidoresClause = ` Ese día ganaste ${n.toLocaleString('es-CL')} seguidor${n === 1 ? '' : 'es'} nuevo${n === 1 ? '' : 's'}.`;
     else if (n < 0) seguidoresClause = ` Ese día perdiste ${Math.abs(n).toLocaleString('es-CL')} seguidor${Math.abs(n) === 1 ? '' : 'es'}.`;
     else seguidoresClause = ' Ese día no hubo cambio neto de seguidores.';
@@ -122,13 +127,13 @@ function InsightBanner({ post }: { post: InstagramInsightPost }) {
       <span style={{ fontSize: 20, flexShrink: 0 }}>💡</span>
       <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
         Tu publicación del {formatDateShort(post.fecha)} ({post.formato.toLowerCase()}) logró el mayor alcance del período:{' '}
-        <strong>{post.alcance.toLocaleString('es-CL')} cuentas alcanzadas</strong>
-        {post.shares !== null && (
+        <strong>{num(post.alcance)} cuentas alcanzadas</strong>
+        {post.shares != null && (
           <>
             {' '}y <strong>{post.shares.toLocaleString('es-CL')} compartidos</strong>
           </>
         )}
-        {post.guardados !== null && <>, {post.guardados.toLocaleString('es-CL')} guardados</>}.{seguidoresClause}
+        {post.guardados != null && <>, {post.guardados.toLocaleString('es-CL')} guardados</>}.{seguidoresClause}
       </div>
     </a>
   );
@@ -146,7 +151,7 @@ function InsightBanner({ post }: { post: InstagramInsightPost }) {
 // el estado honesto en vez de destacar un post al azar.
 function RetencionCard({ posts }: { posts: InstagramPost[] }) {
   const top = posts[0];
-  if (!top || top.guardados === null || top.guardados === 0) {
+  if (!top || top.guardados == null || top.guardados === 0) {
     return (
       <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', marginBottom: 'var(--space-6)' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Mayor Retención</div>
@@ -230,7 +235,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
           breadcrumb="Métricas > Instagram"
           title="Métricas Instagram"
@@ -247,11 +252,11 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
             <>
               <div style={{ ...kpiGrid, marginBottom: 28 }}>
                 <KpiCard label="Seguidores actuales" value={num(ig.seguidores_actuales)} />
-                <KpiCard label="Alcance en no-seguidores" value={ig.alcance_no_seguidores_pct !== null ? `${ig.alcance_no_seguidores_pct}%` : '—'} sub="últimos 30 días" />
+                <KpiCard label="Alcance en no-seguidores" value={ig.alcance_no_seguidores_pct != null ? `${ig.alcance_no_seguidores_pct}%` : '—'} sub="últimos 30 días" />
                 <KpiCard
                   label="Guardados por publicación"
                   value={num(ig.guardados_totales)}
-                  sub={ig.guardados_promedio !== null ? `promedio ${ig.guardados_promedio}` : undefined}
+                  sub={ig.guardados_promedio != null ? `promedio ${ig.guardados_promedio}` : undefined}
                 />
                 <KpiCard label="Compartidos" value={num(ig.compartidos_totales)} />
                 <KpiCard label="Clics al enlace del perfil" value={num(ig.clics_enlace_perfil_30d)} sub="últimos 30 días" />

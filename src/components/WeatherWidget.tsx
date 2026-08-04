@@ -70,11 +70,11 @@ export function WeatherWidget({ location }: { location: ClientLocation }) {
   }, [location.lat, location.lon]);
 
   return (
-    <Card>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <span style={{ fontSize: 16 }}>🌦️</span>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>Clima — {location.label}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Clima — {location.label}</div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             Pronóstico 5 días · {location.region}
             {offline && ' · datos estimados'}
