@@ -87,7 +87,18 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
                 <MetricNotAvailable label="Mensajes recibidos" reason="Requiere el permiso pages_messaging, que no tenemos hoy." />
               </div>
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
+              {/* "Mayor Retención" pedida por Mato (2026-08-04) - a
+                  diferencia de Instagram, esta Página de Facebook no tiene
+                  ninguna publicación individual en meta_snapshot# (solo
+                  seguidores/visualizaciones a nivel de página) - se
+                  muestra el estado honesto en vez de inventar un post
+                  destacado o reusar el de Instagram. */}
+              <MetricNotAvailable
+                label="Mayor Retención"
+                reason="No se recolecta contenido a nivel de publicación para esta Página de Facebook todavía (solo seguidores y visualizaciones de página)."
+              />
+
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginTop: 'var(--space-6)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-6)' }}>Seguidores en el tiempo</div>
                 <TrendChart
                   points={fb.snapshots.map((s) => ({ fecha: s.fecha, valor: s.seguidores }))}

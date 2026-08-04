@@ -133,6 +133,59 @@ function InsightBanner({ post }: { post: InstagramInsightPost }) {
   );
 }
 
+// "Mayor Retención" (2026-08-04, pedido explícito de Mato) - guardados
+// (saves) es el proxy real que usa la industria para retención: alguien
+// que guarda un post quiere volver a verlo, a diferencia de un like o un
+// comentario que no implica intención de volver. `ig.publicaciones` YA
+// viene ordenada por guardados desc (ver compute_metrics_report), así
+// que el primer elemento ES la publicación con mayor retención - no se
+// recalcula nada nuevo, solo se destaca lo que ya calculaba el backend.
+// Si ni la publicación más guardada tiene dato de guardados (snapshot
+// viejo, de antes de que se empezara a registrar ese campo), se muestra
+// el estado honesto en vez de destacar un post al azar.
+function RetencionCard({ posts }: { posts: InstagramPost[] }) {
+  const top = posts[0];
+  if (!top || top.guardados === null || top.guardados === 0) {
+    return (
+      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', marginBottom: 'var(--space-6)' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Mayor Retención</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+          Sin datos de guardados todavía en este período - es el dato que mide qué contenido quiere volver a ver tu audiencia.
+        </div>
+      </div>
+    );
+  }
+  const tasa = top.alcance ? Math.round((top.guardados / top.alcance) * 1000) / 10 : null;
+  return (
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>Mayor Retención</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
+        La publicación que más guardó tu audiencia — lo que más quiere volver a ver.
+      </div>
+      <a
+        href={top.permalink}
+        target="_blank"
+        rel="noreferrer"
+        style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit' }}
+      >
+        <Thumb src={top.imagen_url} alt={top.caption ?? top.formato} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {top.formato} · {formatDateShort(top.fecha.slice(0, 10))}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {top.caption ?? '—'}
+          </div>
+        </div>
+        <div style={{ flexShrink: 0, textAlign: 'right' }}>
+          <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--text)' }}>{top.guardados.toLocaleString('es-CL')}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>guardados{tasa !== null ? ` · ${tasa}% de alcance` : ''}</div>
+        </div>
+      </a>
+    </div>
+  );
+}
+
 // Detalle real de Instagram (meta_snapshot#, campo cuenta) - pedido
 // explícito de Mato (2026-08-01): panel ejecutivo por canal. Las 6
 // métricas y el orden vienen exactos de su spec; "mensajes iniciados"
@@ -204,6 +257,8 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
               </div>
 
               {ig.insight_post && <InsightBanner post={ig.insight_post} />}
+
+              <RetencionCard posts={ig.publicaciones} />
 
               <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Seguidores en el tiempo</div>
