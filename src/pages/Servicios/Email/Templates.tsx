@@ -3,7 +3,7 @@ import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailTemplates, getEmailTemplate, saveEmailTemplate, deleteEmailTemplate, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailTemplate } from '../../../types';
-import { Card, Boton, Campo, Vacio, Aviso, Tabla, formatFecha } from './shared';
+import { Card, Boton, Campo, Vacio, Aviso, formatFecha } from './shared';
 
 // Ver, editar, borrar, agregar y previsualizar plantillas.
 //
@@ -140,35 +140,50 @@ export function TemplatesEmail() {
 
   return (
     <AsyncState loading={loading} error={error} onRetry={cargar}>
-      <Card
-        title={`Plantillas (${templates?.length ?? 0})`}
-        right={<Boton tipo="primary" onClick={() => { setVista('editor'); setEditando({ name: '', html_body: '' }); }}>Nueva plantilla</Boton>}
-        pad={false}
-      >
-        {!templates || templates.length === 0 ? (
-          <Vacio>Sin plantillas todavía.</Vacio>
-        ) : (
-          <Tabla cols={[{ label: 'Plantilla' }, { label: 'Modificada' }, { label: 'Enlace de baja' }, { label: '' }]}>
-            {templates.map((t) => (
-              <tr key={t.template_id}>
-                <td className="crm-cell-name">{t.name}</td>
-                <td className="crm-cell-sub">{formatFecha(t.updated_at)}</td>
-                <td>
-                  <span style={{ color: t.tiene_unsubscribe ? 'var(--status-bien-dot)' : 'var(--status-critico-dot)', fontWeight: 600, fontSize: 12 }}>
-                    {t.tiene_unsubscribe ? 'Sí' : 'Falta'}
-                  </span>
-                </td>
-                <td>
-                  <span className="crm-row-actions">
-                    <Boton onClick={() => abrir(t)}>Abrir</Boton>
-                    <Boton tipo="danger" onClick={() => borrar(t)}>Borrar</Boton>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </Tabla>
-        )}
-      </Card>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-sub)' }}>
+          Galería de Plantillas Personalizadas {templates?.length ? `(${templates.length})` : ''}
+        </div>
+        <Boton tipo="primary" onClick={() => { setVista('editor'); setEditando({ name: '', html_body: '' }); }}>
+          + Nuevo template
+        </Boton>
+      </div>
+
+      {!templates || templates.length === 0 ? (
+        <Vacio>Sin plantillas todavía.</Vacio>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-6)' }}>
+          {templates.map((t) => (
+            <div key={t.template_id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
+              {/* Sin thumbnail falso: el backend guarda HTML, no una imagen
+                  renderizada de la plantilla - una barra con la inicial es
+                  honesta, un mockup de imagen no lo sería. */}
+              <div style={{ height: 80, background: 'color-mix(in srgb, var(--primary) 10%, var(--surface-2))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--primary)' }}>{(t.name || '?').charAt(0).toUpperCase()}</span>
+              </div>
+              <div style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
+                    Modificada {formatFecha(t.updated_at)} · Baja:{' '}
+                    <span style={{ color: t.tiene_unsubscribe ? 'var(--status-bien-dot)' : 'var(--status-critico-dot)', fontWeight: 600 }}>
+                      {t.tiene_unsubscribe ? 'Sí' : 'Falta'}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button type="button" className="crm-btn crm-btn-sm" onClick={() => abrir(t)} style={{ background: 'color-mix(in srgb, var(--primary) 8%, transparent)', color: 'var(--primary)' }}>
+                    Abrir
+                  </button>
+                  <button type="button" className="crm-btn crm-btn-sm" onClick={() => borrar(t)} style={{ background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)' }}>
+                    Borrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </AsyncState>
   );
 }

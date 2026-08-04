@@ -43,6 +43,19 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'automatizaciones', label: 'Automatizaciones' },
 ];
 
+// Título de cada pestaña, tal cual el archivo real de Figma (frames 11-18)
+// — no todas comparten el mismo título genérico.
+const TAB_TITLES: Record<Tab, string> = {
+  resumen: 'Resumen General',
+  pendientes: 'Pendientes de Revisión',
+  campanas: 'Campañas Enviadas y Programadas',
+  nueva: 'Diseño de Nueva Campaña',
+  audiencias: 'Gestión de Campañas y Contactos',
+  templates: 'Gestión de Campañas y Contactos',
+  metricas: 'Gestión de Campañas y Contactos',
+  automatizaciones: 'Gestión de Campañas y Contactos',
+};
+
 export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
   const [tab, setTab] = useState<Tab>('resumen');
@@ -97,7 +110,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
           <div>
             <div className="crm-desc-label">Email Marketing</div>
             <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-              Gestión de Campañas y Contactos
+              {TAB_TITLES[tab]}
             </h1>
           </div>
         </div>

@@ -72,6 +72,19 @@ export function EyeOffIcon({ size = 14, color = 'currentColor', strokeWidth = 2 
   );
 }
 
+export function SearchIcon({ size = 14, color = 'currentColor', strokeWidth = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M87.5006 87.5006L69.4173 69.4173M79.1667 45.8333C79.1667 64.2428 64.2428 79.1667 45.8333 79.1667C27.4238 79.1667 12.5 64.2428 12.5 45.8333C12.5 27.4238 27.4238 12.5 45.8333 12.5C64.2428 12.5 79.1667 27.4238 79.1667 45.8333Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function PlusIcon({ size = 14, color = 'currentColor', strokeWidth = 2 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">

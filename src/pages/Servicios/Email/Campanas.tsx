@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getEmailCampaigns, deleteEmailCampaign, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailCampaign } from '../../../types';
 import { Boton, Vacio, Pill, Tabla, formatTasa, formatFecha, estadoCampana } from './shared';
+import { SearchIcon, PlusIcon } from '../../../components/icons/RockyIcons';
 
 // Misma tabla que Campañas del panel principal: buscador arriba, una fila por
 // campaña con estado, fecha y las 4 tasas, y las acciones a la derecha.
@@ -56,13 +57,18 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
   return (
     <AsyncState loading={loading} error={error} onRetry={cargar}>
       <div className="crm-toolbar">
-        <input
-          className="crm-search"
-          placeholder="Buscar campaña..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
-        <Boton tipo="primary" onClick={onNueva}>+ Nueva campaña</Boton>
+        <div className="crm-search-wrap">
+          <SearchIcon size={14} color="var(--text-sub)" />
+          <input
+            className="crm-search"
+            placeholder="Buscar campañas..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
+        <Boton tipo="primary" onClick={onNueva}>
+          <PlusIcon size={12} color="#fff" /> Nueva Campaña
+        </Boton>
       </div>
 
       <div className="crm-card">

@@ -7,6 +7,7 @@ import {
 import type { EmailCampaign, EmailTemplate, EmailContact, EmailSegment } from '../../../types';
 import { Card, Boton, Campo, Aviso } from './shared';
 import { SubjectField } from './SubjectField';
+import { ChevronDownIcon, SearchIcon } from '../../../components/icons/RockyIcons';
 
 // Pestaña propia, igual que "Nueva campaña" en el panel principal — no un
 // formulario escondido dentro de la lista.
@@ -18,6 +19,13 @@ import { SubjectField } from './SubjectField';
 // La audiencia se arma desde las etiquetas REALES de los contactos, no de
 // una lista fija: una etiqueta que no existe es una campaña que sale a cero
 // personas sin que nadie lo note hasta después.
+//
+// La "Vista Previa del Email" del diseño de Figma muestra una maqueta
+// decorativa (imagen de portada, botón de reserva) que es contenido de
+// ejemplo del mockup, no algo que el backend genere. Acá la vista previa
+// renderiza el `html_body` REAL de la campaña en un iframe aislado (mismo
+// patrón que Templates.tsx) — lo que se ve es lo que de verdad se va a
+// mandar, no una maqueta.
 function opcionesDeAudiencia(contactos: EmailContact[]) {
   const tags = new Set<string>();
   contactos.forEach((c) => (c.tags || []).forEach((t) => tags.add(t)));
@@ -36,12 +44,30 @@ function segmentoDesde(key: string): EmailSegment {
   return key.startsWith('tag:') ? { type: 'tag', value: key.slice(4) } : { type: 'all' };
 }
 
+function SelectConChevron({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <select
+        className="crm-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ appearance: 'none', paddingRight: 36 }}
+      >
+        {children}
+      </select>
+      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-faint)' }}>
+        <ChevronDownIcon size={12} />
+      </div>
+    </div>
+  );
+}
+
 export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
   campaignId: string | null;
   onGuardada: () => void;
   onCancelar: () => void;
 }) {
-  const { handleUnauthorized } = useAuth();
+  const { handleUnauthorized, clientDisplayName, userEmail } = useAuth();
   const [campana, setCampana] = useState<Partial<EmailCampaign>>({ name: '', subject: '', html_body: '', template_id: '' });
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [cargando, setCargando] = useState(!!campaignId);
@@ -50,7 +76,9 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
   const [avisoPrueba, setAvisoPrueba] = useState<string | null>(null);
   const [contactos, setContactos] = useState<EmailContact[]>([]);
   const [audiencia, setAudiencia] = useState('all');
-  const [programarPara, setProgramarPara] = useState('');
+  const [modoEnvio, setModoEnvio] = useState<'ahora' | 'programar'>('programar');
+  const [fechaProgramada, setFechaProgramada] = useState('');
+  const [horaProgramada, setHoraProgramada] = useState('');
   const [ocupado, setOcupado] = useState<'guardar' | 'programar' | 'enviar' | null>(null);
 
   useEffect(() => {
@@ -80,6 +108,8 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
       })
       .finally(() => setCargando(false));
   }, [campaignId, handleUnauthorized]);
+
+  const programarPara = fechaProgramada && horaProgramada ? `${fechaProgramada}T${horaProgramada}` : '';
 
   async function ejecutar(accion: 'guardar' | 'programar' | 'enviar') {
     const alcance = opciones.find((o) => o.key === audiencia)?.cuantos ?? 0;
@@ -131,12 +161,15 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
 
   if (cargando) return <Card><div className="crm-empty">Cargando…</div></Card>;
 
+  const accionPrimaria = modoEnvio === 'ahora' ? 'enviar' : 'programar';
+  const ocupadoPrimaria = ocupado === accionPrimaria;
+
   return (
     <>
-      <Card title={campaignId ? `Retomar: ${campana.name || 'sin nombre'}` : 'Nueva campaña'}>
+      <Card>
         {error && <Aviso tono="critico">{error}</Aviso>}
 
-        <Campo label="Nombre interno" hint="Solo lo ves tú, no aparece en el correo.">
+        <Campo label="Nombre Interno de la Campaña" hint={`Solo visible para administradores de ${clientDisplayName ?? 'tu cuenta'}.`}>
           <input className="crm-input" value={campana.name ?? ''} onChange={(e) => setCampana({ ...campana, name: e.target.value })} />
         </Campo>
 
@@ -146,18 +179,18 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
           label="Plantilla"
           hint={templates.length === 0 ? 'Todavía no hay plantillas guardadas. Puedes escribir el contenido directamente abajo.' : undefined}
         >
-          <select className="crm-input" value={campana.template_id ?? ''} onChange={(e) => setCampana({ ...campana, template_id: e.target.value })}>
+          <SelectConChevron value={campana.template_id ?? ''} onChange={(v) => setCampana({ ...campana, template_id: v })}>
             <option value="">— Sin plantilla, contenido propio —</option>
             {templates.map((t) => <option key={t.template_id} value={t.template_id}>{t.name}</option>)}
-          </select>
+          </SelectConChevron>
         </Campo>
 
-        <Campo label="A quién se le envía" hint="Solo entran los que pueden recibir marketing: los suscritos confirmados.">
-          <select className="crm-input" value={audiencia} onChange={(e) => setAudiencia(e.target.value)}>
+        <Campo label="Segmento / Audiencia Destinataria" hint="Solo entran los que pueden recibir marketing: los suscritos confirmados.">
+          <SelectConChevron value={audiencia} onChange={setAudiencia}>
             {opciones.map((o) => (
               <option key={o.key} value={o.key}>{o.label}{o.key.startsWith('tag:') ? ` — ${o.cuantos}` : ''}</option>
             ))}
-          </select>
+          </SelectConChevron>
         </Campo>
 
         <Campo label="Contenido (HTML)" hint="El enlace de baja se agrega automáticamente al enviar.">
@@ -169,27 +202,78 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
           />
         </Campo>
 
-        <Campo label="Programar para (opcional)" hint="Déjalo vacío para guardar como borrador o enviar ahora.">
-          <input
-            className="crm-input"
-            type="datetime-local"
-            value={programarPara}
-            onChange={(e) => setProgramarPara(e.target.value)}
-          />
-        </Campo>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Boton tipo="primary" onClick={() => ejecutar('guardar')} disabled={!!ocupado}>
-            {ocupado === 'guardar' ? 'Guardando…' : 'Guardar borrador'}
-          </Boton>
-          <Boton onClick={() => ejecutar('programar')} disabled={!!ocupado || !programarPara}>
-            {ocupado === 'programar' ? 'Programando…' : 'Programar'}
-          </Boton>
-          <Boton tipo="danger" onClick={() => ejecutar('enviar')} disabled={!!ocupado}>
-            {ocupado === 'enviar' ? 'Enviando…' : `Enviar ahora a ${alcanceActual}`}
-          </Boton>
-          <Boton onClick={onCancelar}>Cancelar</Boton>
+        <div className="crm-field-label">Programación del Envío</div>
+        <div style={{ display: 'flex', gap: 'var(--space-6)', marginBottom: 'var(--space-4)' }}>
+          {(['ahora', 'programar'] as const).map((modo) => (
+            <button
+              key={modo}
+              type="button"
+              onClick={() => setModoEnvio(modo)}
+              style={{
+                all: 'unset',
+                boxSizing: 'border-box',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                borderRadius: 'var(--radius-sm)',
+                border: `1px solid ${modoEnvio === modo ? 'var(--primary)' : 'var(--border)'}`,
+                background: 'var(--white)',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: modoEnvio === modo ? 600 : 500,
+                color: modoEnvio === modo ? 'var(--primary)' : 'var(--text-sub)',
+              }}
+            >
+              <span
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  border: `1.5px solid ${modoEnvio === modo ? 'var(--primary)' : 'var(--text-faint)'}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {modoEnvio === modo && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />}
+              </span>
+              {modo === 'ahora' ? 'Enviar Ahora' : 'Programar Fecha y Hora'}
+            </button>
+          ))}
         </div>
+        {modoEnvio === 'programar' && (
+          <div style={{ display: 'flex', gap: 'var(--space-5)', marginBottom: 'var(--space-6)' }}>
+            <input className="crm-input" type="date" value={fechaProgramada} onChange={(e) => setFechaProgramada(e.target.value)} style={{ flex: 1 }} />
+            <input className="crm-input" type="time" value={horaProgramada} onChange={(e) => setHoraProgramada(e.target.value)} style={{ flex: 1 }} />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 'var(--space-4)' }}>
+          <Boton tipo="primary" onClick={() => ejecutar(accionPrimaria)} disabled={!!ocupado || (modoEnvio === 'programar' && !programarPara)}>
+            {ocupadoPrimaria
+              ? (modoEnvio === 'ahora' ? 'Enviando…' : 'Programando…')
+              : (modoEnvio === 'ahora' ? `Enviar Ahora a ${alcanceActual}` : 'Programar Envío')}
+          </Boton>
+          <Boton onClick={() => ejecutar('guardar')} disabled={!!ocupado}>
+            {ocupado === 'guardar' ? 'Guardando…' : 'Guardar Borrador'}
+          </Boton>
+          <Boton onClick={onCancelar} disabled={!!ocupado}>Cancelar</Boton>
+        </div>
+      </Card>
+
+      <Card title="Vista Previa del Email" right={<span className="crm-tag">Móvil y Desktop</span>}>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-6)', fontSize: 12, color: 'var(--text-sub)', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 'var(--space-6)' }}>
+          <div><strong style={{ color: 'var(--text)' }}>De:</strong> {clientDisplayName ?? 'RockyBrand Client'}</div>
+          <div><strong style={{ color: 'var(--text)' }}>Para:</strong> {userEmail} (prueba)</div>
+          <div><strong style={{ color: 'var(--text)' }}>Asunto:</strong> {campana.subject || '(sin asunto)'}</div>
+        </div>
+        <iframe
+          title="Vista previa de la campaña"
+          sandbox=""
+          srcDoc={campana.html_body || '<p style="font-family:sans-serif;color:#a1a1aa;text-align:center;padding:40px">Escribe el contenido arriba para ver la vista previa.</p>'}
+          style={{ width: '100%', height: 460, border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--white)' }}
+        />
       </Card>
 
       <Card title="Envío de prueba">
@@ -198,12 +282,15 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
           corte del asunto en el teléfono — antes de que salga a toda tu lista.
         </Aviso>
         <div className="crm-toolbar">
-          <input
-            className="crm-search"
-            placeholder="tu@correo.com"
-            value={correoPrueba}
-            onChange={(e) => setCorreoPrueba(e.target.value)}
-          />
+          <div className="crm-search-wrap">
+            <SearchIcon size={14} color="var(--text-sub)" />
+            <input
+              className="crm-search"
+              placeholder="tu@correo.com"
+              value={correoPrueba}
+              onChange={(e) => setCorreoPrueba(e.target.value)}
+            />
+          </div>
           <Boton onClick={enviarPrueba}>Enviar prueba</Boton>
         </div>
         {avisoPrueba && <Aviso tono={avisoPrueba.startsWith('Enviado') ? 'ok' : 'alerta'}>{avisoPrueba}</Aviso>}

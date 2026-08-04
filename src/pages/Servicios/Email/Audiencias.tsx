@@ -4,6 +4,7 @@ import { getEmailResumen, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailContact, EmailAudiencia } from '../../../types';
 import { ImportarCsv } from './ImportarCsv';
 import { Card, Boton, Campo, Aviso, Vacio, Pill, Tabla, estadoContacto, formatFecha } from './shared';
+import { SearchIcon, PlusIcon } from '../../../components/icons/RockyIcons';
 
 // Misma pantalla que Audiencias del panel principal: barra de segmentos a la
 // izquierda, buscador y las DOS vías de alta arriba (a mano o por archivo),
@@ -105,7 +106,8 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
       )}
 
       <div className="crm-aud-layout">
-        <div className="crm-card" style={{ padding: '8px 0' }}>
+        <div className="crm-card" style={{ padding: 'var(--space-7)' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-5)' }}>Segmentos y Listas</div>
           {segs.map((s) => (
             <div
               key={s.key}
@@ -120,16 +122,21 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
 
         <div>
           <div className="crm-toolbar">
-            <input
-              className="crm-search"
-              placeholder="Buscar contacto..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
+            <div className="crm-search-wrap">
+              <SearchIcon size={14} color="var(--text-sub)" />
+              <input
+                className="crm-search"
+                placeholder="Buscar contacto..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+            </div>
             {/* Las dos vías de alta, igual que en el panel principal: a mano
                 para un contacto suelto, archivo para una base entera. */}
-            <Boton sm onClick={() => { setVerImport((v) => !v); setVerForm(false); }}>⇪ Importar CSV</Boton>
-            <Boton sm tipo="primary" onClick={() => { setVerForm((v) => !v); setVerImport(false); }}>+ Agregar contacto</Boton>
+            <Boton sm onClick={() => { setVerImport((v) => !v); setVerForm(false); }}>Importar CSV</Boton>
+            <Boton sm tipo="primary" onClick={() => { setVerForm((v) => !v); setVerImport(false); }}>
+              <PlusIcon size={11} color="#fff" /> Agregar Contacto
+            </Boton>
           </div>
 
           {verImport && <ImportarCsv onImportado={() => { setVerImport(false); recargarTodo(); }} />}

@@ -98,7 +98,7 @@ export function MetricasEmail() {
             ]}
           />
 
-          <Card title="Embudo acumulado — todas las campañas enviadas">
+          <Card title="Embudo de Desempeño">
             {datos.totales.enviados === 0 ? (
               <Vacio>Todavía no hay envíos que medir.</Vacio>
             ) : (
