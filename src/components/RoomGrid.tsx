@@ -9,15 +9,20 @@ import type { EstadoCelda, DisponibilidadResponse } from '../types';
 // Definicion de color/icono aprobada (reemplaza la del Make - ver plan de
 // Sesion 2.5). "Libre" es blanco con borde, NUNCA gris, para que se lea
 // como vendible. Las flechas van DENTRO de la celda, nunca color solo.
+// "ocupado" tenía iconAlign:'none' sin ícono - se distinguía de "salida"
+// (mismo tono de verde, más claro) solo por el matiz de color, en contra
+// del propio criterio de este archivo (hallazgo de auditoría 2026-08-04).
+// "●" centrado marca "ocupado toda la noche", distinto de las flechas de
+// borde de "llegada"/"salida" y del blanco vacío de "libre".
 const CELL: Record<EstadoCelda, { bg: string; border?: string; icon?: string; iconColor?: string; iconAlign: 'left' | 'right' | 'none' }> = {
-  ocupado: { bg: '#2F4A28', iconAlign: 'none' },
+  ocupado: { bg: '#2F4A28', iconColor: 'rgba(255,255,255,0.55)', iconAlign: 'none', icon: '●' },
   llegada: { bg: '#7A9070', iconColor: '#fff', iconAlign: 'left', icon: '→' },
   salida: { bg: '#B9C4B1', iconColor: '#2F4A28', iconAlign: 'right', icon: '←' },
   libre: { bg: '#FFFFFF', border: '#D8D4CC', iconAlign: 'none' },
 };
 
 const LEGEND: { estado: EstadoCelda; label: string }[] = [
-  { estado: 'ocupado', label: 'Ocupado' },
+  { estado: 'ocupado', label: '● Ocupado' },
   { estado: 'llegada', label: 'Llegada →' },
   { estado: 'salida', label: '← Salida' },
   { estado: 'libre', label: 'Libre' },

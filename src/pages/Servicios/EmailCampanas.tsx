@@ -115,11 +115,13 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
           </div>
         </div>
 
-        <div className="crm-tabbar">
+        <div className="crm-tabbar" role="tablist">
           {TABS.map((t) => (
             <button
               key={t.id}
               className={`crm-tab${tab === t.id ? ' active' : ''}`}
+              role="tab"
+              aria-selected={tab === t.id}
               onClick={() => { setTab(t.id); setDetalleId(null); if (t.id !== 'nueva') setEditandoId(null); }}
             >
               {t.label}

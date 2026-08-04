@@ -83,7 +83,7 @@ export function Sidebar({
               overflow: 'hidden',
             }}
           >
-            <img src={clientLogoSrcLight} alt={clientDisplayName ?? ''} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img src={clientLogoSrcLight} alt={clientDisplayName ?? 'Logo del cliente'} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
         ) : (
           <div
@@ -124,6 +124,7 @@ export function Sidebar({
         {showOverview && (
           <button
             onClick={() => setScreen(OVERVIEW.id)}
+            aria-current={screen === OVERVIEW.id ? 'page' : undefined}
             style={{
               all: 'unset',
               boxSizing: 'border-box',
@@ -150,6 +151,7 @@ export function Sidebar({
           <div key={section.label}>
             <button
               onClick={() => setMetricsOpen((v) => !v)}
+              aria-expanded={metricsOpen}
               style={{
                 all: 'unset',
                 boxSizing: 'border-box',
@@ -185,6 +187,7 @@ export function Sidebar({
                     <button
                       key={item.id}
                       onClick={() => setScreen(item.id)}
+                      aria-current={active ? 'page' : undefined}
                       style={{
                         all: 'unset',
                         boxSizing: 'border-box',
@@ -232,6 +235,7 @@ export function Sidebar({
                     <button
                       key={key}
                       onClick={() => setScreen(entryScreen)}
+                      aria-current={active ? 'page' : undefined}
                       style={{
                         all: 'unset',
                         boxSizing: 'border-box',
@@ -295,6 +299,7 @@ export function Sidebar({
       <div style={{ paddingBottom: 'var(--space-8)', paddingTop: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
         <button
           onClick={() => setScreen('settings')}
+          aria-current={screen === 'settings' ? 'page' : undefined}
           style={{
             all: 'unset',
             boxSizing: 'border-box',

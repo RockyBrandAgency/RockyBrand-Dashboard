@@ -88,8 +88,9 @@ export function EmailEnviar({
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '22px 24px', maxWidth: 640 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Enviar email manual</div>
 
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>Asunto</label>
+      <label htmlFor="email-enviar-asunto" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>Asunto</label>
       <input
+        id="email-enviar-asunto"
         type="text"
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
@@ -97,8 +98,9 @@ export function EmailEnviar({
         style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box', marginBottom: 14 }}
       />
 
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>Contenido (HTML simple)</label>
+      <label htmlFor="email-enviar-contenido" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>Contenido (HTML simple)</label>
       <textarea
+        id="email-enviar-contenido"
         value={htmlBody}
         onChange={(e) => setHtmlBody(e.target.value)}
         placeholder="<p>Hola {{name}}, ...</p>"
@@ -106,9 +108,10 @@ export function EmailEnviar({
         style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'monospace', boxSizing: 'border-box', marginBottom: 14, resize: 'vertical' }}
       />
 
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>Enviar a</label>
+      <label htmlFor="email-enviar-segmento" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>Enviar a</label>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <select
+          id="email-enviar-segmento"
           value={segmentType}
           onChange={(e) => setSegmentType(e.target.value as 'all' | 'tag')}
           style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }}

@@ -141,7 +141,7 @@ export function AutomatizacionesEmail() {
                           <div className="crm-cell-sub">Trigger: {GLOSA_TRIGGER[j.trigger_event] ?? j.trigger_event}</div>
                         </td>
                         <td>
-                          <Toggle size="sm" on={j.activo} onToggle={() => alternar(j)} disabled={ocupada === j.track_id} />
+                          <Toggle size="sm" on={j.activo} onToggle={() => alternar(j)} disabled={ocupada === j.track_id} label={`Automatización ${j.track_id}`} />
                         </td>
                         <td>
                           {j.correos} {j.correos === 1 ? 'correo' : 'correos'} · {j.pasos.length} {j.pasos.length === 1 ? 'paso' : 'pasos'}

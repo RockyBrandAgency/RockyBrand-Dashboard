@@ -285,9 +285,9 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
+      <div role="tablist" style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
         {adaptaciones.map((a, i) => (
-          <button key={i} onClick={() => setTab(i)} style={{
+          <button key={i} role="tab" aria-selected={tab === i} onClick={() => setTab(i)} style={{
             all: 'unset', boxSizing: 'border-box', borderRadius: 'var(--radius-pill)', padding: '8px 14px', fontSize: 13, fontWeight: 600,
             cursor: 'pointer', whiteSpace: 'nowrap',
             background: tab === i ? 'var(--primary)' : 'var(--surface-2)',
@@ -333,10 +333,11 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
 
       {rechazando && (
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+          <label htmlFor={`rechazo-${p.piece_id}`} style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
             ¿Qué hay que mejorar? <span style={{ color: 'var(--status-critico-text)' }}>(obligatorio)</span>
-          </div>
+          </label>
           <textarea
+            id={`rechazo-${p.piece_id}`}
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
             rows={4}
@@ -433,7 +434,7 @@ export function RevisionContenido({ isDesktop }: { isDesktop: boolean }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', marginBottom: 'var(--space-7)' }}>
           <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 'var(--radius-md)' }}>
             {ESTADOS.map((e) => (
-              <button key={e.id} onClick={() => setEstado(e.id)} style={{
+              <button key={e.id} onClick={() => setEstado(e.id)} aria-pressed={estado === e.id} style={{
                 all: 'unset', boxSizing: 'border-box', borderRadius: 'var(--radius-sm)', padding: '6px 12px', fontSize: 13, fontWeight: estado === e.id ? 600 : 500,
                 cursor: 'pointer', whiteSpace: 'nowrap',
                 background: estado === e.id ? 'var(--white)' : 'transparent',
@@ -444,9 +445,9 @@ export function RevisionContenido({ isDesktop }: { isDesktop: boolean }) {
 
           {plataformas.length > 1 && (
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
-              <button onClick={() => setPlataforma('')} style={chip(plataforma === '')}>Todas</button>
+              <button onClick={() => setPlataforma('')} aria-pressed={plataforma === ''} style={chip(plataforma === '')}>Todas</button>
               {plataformas.map((pl) => (
-                <button key={pl} onClick={() => setPlataforma(pl)} style={chip(plataforma === pl)}>{pl}</button>
+                <button key={pl} onClick={() => setPlataforma(pl)} aria-pressed={plataforma === pl} style={chip(plataforma === pl)}>{pl}</button>
               ))}
             </div>
           )}

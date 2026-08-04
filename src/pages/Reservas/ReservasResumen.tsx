@@ -154,6 +154,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                   <input
                     className="crm-search"
                     placeholder="Buscar huésped…"
+                    aria-label="Buscar huésped"
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
@@ -197,6 +198,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                         setTab(t.key);
                         setPage(0);
                       }}
+                      aria-pressed={tab === t.key}
                       style={{
                         all: 'unset',
                         padding: '6px 12px',

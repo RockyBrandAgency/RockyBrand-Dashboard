@@ -83,7 +83,7 @@ export function MobileBar({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           {clientLogoSrcLight ? (
-            <img src={clientLogoSrcLight} alt={clientDisplayName ?? ''} style={{ height: 28, width: 28, objectFit: 'contain', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
+            <img src={clientLogoSrcLight} alt={clientDisplayName ?? 'Logo del cliente'} style={{ height: 28, width: 28, objectFit: 'contain', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
           ) : (
             <div style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--primary)' }} />
           )}
@@ -93,6 +93,7 @@ export function MobileBar({
         </div>
         <button
           onClick={() => setScreen('settings')}
+          aria-label="Avisos"
           style={{
             all: 'unset',
             width: 36,
@@ -129,6 +130,7 @@ export function MobileBar({
             <button
               key={item.id}
               onClick={() => setScreen(item.id)}
+              aria-current={active ? 'page' : undefined}
               style={{
                 all: 'unset',
                 flex: bottomItems.length > 5 ? '0 0 72px' : 1,

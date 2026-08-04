@@ -18,7 +18,7 @@ export function ServiceUnavailableScreen({ isDesktop }: { isDesktop: boolean }) 
       }}
     >
       <span style={{ fontSize: 32 }}>🔒</span>
-      <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>Este panel no está habilitado todavía</div>
+      <h1 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>Este panel no está habilitado todavía</h1>
       <div style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 340 }}>
         Contacta a tu agencia para activar el servicio correspondiente.
       </div>

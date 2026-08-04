@@ -93,6 +93,7 @@ export function EmailPublico({
           <input
             type="email"
             placeholder="Email"
+            aria-label="Email"
             value={formEmail}
             onChange={(e) => setFormEmail(e.target.value)}
             style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box' }}
@@ -100,6 +101,7 @@ export function EmailPublico({
           <input
             type="text"
             placeholder="Nombre (opcional)"
+            aria-label="Nombre (opcional)"
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
             style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box' }}
@@ -107,6 +109,7 @@ export function EmailPublico({
           <input
             type="text"
             placeholder="Segmentos, separados por coma (ej: VIP, newsletter)"
+            aria-label="Segmentos, separados por coma"
             value={formTags}
             onChange={(e) => setFormTags(e.target.value)}
             style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box' }}

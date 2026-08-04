@@ -98,7 +98,7 @@ function LogoCard() {
           }}
         >
           {clientLogoSrcLight ? (
-            <img src={clientLogoSrcLight} alt={clientDisplayName ?? ''} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img src={clientLogoSrcLight} alt={clientDisplayName ?? 'Logo del cliente'} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           ) : (
             <span style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', padding: '0 6px' }}>Sin logo</span>
           )}
@@ -215,6 +215,7 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
             <input
               type="time"
+              aria-label="Horario de avisos, desde"
               value={horario.desde}
               onChange={(e) => setHorario((h) => ({ ...h, desde: e.target.value }))}
               style={{
@@ -231,6 +232,7 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
             <span style={{ fontSize: 14, color: 'var(--text-sub)' }}>hasta</span>
             <input
               type="time"
+              aria-label="Horario de avisos, hasta"
               value={horario.hasta}
               onChange={(e) => setHorario((h) => ({ ...h, hasta: e.target.value }))}
               style={{

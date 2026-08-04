@@ -62,6 +62,7 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
           <input
             className="crm-search"
             placeholder="Buscar campañas..."
+            aria-label="Buscar campañas"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -90,9 +91,20 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
               // La fila entera abre el detalle, igual que en el panel
               // principal. Los botones de la derecha paran la propagación
               // para que "Eliminar" no termine abriendo la campaña.
+              // tabIndex+role+onKeyDown: alcanzable por teclado, no solo
+              // con mouse (hallazgo de auditoría 2026-08-04).
               <tr
                 key={c.campaign_id}
                 onClick={() => onVerDetalle(c.campaign_id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onVerDetalle(c.campaign_id);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label={`Ver detalle de la campaña ${c.name || 'sin nombre'}`}
                 style={{ cursor: 'pointer' }}
               >
                 <td>

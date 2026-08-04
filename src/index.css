@@ -125,10 +125,20 @@ body,
 }
 
 /* Foco de accesibilidad — spec 36-37: borde de 2px del color primario del
-   cliente, nunca un outline genérico del browser. */
+   cliente, nunca un outline genérico del browser.
+
+   !important es necesario acá: la mayoría de los botones custom del panel
+   usan style={{all:'unset', ...}}) para resetear el look nativo de
+   &lt;button&gt; (Toggle, Sidebar, tabs, MobileBar, etc.) - un estilo inline
+   siempre gana sobre una regla de hoja de estilos sin importar su
+   especificidad, así que "all:unset" (que deja outline-style:none)
+   anulaba en silencio este anillo de foco en ~40 botones del panel
+   (hallazgo de auditoría 2026-08-04: navegación completa por teclado sin
+   ninguna indicación visual de foco). Este es el único uso de !important
+   en el archivo, deliberado para este caso exacto. */
 :focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px !important;
 }
 
 /* ==========================================================================
@@ -187,6 +197,12 @@ body,
 .crm-aud-layout{ display:grid; grid-template-columns:300px 1fr; gap:var(--space-7); align-items:start; }
 @media (max-width:900px){ .crm-aud-layout{ grid-template-columns:1fr; } }
 .crm-seg-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:var(--space-4) var(--space-5); font-size:13px; color:var(--text-sub); cursor:pointer; border-radius:var(--radius-sm); font-weight:500; }
+/* button.crm-seg-item: resetea el chrome nativo de <button> (borde, fondo,
+   fuente, text-align, width) que .crm-seg-item de arriba no cubre - es un
+   <button> real desde 2026-08-04 (antes era un <div onClick>, no
+   alcanzable por teclado; hallazgo de auditoría). No usa all:unset:
+   pisaría el display:flex de la regla de arriba. */
+button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:none; font:inherit; text-align:left; }
 .crm-seg-item:hover{ background:var(--surface-2); }
 .crm-seg-item.active{ color:var(--primary); font-weight:600; background:color-mix(in srgb, var(--primary) 8%, transparent); }
 .crm-seg-count{ font-size:11px; font-weight:600; color:var(--text-sub); background:var(--surface-2); padding:2px 6px; border-radius:var(--radius-pill); }

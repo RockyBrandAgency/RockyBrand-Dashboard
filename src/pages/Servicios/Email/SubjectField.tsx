@@ -93,13 +93,14 @@ export function SubjectField({ value, onChange }: { value: string; onChange: (v:
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-        <div className="crm-field-label" style={{ marginBottom: 0 }}>Asunto del Email</div>
+        <label htmlFor="subject-field-input" className="crm-field-label" style={{ marginBottom: 0 }}>Asunto del Email</label>
         <div style={{ fontSize: 11, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>
           {ev.largo} · {GLOSA[ev.estado]}
         </div>
       </div>
 
       <input
+        id="subject-field-input"
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}

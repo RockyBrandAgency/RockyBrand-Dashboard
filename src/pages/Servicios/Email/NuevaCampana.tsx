@@ -287,6 +287,7 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
             <input
               className="crm-search"
               placeholder="tu@correo.com"
+              aria-label="Correo para el envío de prueba"
               value={correoPrueba}
               onChange={(e) => setCorreoPrueba(e.target.value)}
             />

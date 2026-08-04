@@ -109,14 +109,15 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
         <div className="crm-card" style={{ padding: 'var(--space-7)' }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-5)' }}>Segmentos y Listas</div>
           {segs.map((s) => (
-            <div
+            <button
               key={s.key}
               className={`crm-seg-item${s.key === segActivo ? ' active' : ''}`}
+              aria-pressed={s.key === segActivo}
               onClick={() => setSegActivo(s.key)}
             >
               <span>{s.label}</span>
               <span className="crm-seg-count">{lista.filter(s.filtro).length}</span>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -127,6 +128,7 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
               <input
                 className="crm-search"
                 placeholder="Buscar contacto..."
+                aria-label="Buscar contacto"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
               />

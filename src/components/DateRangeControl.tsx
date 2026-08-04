@@ -27,6 +27,7 @@ export function DateRangeControl({ value, onChange }: { value: DateRangeDays; on
           <button
             key={p.days}
             onClick={() => onChange(p.days)}
+            aria-pressed={active}
             style={{
               all: 'unset',
               boxSizing: 'border-box',

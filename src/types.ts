@@ -163,7 +163,14 @@ export interface EmailSegment {
   value?: string;
 }
 
-export interface EmailMetrics {
+// Forma real de dashboard_metrics.compute_metrics_report()'s "email" -
+// distinta de EmailMetrics de abajo (la de email_crm_service.metricas(),
+// que consume getEmailMetrics()/Metricas.tsx). Antes las dos se llamaban
+// "EmailMetrics" - TypeScript fusiona interfaces del mismo nombre, así
+// que el tipo resultante exigía los 2 conjuntos de campos a la vez,
+// cosa que ningún endpoint real cumple (hallazgo de auditoría 2026-08-04,
+// hoy dormido porque nada leía report.email todavía).
+export interface EmailReportSummary {
   enviados: number;
   aperturas: number;
   clics: number;
@@ -310,7 +317,7 @@ export interface SeoMetrics {
 export interface MetricsReportResponse {
   client_id: string;
   range: { from: string; to: string; days: number };
-  email: EmailMetrics;
+  email: EmailReportSummary;
   social: SocialMetrics;
   facebook: FacebookMetrics;
   youtube: YoutubeMetrics;
@@ -324,7 +331,12 @@ export interface MetricsReportResponse {
 // se lee como "malisimo" cuando en realidad es "todavia no se sabe".
 export interface SubjectCheck {
   largo: number;
-  estado: 'vacio' | 'corto' | 'optimo' | 'largo' | 'problema';
+  // 'corto'/'largo' nunca los produce el backend real (evaluar_asunto,
+  // email_crm_service.py) - y sí produce 'revisar', que faltaba acá.
+  // Hallazgo de auditoría 2026-08-04, hoy dormido porque nada consume la
+  // respuesta real de este campo todavía (NuevaCampana.tsx la descarta;
+  // la UI usa su propia evaluación local en SubjectField.tsx).
+  estado: 'vacio' | 'optimo' | 'revisar' | 'problema';
   avisos: string[];
   optimo: [number, number];
   visible_movil?: number;

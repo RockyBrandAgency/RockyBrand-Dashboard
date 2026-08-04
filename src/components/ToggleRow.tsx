@@ -13,7 +13,7 @@ export function ToggleRow({ label, sub, on, toggle }: { label: string; sub?: str
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{label}</div>
         {sub && <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>{sub}</div>}
       </div>
-      <Toggle on={on} onToggle={toggle} size="sm" />
+      <Toggle on={on} onToggle={toggle} size="sm" label={label} />
     </div>
   );
 }

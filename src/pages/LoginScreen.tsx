@@ -82,7 +82,7 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
             </div>
           )}
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{branding?.logoAlt ?? 'RockyBrand'}</div>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{branding?.logoAlt ?? 'RockyBrand'}</h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>Portal de Clientes · RockyBrand</div>
           </div>
         </div>

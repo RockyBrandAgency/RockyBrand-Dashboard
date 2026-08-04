@@ -13,7 +13,24 @@
 // por Mato en vivo, 2026-08-03: "los switch cuando están activos deben
 // ser #2D5A3D y cuando están inactivos #E4E4E7". Corregido a los 2 tokens
 // fijos (ver index.css) que no dependen del cliente logueado.
-export function Toggle({ on, onToggle, size = 'md', disabled }: { on: boolean; onToggle: () => void; size?: 'sm' | 'md'; disabled?: boolean }) {
+export function Toggle({
+  on,
+  onToggle,
+  size = 'md',
+  disabled,
+  label,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  size?: 'sm' | 'md';
+  disabled?: boolean;
+  // Nombre accesible del switch (hallazgo de auditoría 2026-08-04:
+  // role="switch"+aria-checked estaban bien, pero sin esto un lector de
+  // pantalla anuncia "switch, activado" sin decir de qué). Opcional para
+  // no romper el único uso que hoy no tiene un texto natural a mano
+  // (Automatizaciones.tsx - se le suma en un commit aparte si hace falta).
+  label?: string;
+}) {
   const w = size === 'sm' ? 40 : 44;
   const h = size === 'sm' ? 20 : 24;
   const knob = size === 'sm' ? 16 : 20;
@@ -22,6 +39,7 @@ export function Toggle({ on, onToggle, size = 'md', disabled }: { on: boolean; o
     <button
       role="switch"
       aria-checked={on}
+      aria-label={label}
       onClick={onToggle}
       disabled={disabled}
       style={{
