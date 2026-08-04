@@ -14,15 +14,19 @@ import type { Screen } from '../../screens';
 
 function ChannelCard({
   icon,
+  iconBg,
   label,
   value,
-  sub,
+  delta,
+  disconnected,
   onClick,
 }: {
   icon: React.ReactNode;
+  iconBg: string;
   label: string;
   value: string;
-  sub?: string;
+  delta?: string | null;
+  disconnected?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -31,24 +35,39 @@ function ChannelCard({
       style={{
         all: 'unset',
         display: 'flex',
-        alignItems: 'center',
-        gap: 12,
+        flexDirection: 'column',
+        gap: 'var(--space-6)',
         background: 'var(--white)',
         border: '1px solid var(--border)',
-        borderRadius: 12,
-        padding: '16px 20px',
+        borderRadius: 'var(--radius-md)',
+        padding: 'var(--space-7)',
         cursor: 'pointer',
         boxSizing: 'border-box',
         width: '100%',
+        boxShadow: 'var(--shadow-card)',
+        opacity: disconnected ? 0.6 : 1,
       }}
     >
-      <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>{label}</div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>{value}</div>
-        {sub && <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 1 }}>{sub}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 18, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {icon}
+        </div>
+        {disconnected ? (
+          <div style={{ background: 'var(--surface-2)', color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}>
+            Desconectado
+          </div>
+        ) : delta ? (
+          <div style={{ background: 'var(--status-bien-bg)', color: 'var(--status-bien-dot)', fontSize: 12, fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}>
+            {delta}
+          </div>
+        ) : null}
       </div>
-      <span style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>→</span>
+      <div style={{ textAlign: 'left', width: '100%' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{label}</div>
+        <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: disconnected ? 'var(--text-faint)' : 'var(--text)', marginTop: 4 }}>
+          {value}
+        </div>
+      </div>
     </button>
   );
 }
@@ -120,7 +139,7 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
           breadcrumb="Métricas"
-          title="Resumen"
+          title="Rendimiento de Canales"
           isDesktop={isDesktop}
           days={days}
           onDaysChange={setDays}
@@ -130,7 +149,7 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
 
         {showEmail && (
           <div style={{ marginBottom: 40 }}>
-            <SectionHead icon="✉️">Email Marketing</SectionHead>
+            <SectionHead>Email Marketing</SectionHead>
             <AsyncState loading={loading} error={error} onRetry={load}>
               {s && (
                 <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 12 }}>
@@ -148,39 +167,50 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
 
         {showAgentsChannels && (
           <div style={{ marginBottom: 40 }}>
-            <SectionHead icon="📊">Redes y SEO</SectionHead>
+            <SectionHead>Canales Conectados</SectionHead>
             <AsyncState loading={reportLoading} error={reportError} onRetry={reloadReport}>
               {report && (
-                <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(2,1fr)' : 'repeat(1,1fr)', gap: 'var(--space-6)' }}>
                   <ChannelCard
                     icon={<FacebookIcon />}
+                    iconBg="#e8f1f5"
                     label="Facebook"
-                    value={report.facebook.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}
-                    sub="seguidores"
+                    value={`Alcance: ${report.facebook.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}`}
+                    delta={report.facebook.cambio_neto_7d != null ? `${report.facebook.cambio_neto_7d > 0 ? '+' : ''}${report.facebook.cambio_neto_7d} 7 días` : null}
                     onClick={() => onNavigate('metricas-facebook')}
                   />
                   <ChannelCard
                     icon={<InstagramIcon />}
+                    iconBg="#fce8ec"
                     label="Instagram"
-                    value={report.social.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}
-                    sub="seguidores"
+                    value={`Seguidores: ${report.social.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}`}
+                    delta={report.social.cambio_neto_periodo ? `${report.social.cambio_neto_periodo > 0 ? '+' : ''}${report.social.cambio_neto_periodo} seguidores` : null}
                     onClick={() => onNavigate('metricas-instagram')}
                   />
                   <ChannelCard
                     icon={<YoutubeIcon />}
-                    label="Youtube"
-                    value={report.youtube.suscriptores_actuales?.toLocaleString('es-CL') ?? '—'}
-                    sub="suscriptores"
+                    iconBg="#feecec"
+                    label="YouTube"
+                    value={`Vistas: ${report.youtube.vistas_periodo?.toLocaleString('es-CL') ?? '—'}`}
+                    delta={report.youtube.suscriptores_netos_7d ? `${report.youtube.suscriptores_netos_7d > 0 ? '+' : ''}${report.youtube.suscriptores_netos_7d} suscriptores` : null}
                     onClick={() => onNavigate('metricas-youtube')}
                   />
                   <ChannelCard
                     icon={<GoogleIcon />}
-                    label="SEO"
-                    value={report.seo.posicion_actual !== null ? `#${report.seo.posicion_actual}` : '—'}
-                    sub={report.seo.keyword ?? 'posición promedio'}
+                    iconBg="#ebf7ed"
+                    label="SEO Orgánico"
+                    value={report.seo.posicion_actual !== null ? `Posición: #${report.seo.posicion_actual}` : '—'}
+                    delta={report.seo.keyword ?? null}
                     onClick={() => onNavigate('metricas-seo')}
                   />
-                  <ChannelCard icon={<TiktokIcon />} label="TikTok" value="—" sub="sin conectar" onClick={() => onNavigate('metricas-tiktok')} />
+                  <ChannelCard
+                    icon={<TiktokIcon />}
+                    iconBg="#f1f3f5"
+                    label="TikTok"
+                    value="No Conectado"
+                    disconnected
+                    onClick={() => onNavigate('metricas-tiktok')}
+                  />
                 </div>
               )}
             </AsyncState>

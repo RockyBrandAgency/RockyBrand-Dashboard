@@ -70,7 +70,7 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: 20, marginBottom: 20 }}>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px' }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', boxShadow: 'var(--shadow-card)' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Clics orgánicos</div>
                   <LineChart
                     points={seo.clicks_snapshots.map((s) => ({ fecha: s.fecha, valor: s.clics }))}
@@ -78,7 +78,7 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
                     formatDate={formatDateShort}
                   />
                 </div>
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px' }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', boxShadow: 'var(--shadow-card)' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Impresiones</div>
                   <LineChart
                     points={seo.impressions_snapshots.map((s) => ({ fecha: s.fecha, valor: s.impresiones }))}
@@ -88,7 +88,7 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
                 </div>
               </div>
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', padding: '18px 16px 6px' }}>Keywords</div>
                 {seo.keyword_matrix.length === 0 ? (
                   <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>Sin keywords registradas todavía</div>

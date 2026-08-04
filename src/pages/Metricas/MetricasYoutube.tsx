@@ -67,7 +67,7 @@ export function MetricasYoutube({ isDesktop }: { isDesktop: boolean }) {
                 />
               </div>
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>Suscriptores en el tiempo</div>
                 <LineChart
                   points={yt.snapshots.map((s) => ({ fecha: s.fecha, valor: s.suscriptores }))}
@@ -77,7 +77,7 @@ export function MetricasYoutube({ isDesktop }: { isDesktop: boolean }) {
               </div>
 
               {yt.top_videos.length > 0 && (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', padding: '18px 16px 6px' }}>Videos con más watch time</div>
                   {yt.top_videos.map((v, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border-soft)', fontSize: 13 }}>

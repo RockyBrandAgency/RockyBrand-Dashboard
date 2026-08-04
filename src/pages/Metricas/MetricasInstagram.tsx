@@ -15,10 +15,10 @@ function formatDateShort(iso: string): string {
 
 function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em' }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginTop: 6, letterSpacing: '-0.01em' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 3 }}>{sub}</div>}
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', boxShadow: 'var(--shadow-card)' }}>
+      <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{label}</div>
+      <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--text)', marginTop: 8, letterSpacing: '-0.01em' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
@@ -205,7 +205,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
 
               {ig.insight_post && <InsightBanner post={ig.insight_post} />}
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Seguidores en el tiempo</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>Seguidores actuales: {num(ig.seguidores_actuales)}</div>
                 <TrendChart
@@ -217,7 +217,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
                 />
               </div>
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', padding: '18px 16px 6px' }}>Publicaciones — ordenadas por guardados</div>
                 {ig.publicaciones.length === 0 ? (
                   <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>Sin publicaciones en el rango</div>

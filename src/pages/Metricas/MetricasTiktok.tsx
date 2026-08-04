@@ -8,17 +8,19 @@ export function MetricasTiktok({ isDesktop }: { isDesktop: boolean }) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
-            Métricas
+        <div style={{ paddingBottom: 'var(--space-7)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-8)' }}>
+          <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-sub)', marginBottom: 4 }}>
+            Métricas &gt; TikTok
           </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>TikTok</h1>
+          <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            TikTok
+          </h1>
         </div>
         <div
           style={{
             background: 'var(--white)',
             border: '1px dashed var(--border)',
-            borderRadius: 12,
+            borderRadius: 'var(--radius-md)',
             padding: '60px 24px',
             textAlign: 'center',
             color: 'var(--text-muted)',
