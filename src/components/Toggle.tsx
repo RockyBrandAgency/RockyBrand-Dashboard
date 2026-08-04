@@ -20,12 +20,18 @@ import { gsap } from 'gsap';
 // Animación con GSAP (2026-08-04, pedido explícito de Mato): antes el
 // knob se movía con una transición CSS de "left" (recalcula layout en
 // cada frame - mueve la propiedad, no un transform). Ahora el knob queda
-// fijo en left:inset y GSAP anima translateX con un leve overshoot
-// ("back.out") + un squash-and-stretch chico (se achica de alto/se
-// estira de ancho a mitad de camino y vuelve) - el mismo lenguaje de
-// micro-interacción "con peso" que ya usa 05-panel-web con GSAP. El
-// primer render NUNCA anima (gsap.set, no .to): si animara, todos los
-// switches "saltarían" a su posición apenas carga la pantalla.
+// fijo en left:inset y GSAP anima translateX.
+//
+// CORREGIDO el mismo día: la primera versión usaba "back.out" (overshoot)
+// + un squash-and-stretch - se armó sin revisar antes el spec real de
+// motion del archivo de Figma ("43 — Spec: GSAP Motion System"), que en
+// su banner de Reglas Generales dice explícito: "Se prohíben
+// estrictamente los rebotes agresivos o giros que distraigan del
+// análisis de datos". Ningún ease de todo el spec (43 ni 44 - "Spec: GSAP
+// Transiciones") usa back/elastic/bounce en ningún ítem - todos son
+// power2/power3 in/out/inOut. Corregido a un power2.out limpio, sin
+// squash. El primer render NUNCA anima (gsap.set, no .to): si animara,
+// todos los switches "saltarían" a su posición apenas carga la pantalla.
 export function Toggle({
   on,
   onToggle,
@@ -67,12 +73,9 @@ export function Toggle({
       return;
     }
 
-    const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
-    tl.to(el, { x, duration: 0.32, ease: 'back.out(2.2)' }, 0)
-      .to(el, { scaleX: 1.22, scaleY: 0.82, duration: 0.12 }, 0)
-      .to(el, { scaleX: 1, scaleY: 1, duration: 0.2 }, 0.12);
+    const tween = gsap.to(el, { x, duration: 0.22, ease: 'power2.out', overwrite: 'auto' });
     return () => {
-      tl.kill();
+      tween.kill();
     };
   }, [on, w, knob, inset]);
 
