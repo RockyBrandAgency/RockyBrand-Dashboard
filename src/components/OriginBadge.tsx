@@ -32,6 +32,11 @@ const ORIGIN_COLOR: Partial<Record<string, { bg: string; text: string }>> = {
   Airbnb: { bg: '#ffedd5', text: '#c2410c' },
 };
 
+// Forma/tipografía corregidas 2026-08-04 (hallazgo de auditoría): era un
+// pill totalmente redondeado (radius 20) con texto 11px/bold - Figma
+// real (nodos 7:112-113 de "19 — Reservas Resumen") es un rectángulo
+// redondeado de 6px con texto 12px/semibold(600), padding 4px 10px. Los
+// colores hex de fondo/texto por canal ya coincidían exacto, no se tocan.
 export function OriginBadge({ source }: { source: string | null | undefined }) {
   const label = originLabel(source);
   const known = Boolean(source && ORIGIN_LABEL[source]);
@@ -39,10 +44,10 @@ export function OriginBadge({ source }: { source: string | null | undefined }) {
   return (
     <span
       style={{
-        fontSize: 11,
-        fontWeight: 700,
-        padding: '3px 9px',
-        borderRadius: 20,
+        fontSize: 12,
+        fontWeight: 600,
+        padding: '4px 10px',
+        borderRadius: 'var(--radius-sm)',
         background: color ? color.bg : known ? 'var(--status-neutro-bg)' : 'transparent',
         color: color ? color.text : known ? 'var(--status-neutro-text)' : 'var(--text-muted)',
         border: !color && !known ? '1px solid var(--status-neutro-dot)' : 'none',

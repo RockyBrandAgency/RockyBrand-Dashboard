@@ -50,6 +50,16 @@ const COLOR_ESTADO: Record<EstadoPieza, string> = {
   publicada: '#3866BF',
 };
 
+// Fondos sólidos reales del badge de estado (Figma: "Pendiente" #fef3c7,
+// "Aprobada"/"Rechazada" mismos tonos que --status-bien-bg/-critico-bg -
+// hallazgo de auditoría 2026-08-04, antes se derivaban por alpha-mix).
+const COLOR_ESTADO_BG: Record<EstadoPieza, string> = {
+  pendiente: 'var(--status-atencion-bg)',
+  aprobada: 'var(--status-bien-bg)',
+  rechazada: 'var(--status-critico-bg)',
+  publicada: 'var(--status-info-bg)',
+};
+
 // El límite de caracteres se muestra como referencia viva. Sale de las
 // advertencias que ya calculó el backend contra el registro de specs: la
 // vista NO tiene una tabla propia de límites, para que no puedan
@@ -59,10 +69,19 @@ function limiteDe(a: Adaptacion): number | null {
   return w?.limite ?? null;
 }
 
-function Badge({ texto, color }: { texto: string; color: string }) {
+// Forma corregida 2026-08-04 (hallazgo de auditoría): era un pill total
+// (radius-pill) con fondo mezclado por alpha (`${color}1A`, ej. #D97706
+// con 10% de opacidad da un tono mucho más pálido que el pastel plano
+// real de Figma) - ahora radius-sm (6px) y padding 4px 10px, igual que
+// .crm-pill/OriginBadge. `bg` es opcional: cuando se conoce el token de
+// fondo sólido real (el badge de estado, ver COLOR_ESTADO_BG abajo) se
+// usa ese; si no, sigue con el mezclado por alpha como aproximación
+// honesta para colores que no tienen un token de fondo confirmado contra
+// Figma (objetivo, fecha, conteo de advertencias).
+function Badge({ texto, color, bg }: { texto: string; color: string; bg?: string }) {
   return (
     <span style={{
-      background: `${color}1A`, color, borderRadius: 'var(--radius-pill)', padding: '3px 10px',
+      background: bg ?? `${color}1A`, color, borderRadius: 'var(--radius-sm)', padding: '4px 10px',
       fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
     }}>{texto}</span>
   );
@@ -261,14 +280,17 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
       background: 'var(--white)', boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column',
     }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-        <Badge texto={p.estado} color={COLOR_ESTADO[p.estado]} />
+        <Badge texto={p.estado} color={COLOR_ESTADO[p.estado]} bg={COLOR_ESTADO_BG[p.estado]} />
         {p.fecha_publicacion_propuesta && <Badge texto={p.fecha_publicacion_propuesta} color="#6B7280" />}
         {p.objetivo ? <Badge texto={p.objetivo} color="#3866BF" />
           : <Badge texto="sin objetivo" color="#D97706" />}
         {advertenciasTotal > 0 && <Badge texto={`${advertenciasTotal} advertencia(s)`} color="#D97706" />}
       </div>
 
-      <div style={{ fontSize: 16, lineHeight: 1.55, marginBottom: 14 }}>{p.concepto}</div>
+      {/* 14px/500, no 16px/400 (Figma real, nodo 7:352) - sin truncar a
+          propósito: es el texto que decide una aprobación, cortarlo le
+          escondería contexto a quien revisa. */}
+      <div style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.55, marginBottom: 14, color: 'var(--text)' }}>{p.concepto}</div>
 
       {ultimoRechazo && (
         <div style={{
@@ -419,7 +441,7 @@ export function RevisionContenido({ isDesktop }: { isDesktop: boolean }) {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
               Revisión de Contenido
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>

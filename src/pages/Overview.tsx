@@ -31,7 +31,7 @@ function greetingByHour(): string {
 // (MetricasResumen.tsx), misma fuente de datos (getSemaforo), solo
 // cambia dónde se muestra.
 export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
-  const { handleUnauthorized, clientId } = useAuth();
+  const { handleUnauthorized, clientId, clientDisplayName } = useAuth();
   const location = clientId ? CLIENT_LOCATION[clientId] : undefined;
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,10 +78,16 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                   marginBottom: 'var(--space-8)',
                 }}
               >
-                <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                  {greetingByHour()}
-                </h1>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    {greetingByHour()}
+                  </h1>
+                  <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
+                    Aquí está el resumen operacional de {clientDisplayName ?? 'tu negocio'}.
+                  </div>
+                </div>
                 <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+                  {location ? `${location.label}, Chile · ` : ''}
                   {new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </div>
               </div>
@@ -98,8 +104,9 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                     boxSizing: 'border-box',
                     cursor: 'pointer',
                     background: STATUS.atencion.tagBg,
+                    border: `1px solid ${STATUS.atencion.dot}`,
                     borderRadius: 'var(--radius-md)',
-                    padding: 'var(--space-5) var(--space-7)',
+                    padding: 16,
                     marginBottom: 'var(--space-6)',
                   }}
                 >
@@ -126,7 +133,7 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                 }}
               >
                 <span style={{ fontSize: 16, flexShrink: 0, color: 'var(--status-bien-dot)' }}>✓</span>
-                <div style={{ fontSize: 13, color: 'var(--text)' }}>
+                <div style={{ fontSize: 14, color: 'var(--text)' }}>
                   {s.formulario_reservas_7d.cantidad}{' '}
                   {s.formulario_reservas_7d.cantidad === 1 ? 'usuario completó' : 'usuarios completaron'} el formulario de reservas esta semana.
                 </div>

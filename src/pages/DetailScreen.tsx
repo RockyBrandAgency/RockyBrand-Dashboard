@@ -4,10 +4,12 @@ import { GuestCard, hasAlert } from '../components/GuestCard';
 import { AsyncState } from '../components/AsyncState';
 import { getLlegadas, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
+import { useClientContextLabel } from '../hooks/useClientContextLabel';
 import type { LlegadaGuest } from '../types';
 
 export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
+  const contextLabel = useClientContextLabel();
   const [llegadas, setLlegadas] = useState<LlegadaGuest[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,13 +52,14 @@ export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
               Llegadas próximas 48 horas
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
               Revisa los ingresos y requerimientos especiales de los huéspedes.
             </div>
           </div>
+          {contextLabel && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{contextLabel}</div>}
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>

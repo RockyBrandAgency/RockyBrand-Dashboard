@@ -175,7 +175,7 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
               Configuración
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>

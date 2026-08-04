@@ -105,6 +105,12 @@ export function ResumenEmail() {
             </Aviso>
           )}
 
+          {/* Figma (frame 11) muestra badges de tendencia en 3 de las 4
+              tarjetas ("+3.4%", "Saludable", "+0.5%") - EmailResumen no
+              trae ningún campo de variación/período anterior
+              (types.ts:372-381), así que no hay con qué calcular un
+              delta real. KpiCard sí soporta la prop `badge` (para cuando
+              exista el dato), pero no se fabrica un número acá. */}
           <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap', marginBottom: 'var(--space-7)' }}>
             <KpiCard label="Contactos activos" value={datos.audiencia.activos_marketing.toLocaleString('es-CL')} />
             <KpiCard label="Tasa de apertura promedio" value={formatTasa(datos.open_rate)} />

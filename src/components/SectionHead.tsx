@@ -23,7 +23,7 @@ export function SectionHead({
             fontSize: 12,
             fontWeight: 600,
             padding: '4px 8px',
-            borderRadius: 'var(--radius-xs)',
+            borderRadius: 'var(--radius-sm)',
           }}
         >
           {count.label}

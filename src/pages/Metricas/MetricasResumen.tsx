@@ -8,6 +8,7 @@ import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { FacebookIcon, InstagramIcon, YoutubeIcon, TiktokIcon, GoogleIcon } from '../../components/PlatformIcons';
 import type { DateRangeDays } from '../../components/DateRangeControl';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
+import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { SemaforoResponse } from '../../types';
 import type { Screen } from '../../screens';
@@ -18,6 +19,7 @@ function ChannelCard({
   label,
   value,
   delta,
+  sub,
   disconnected,
   onClick,
 }: {
@@ -26,6 +28,7 @@ function ChannelCard({
   label: string;
   value: string;
   delta?: string | null;
+  sub?: string | null;
   disconnected?: boolean;
   onClick: () => void;
 }) {
@@ -67,6 +70,7 @@ function ChannelCard({
         <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: disconnected ? 'var(--text-faint)' : 'var(--text)', marginTop: 4 }}>
           {value}
         </div>
+        {sub && <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{sub}</div>}
       </div>
     </button>
   );
@@ -78,7 +82,8 @@ function ChannelCard({
 // Youtube/SEO) - pedido explícito de Mato (2026-08-01), ya con datos
 // reales conectados (compute_metrics_report).
 export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean; onNavigate: (screen: Screen) => void }) {
-  const { handleUnauthorized, clientServices } = useAuth();
+  const { handleUnauthorized, clientServices, clientDisplayName } = useAuth();
+  const contextLabel = useClientContextLabel();
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +145,9 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
         <MetricsPageHeader
           breadcrumb="Métricas"
           title="Rendimiento de Canales"
+          subtitle={`Visualiza las estadísticas de marketing de ${clientDisplayName ?? 'tu negocio'}.`}
+          contextLabel={contextLabel}
+          titleSize={20}
           isDesktop={isDesktop}
           days={days}
           onDaysChange={setDays}
@@ -200,7 +208,7 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
                     iconBg="#ebf7ed"
                     label="SEO Orgánico"
                     value={report.seo.posicion_actual !== null ? `Posición: #${report.seo.posicion_actual}` : '—'}
-                    delta={report.seo.keyword ?? null}
+                    sub={report.seo.keyword ?? null}
                     onClick={() => onNavigate('metricas-seo')}
                   />
                   <ChannelCard

@@ -109,7 +109,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, marginBottom: 'var(--space-6)' }}>
           <div>
             <div className="crm-desc-label">Email Marketing</div>
-            <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
               {TAB_TITLES[tab]}
             </h1>
           </div>

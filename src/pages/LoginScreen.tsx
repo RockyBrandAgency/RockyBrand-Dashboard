@@ -71,7 +71,7 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
               style={{
                 width: 48,
                 height: 48,
-                borderRadius: 'var(--radius-md)',
+                borderRadius: 10,
                 background: 'var(--primary)',
                 display: 'flex',
                 alignItems: 'center',

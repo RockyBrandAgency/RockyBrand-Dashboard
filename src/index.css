@@ -179,7 +179,12 @@ body,
 .crm-mini-value.alerta{ color:var(--status-atencion-dot); }
 .crm-mini-value.critico{ color:var(--status-critico-dot); }
 
-.crm-btn{ all:unset; box-sizing:border-box; font-size:13px; font-weight:600; border-radius:var(--radius-sm); cursor:pointer; padding:8px 16px; border:1px solid transparent; display:inline-flex; align-items:center; gap:8px; text-align:center; transition:background 0.12s, border-color 0.12s; }
+/* padding 10px 16px, no 8px 16px - hallazgo de auditoría 2026-08-04: el
+   CTA de toolbar real de Figma ("Nueva Campaña", nodo 4:2026) es
+   py-[10px]. Los CTAs de formulario (Programar Envío/Guardar Borrador,
+   py-[12px] px-[24px]) son más grandes todavía - pendiente, necesita un
+   tamaño de botón aparte, no se resuelve solo con esto. */
+.crm-btn{ all:unset; box-sizing:border-box; font-size:13px; font-weight:600; border-radius:var(--radius-sm); cursor:pointer; padding:10px 16px; border:1px solid transparent; display:inline-flex; align-items:center; gap:8px; text-align:center; transition:background 0.12s, border-color 0.12s; }
 .crm-btn-primary{ background:var(--primary); color:#fff; }
 .crm-btn-primary:hover{ background:var(--primary-hov); }
 .crm-btn-ghost{ background:var(--white); color:var(--text-sub); border-color:var(--border-strong); }
@@ -219,18 +224,23 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
 .crm-cell-sub{ font-size:11px; color:var(--text-faint); margin-top:4px; }
 .crm-row-actions{ display:inline-flex; gap:8px; white-space:nowrap; justify-content:flex-end; width:100%; }
 
-.crm-pill{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:var(--radius-xs); white-space:nowrap; background:var(--status-neutro-bg); color:var(--status-neutro-text); }
+/* radius-sm (6px), no radius-xs (4px); color "-dot" (más saturado), no
+   "-text" (más oscuro) - hallazgo de auditoría 2026-08-04, confirmado
+   contra 3 nodos reales de Figma (Campañas: "Enviada" #16a34a/6px,
+   "Programada" #d97706/6px). radius-xs sigue siendo el real para los
+   chips chicos de "Salud de Envío" (Resumen), esos no usan .crm-pill. */
+.crm-pill{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:var(--radius-sm); white-space:nowrap; background:var(--status-neutro-bg); color:var(--status-neutro-text); }
 .crm-pill-dot{ display:none; }
-.crm-pill.subscribed,.crm-pill.sent{ background:var(--status-bien-bg); color:var(--status-bien-text); }
-.crm-pill.pending,.crm-pill.sending,.crm-pill.scheduled{ background:var(--status-atencion-bg); color:var(--status-atencion-text); }
-.crm-pill.bounced,.crm-pill.complained,.crm-pill.failed{ background:var(--status-critico-bg); color:var(--status-critico-text); }
+.crm-pill.subscribed,.crm-pill.sent{ background:var(--status-bien-bg); color:var(--status-bien-dot); }
+.crm-pill.pending,.crm-pill.sending,.crm-pill.scheduled{ background:var(--status-atencion-bg); color:var(--status-atencion-dot); }
+.crm-pill.bounced,.crm-pill.complained,.crm-pill.failed{ background:var(--status-critico-bg); color:var(--status-critico-dot); }
 
 .crm-tag{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:var(--radius-pill); background:var(--surface-2); color:var(--text-sub); font-weight:600; margin:0 4px 4px 0; }
 
 .crm-empty{ padding:48px 16px; text-align:center; font-size:14px; font-weight:600; color:var(--text); background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md); }
 
 .crm-field{ display:block; margin-bottom:var(--space-6); }
-.crm-field > label,.crm-field-label{ display:block; font-size:12px; font-weight:600; color:var(--text-sub); margin-bottom:var(--space-3); }
+.crm-field > label,.crm-field-label{ display:block; font-size:14px; font-weight:600; color:var(--text-sub); margin-bottom:var(--space-3); }
 .crm-input{ width:100%; box-sizing:border-box; padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); font-size:14px; font-family:inherit; color:var(--text); background:var(--white); }
 .crm-input.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
 .crm-hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }

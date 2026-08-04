@@ -3,6 +3,7 @@ import { AsyncState } from '../../components/AsyncState';
 import { KpiRow } from '../../components/KpiRow';
 import { LineChart } from '../../components/LineChart';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
+import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
@@ -18,6 +19,7 @@ export function MetricasYoutube({ isDesktop }: { isDesktop: boolean }) {
   const [days, setDays] = useState<DateRangeDays>(30);
   const { data, loading, error, reload } = useMetricsReport(days);
   const yt = data?.youtube;
+  const contextLabel = useClientContextLabel();
 
   const handleExport = () => {
     if (!yt) return;
@@ -45,7 +47,8 @@ export function MetricasYoutube({ isDesktop }: { isDesktop: boolean }) {
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
           breadcrumb="Métricas > YouTube"
-          title="YouTube"
+          title="Métricas YouTube"
+          contextLabel={contextLabel}
           isDesktop={isDesktop}
           days={days}
           onDaysChange={setDays}

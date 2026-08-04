@@ -1,20 +1,39 @@
 import { TiktokIcon } from '../../components/PlatformIcons';
+import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 
 // TikTok - a diferencia de Facebook/Instagram/YouTube/SEO, no hay
 // ninguna fuente de datos conectada hoy (sin cron, sin snapshots en
 // rockybrand-memory) - confirmado antes de construir, no se inventa un
 // número. Estado honesto hasta que se conecte una integración real.
 export function MetricasTiktok({ isDesktop }: { isDesktop: boolean }) {
+  const contextLabel = useClientContextLabel();
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
-        <div style={{ paddingBottom: 'var(--space-7)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-8)' }}>
-          <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-sub)', marginBottom: 4 }}>
-            Métricas &gt; TikTok
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: 12,
+            paddingBottom: 'var(--space-7)',
+            borderBottom: '1px solid var(--border)',
+            marginBottom: 'var(--space-8)',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-sub)', marginBottom: 4 }}>
+              Métricas &gt; TikTok
+            </div>
+            {/* 24px, no var(--font-size-3xl)=22px - hallazgo de auditoría
+                2026-08-04: ningún canal de detalle en Figma usa ese token,
+                todos son 24px reales (Facebook/Instagram/YouTube/SEO). */}
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+              Métricas TikTok
+            </h1>
           </div>
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 'var(--font-size-3xl)' : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-            TikTok
-          </h1>
+          {contextLabel && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{contextLabel}</div>}
         </div>
         <div
           style={{

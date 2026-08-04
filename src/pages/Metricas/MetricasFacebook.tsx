@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { TrendChart } from '../../components/TrendChart';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
+import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { MetricNotAvailable } from '../../components/MetricNotAvailable';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
@@ -38,6 +39,7 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
   const [days, setDays] = useState<DateRangeDays>(30);
   const { data, loading, error, reload } = useMetricsReport(days);
   const fb = data?.facebook;
+  const contextLabel = useClientContextLabel();
 
   const handleExport = () => {
     if (!fb) return;
@@ -67,6 +69,7 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
         <MetricsPageHeader
           breadcrumb="Métricas > Facebook"
           title={fb?.nombre_pagina ? `Facebook — ${fb.nombre_pagina}` : 'Métricas Facebook'}
+          contextLabel={contextLabel}
           isDesktop={isDesktop}
           days={days}
           onDaysChange={setDays}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { TrendChart } from '../../components/TrendChart';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
+import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { MetricNotAvailable } from '../../components/MetricNotAvailable';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
@@ -196,6 +197,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
   const [days, setDays] = useState<DateRangeDays>(30);
   const { data, loading, error, reload } = useMetricsReport(days);
   const ig = data?.social;
+  const contextLabel = useClientContextLabel();
 
   const handleExport = () => {
     if (!ig) return;
@@ -231,7 +233,8 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
           breadcrumb="Métricas > Instagram"
-          title="Instagram"
+          title="Métricas Instagram"
+          contextLabel={contextLabel}
           isDesktop={isDesktop}
           days={days}
           onDaysChange={setDays}

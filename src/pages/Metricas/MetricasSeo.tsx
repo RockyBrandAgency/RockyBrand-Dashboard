@@ -3,6 +3,7 @@ import { AsyncState } from '../../components/AsyncState';
 import { KpiRow } from '../../components/KpiRow';
 import { LineChart } from '../../components/LineChart';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
+import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
@@ -20,6 +21,7 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
   const [days, setDays] = useState<DateRangeDays>(30);
   const { data, loading, error, reload } = useMetricsReport(days);
   const seo = data?.seo;
+  const contextLabel = useClientContextLabel();
 
   const handleExport = () => {
     if (!seo) return;
@@ -49,7 +51,8 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
         <MetricsPageHeader
           breadcrumb="Métricas > SEO"
-          title="SEO"
+          title="Métricas SEO"
+          contextLabel={contextLabel}
           isDesktop={isDesktop}
           days={days}
           onDaysChange={setDays}
