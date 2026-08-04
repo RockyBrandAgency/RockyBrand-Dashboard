@@ -10,6 +10,14 @@ import { Card, Boton, Campo, Vacio, Aviso, formatFecha } from './shared';
 // La vista previa va en un <iframe> con sandbox y srcDoc, no con
 // dangerouslySetInnerHTML: el HTML de una plantilla puede traer scripts o
 // estilos que se escapen y rompan el panel entero. El iframe lo encierra.
+//
+// Pendiente, documentado en la auditoría pixel-por-pixel 2026-08-04: el
+// Figma real (frame 16) muestra un panel de previsualización de 360px
+// PERSISTENTE al costado (se actualiza en vivo mientras se edita), y 3
+// acciones por tarjeta de plantilla en vez de las 2 actuales. Ambos son
+// una reestructuración real de layout, no un ajuste de token/valor -
+// intentarlo apurado en la misma sesión que el resto de esta auditoría
+// arriesgaba un layout a medio terminar. Queda para una sesión propia.
 export function TemplatesEmail() {
   const { handleUnauthorized } = useAuth();
   const [templates, setTemplates] = useState<EmailTemplate[] | null>(null);

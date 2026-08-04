@@ -161,7 +161,7 @@ body,
 .crm-tabbar{ position:relative; display:flex; gap:8px; margin:0 0 24px; border-bottom:1px solid var(--border); flex-wrap:wrap; overflow-x:auto; }
 .crm-tab{ all:unset; padding:8px 16px 12px; font-size:13px; color:var(--text-sub); cursor:pointer; border-bottom:2px solid transparent; font-weight:500; white-space:nowrap; box-sizing:border-box; }
 .crm-tab:hover{ background:var(--surface-2); border-radius:var(--radius-sm) var(--radius-sm) 0 0; }
-.crm-tab.active{ color:var(--primary); font-weight:600; border-bottom-color:var(--primary); }
+.crm-tab.active{ color:var(--primary); font-weight:600; }
 
 .crm-card{ background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:var(--space-6); box-shadow:var(--shadow-card); }
 .crm-card-pad{ padding:var(--space-8); }
@@ -194,8 +194,8 @@ body,
 .crm-btn-sm{ padding:4px 8px; font-size:11px; border-radius:var(--radius-xs); }
 .crm-btn:disabled{ opacity:0.4; cursor:default; }
 
-.crm-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:var(--space-6); }
-.crm-search-wrap{ display:flex; align-items:center; gap:8px; flex:1; min-width:220px; max-width:320px; box-sizing:border-box; padding:8px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--white); }
+.crm-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-7); flex-wrap:wrap; margin-bottom:var(--space-6); }
+.crm-search-wrap{ display:flex; align-items:center; gap:10px; flex:1; min-width:220px; max-width:320px; box-sizing:border-box; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--white); }
 .crm-search{ all:unset; flex:1; min-width:0; box-sizing:border-box; font-size:13px; font-family:inherit; color:var(--text); background:transparent; }
 .crm-search::placeholder{ color:var(--text-faint); }
 
@@ -266,10 +266,14 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
 .crm-timeline-text{ font-size:13px; color:var(--text); font-weight:600; }
 .crm-timeline-when{ font-size:11px; color:var(--text-faint); margin-top:2px; }
 
-.crm-funnel-row{ display:grid; grid-template-columns:110px 1fr 64px; align-items:center; gap:var(--space-5); margin-bottom:var(--space-4); }
+/* Figma (frame "17 — Email: Métricas (Embudo)"): barras sólidas de 36px
+   con el % dentro, no una barra fina de 10px - único uso en el codebase
+   (crm-funnel-*), corregido entero. */
+.crm-funnel-row{ display:grid; grid-template-columns:110px 1fr 80px; align-items:center; gap:var(--space-5); margin-bottom:var(--space-4); }
 .crm-funnel-label{ font-size:12px; color:var(--text-sub); }
-.crm-funnel-track{ height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; }
-.crm-funnel-fill{ height:100%; background:var(--primary); border-radius:5px; }
+.crm-funnel-track{ height:36px; background:var(--surface-2); border-radius:var(--radius-sm); overflow:hidden; position:relative; }
+.crm-funnel-fill{ height:100%; background:var(--primary); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:flex-end; padding:0 10px; box-sizing:border-box; min-width:fit-content; }
+.crm-funnel-pct{ font-size:12px; font-weight:600; color:#fff; white-space:nowrap; }
 .crm-funnel-value{ font-size:13px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; color:var(--text); }
 
 .crm-step{ display:flex; gap:12px; padding-bottom:var(--space-6); margin-bottom:var(--space-6); border-bottom:1px solid var(--border); }

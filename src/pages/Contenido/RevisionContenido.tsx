@@ -3,6 +3,8 @@ import {
   getContentPieces, getHorarioSugerido, aprobarPieza, rechazarPieza, UnauthorizedError,
 } from '../../api/dashboardApi';
 import { AsyncState } from '../../components/AsyncState';
+import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
+import { ImageIcon } from '../../components/icons/RockyIcons';
 import { useAuth } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
 import type {
@@ -477,13 +479,17 @@ export function RevisionContenido({ isDesktop }: { isDesktop: boolean }) {
 
         <AsyncState loading={cargando} error={error} onRetry={() => void cargar()}>
           {piezas.length === 0 ? (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 15, lineHeight: 1.6 }}>
-                {estado || plataforma
-                  ? 'No hay piezas que coincidan con estos filtros.'
-                  : 'Aún no hay piezas para revisar.'}
+            estado || plataforma ? (
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 15, lineHeight: 1.6 }}>No hay piezas que coincidan con estos filtros.</div>
               </div>
-            </div>
+            ) : (
+              <EmptyStateIllustrated
+                icon={<ImageIcon size={36} />}
+                title="Sin piezas por revisar"
+                description="Cuando los agentes de IA generen nuevo contenido para tus redes, va a aparecer acá para tu aprobación de manera automática."
+              />
+            )
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(auto-fill, minmax(300px, 1fr))' : '1fr', gap: 20 }}>
               {piezas.map((p) => (

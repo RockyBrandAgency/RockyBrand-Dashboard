@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import type { ClientServices, ServiceKey } from '../types';
-import { TreePineIcon, LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon } from './icons/RockyIcons';
+import { LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon } from './icons/RockyIcons';
+import { ClientLogo } from './ClientLogo';
 
 // Pedido explícito de Mato (2026-08-01): que el cliente vea qué servicios
 // tiene contratados con RockyBrand, en su propio sidebar. Los que ya
@@ -69,38 +70,7 @@ export function Sidebar({
       }}
     >
       <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', marginBottom: 'var(--space-9)' }}>
-        {clientLogoSrcLight ? (
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              flexShrink: 0,
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-soft)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}
-          >
-            <img src={clientLogoSrcLight} alt={clientDisplayName ?? 'Logo del cliente'} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </div>
-        ) : (
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              flexShrink: 0,
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <TreePineIcon size={18} color="#fff" />
-          </div>
-        )}
+        <ClientLogo src={clientLogoSrcLight} displayName={clientDisplayName} size={32} />
         <div style={{ minWidth: 0 }}>
           <div
             style={{

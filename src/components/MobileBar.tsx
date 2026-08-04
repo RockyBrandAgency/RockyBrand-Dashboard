@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import { HomeIcon, ChartColumnIcon, BellIcon } from './icons/RockyIcons';
+import { ClientLogo } from './ClientLogo';
 import type { ClientServices, ServiceKey } from '../types';
 import type { NavLeaf } from '../screens';
 
@@ -82,11 +83,7 @@ export function MobileBar({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          {clientLogoSrcLight ? (
-            <img src={clientLogoSrcLight} alt={clientDisplayName ?? 'Logo del cliente'} style={{ height: 28, width: 28, objectFit: 'contain', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
-          ) : (
-            <div style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--primary)' }} />
-          )}
+          <ClientLogo src={clientLogoSrcLight} displayName={clientDisplayName} size={32} />
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {clientDisplayName ?? '…'}
           </div>

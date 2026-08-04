@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { OriginBadge } from '../../components/OriginBadge';
-import { SearchIcon, CalendarIcon } from '../../components/icons/RockyIcons';
+import { SearchIcon, CalendarIcon, CalendarRangeIcon } from '../../components/icons/RockyIcons';
+import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { getReservasResumen, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
@@ -137,10 +138,11 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
 
         <AsyncState loading={loading} error={error} onRetry={load}>
           {reservas && reservas.length === 0 && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Sin reservas en el período reciente</div>
-            </div>
+            <EmptyStateIllustrated
+              icon={<CalendarRangeIcon size={36} />}
+              title="Aún no hay reservas"
+              description="Cuando se sincronicen reservas desde tu sistema de gestión, van a aparecer acá con toda su información."
+            />
           )}
 
           {reservas && reservas.length > 0 && (
@@ -166,11 +168,11 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: 10,
                     background: 'var(--white)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius-sm)',
-                    padding: '10px 12px',
+                    padding: 10,
                   }}
                 >
                   <CalendarIcon size={14} color="var(--text-sub)" />
@@ -227,7 +229,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        background: 'var(--surface-2)',
+                        background: '#f9fafb', // Figma (frame 19) - distinto de --surface-2 (#f4f4f5), solo esta tabla
                         borderBottom: '1px solid var(--border)',
                         padding: '12px 24px',
                         fontSize: 12,

@@ -7,6 +7,7 @@ import {
   UnauthorizedError,
 } from '../../api/dashboardApi';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { TabsWithIndicator } from '../../components/TabsWithIndicator';
 import { ResumenEmail } from './Email/Resumen';
 import { PendientesEmail } from './Email/Pendientes';
 import { CampanasEmail } from './Email/Campanas';
@@ -115,19 +116,11 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
           </div>
         </div>
 
-        <div className="crm-tabbar" role="tablist">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              className={`crm-tab${tab === t.id ? ' active' : ''}`}
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => { setTab(t.id); setDetalleId(null); if (t.id !== 'nueva') setEditandoId(null); }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <TabsWithIndicator
+          tabs={TABS}
+          active={tab}
+          onChange={(id) => { setTab(id); setDetalleId(null); if (id !== 'nueva') setEditandoId(null); }}
+        />
 
         {/* Cada sección va envuelta por separado: si una revienta al dibujar,
             se cae ESA y no las otras siete. La pestaña sigue navegable. */}

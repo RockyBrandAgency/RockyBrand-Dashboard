@@ -3,8 +3,9 @@ import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailCampaigns, deleteEmailCampaign, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailCampaign } from '../../../types';
-import { Boton, Vacio, Pill, Tabla, formatTasa, formatFecha, estadoCampana } from './shared';
-import { SearchIcon, PlusIcon } from '../../../components/icons/RockyIcons';
+import { Boton, Pill, Tabla, formatTasa, formatFecha, estadoCampana } from './shared';
+import { SearchIcon, PlusIcon, MailIcon } from '../../../components/icons/RockyIcons';
+import { EmptyStateIllustrated } from '../../../components/EmptyStateIllustrated';
 
 // Misma tabla que Campañas del panel principal: buscador arriba, una fila por
 // campaña con estado, fecha y las 4 tasas, y las acciones a la derecha.
@@ -23,6 +24,8 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 30;
 
   const cargar = useCallback(() => {
     setLoading(true);
@@ -49,10 +52,19 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
     }
   }
 
-  const lista = (campanas ?? [])
+  const listaCompleta = (campanas ?? [])
     .filter((c) => !busqueda || (c.name || '').toLowerCase().includes(busqueda.toLowerCase()))
     .slice()
     .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+
+  // Spec real de Figma (frame "34 — Volumen: Campañas"): "Mostrando 1-30
+  // de N campañas" + Anterior/Siguiente, 30 filas por página. La app real
+  // trae la lista completa en una sola llamada (sin paginación de
+  // servidor), así que se pagina en el cliente.
+  const totalPaginas = Math.max(1, Math.ceil(listaCompleta.length / POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const desde = (paginaSegura - 1) * POR_PAGINA;
+  const lista = listaCompleta.slice(desde, desde + POR_PAGINA);
 
   return (
     <AsyncState loading={loading} error={error} onRetry={cargar}>
@@ -64,7 +76,7 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
             placeholder="Buscar campañas..."
             aria-label="Buscar campañas"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
           />
         </div>
         <Boton tipo="primary" onClick={onNueva}>
@@ -127,7 +139,30 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
             );
           })}
         </Tabla>
-        {!lista.length && <Vacio>Todavía no hay campañas — crea la primera desde "+ Nueva campaña".</Vacio>}
+        {!lista.length && !busqueda && (
+          <EmptyStateIllustrated
+            icon={<MailIcon size={36} />}
+            title="No hay campañas todavía"
+            description="Crea tu primera campaña de email para llegar directamente a tus huéspedes."
+            cta={{ label: 'Crear primera campaña', onClick: onNueva }}
+          />
+        )}
+        {!lista.length && busqueda && (
+          <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            Sin resultados para "{busqueda}".
+          </div>
+        )}
+        {listaCompleta.length > POR_PAGINA && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-6) var(--space-7)', borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+              Mostrando {desde + 1}-{Math.min(desde + POR_PAGINA, listaCompleta.length)} de {listaCompleta.length} campañas
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+              <Boton sm disabled={paginaSegura <= 1} onClick={() => setPagina(paginaSegura - 1)}>Anterior</Boton>
+              <Boton sm disabled={paginaSegura >= totalPaginas} onClick={() => setPagina(paginaSegura + 1)}>Siguiente</Boton>
+            </div>
+          </div>
+        )}
       </div>
     </AsyncState>
   );

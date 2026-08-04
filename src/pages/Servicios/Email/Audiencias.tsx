@@ -107,7 +107,7 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
 
       <div className="crm-aud-layout">
         <div className="crm-card" style={{ padding: 'var(--space-7)' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-5)' }}>Segmentos y Listas</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-5)' }}>Segmentos &amp; Listas</div>
           {segs.map((s) => (
             <button
               key={s.key}
@@ -135,9 +135,9 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
             </div>
             {/* Las dos vías de alta, igual que en el panel principal: a mano
                 para un contacto suelto, archivo para una base entera. */}
-            <Boton sm onClick={() => { setVerImport((v) => !v); setVerForm(false); }}>Importar CSV</Boton>
-            <Boton sm tipo="primary" onClick={() => { setVerForm((v) => !v); setVerImport(false); }}>
-              <PlusIcon size={11} color="#fff" /> Agregar Contacto
+            <Boton onClick={() => { setVerImport((v) => !v); setVerForm(false); }}>Importar CSV</Boton>
+            <Boton tipo="primary" onClick={() => { setVerForm((v) => !v); setVerImport(false); }}>
+              <PlusIcon size={12} color="#fff" /> Agregar Contacto
             </Boton>
           </div>
 

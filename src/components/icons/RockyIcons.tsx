@@ -138,3 +138,46 @@ export function DownloadIcon({ size = 14, color = 'currentColor', strokeWidth = 
     </svg>
   );
 }
+
+// Los 5 iconos que siguen son exclusivos de los "illustrated-empty-state"
+// (frames 29-33 de Figma) - paths exportados 1:1 desde los assets reales
+// del MCP de Figma (viewBox 0 36 36 original), no redibujados a mano.
+export function LinkIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15.0002 19.4999C15.6444 20.3611 16.4663 21.0737 17.4101 21.5893C18.3539 22.105 19.3975 22.4116 20.4702 22.4884C21.5429 22.5653 22.6196 22.4105 23.6273 22.0346C24.6349 21.6587 25.5499 21.0705 26.3102 20.3099L30.8102 15.8099C32.1764 14.3954 32.9324 12.5009 32.9153 10.5344C32.8982 8.56795 32.1094 6.68686 30.7189 5.2963C29.3283 3.90574 27.4472 3.11697 25.4807 3.09988C23.5143 3.0828 21.6198 3.83875 20.2052 5.20494L17.6252 7.76994M21.0005 16.5003C20.3564 15.6391 19.5345 14.9266 18.5907 14.4109C17.6469 13.8953 16.6033 13.5887 15.5306 13.5118C14.4578 13.435 13.3812 13.5898 12.3735 13.9657C11.3659 14.3415 10.4509 14.9297 9.69054 15.6903L5.19054 20.1903C3.82435 21.6048 3.0684 23.4994 3.08548 25.4658C3.10257 27.4323 3.89134 29.3134 5.2819 30.704C6.67246 32.0945 8.55355 32.8833 10.52 32.9004C12.4865 32.9175 14.381 32.1615 15.7955 30.7953L18.3605 28.2303" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function CalendarRangeIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 2.9988V8.99928M4.5 14.9998H31.5M12 2.9988V8.99928M25.5 21.0002H16.5M19.5 27.0007H10.5M10.5 21.0002H10.515M25.5 27.0007H25.515M7.5 5.99904H28.5C30.1569 5.99904 31.5 7.34229 31.5 8.99928V30.001C31.5 31.6579 30.1569 33.0012 28.5 33.0012H7.5C5.84315 33.0012 4.5 31.6579 4.5 30.001V8.99928C4.5 7.34229 5.84315 5.99904 7.5 5.99904Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function LineChartIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 4.5V28.5C4.5 29.2956 4.81607 30.0587 5.37868 30.6213C5.94129 31.1839 6.70435 31.5 7.5 31.5H31.5M28.5 13.5L21 21L15 15L10.5 19.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function MailIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M33.0012 10.5008L19.5136 19.0904C19.0559 19.3562 18.536 19.4962 18.0068 19.4962C17.4775 19.4962 16.9576 19.3562 16.4999 19.0904L2.9988 10.5008M5.99904 6.0012H30.001C31.6579 6.0012 33.0012 7.34421 33.0012 9.0009V26.9991C33.0012 28.6558 31.6579 29.9988 30.001 29.9988H5.99904C4.34205 29.9988 2.9988 28.6558 2.9988 26.9991V9.0009C2.9988 7.34421 4.34205 6.0012 5.99904 6.0012Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ImageIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M31.5 22.4995L26.871 17.8705C26.3084 17.3081 25.5455 16.9922 24.75 16.9922C23.9545 16.9922 23.1916 17.3081 22.629 17.8705L9 31.4995M7.5 4.5H28.5C30.1569 4.5 31.5 5.84315 31.5 7.5V28.5C31.5 30.1569 30.1569 31.5 28.5 31.5H7.5C5.84315 31.5 4.5 30.1569 4.5 28.5V7.5C4.5 5.84315 5.84315 4.5 7.5 4.5ZM16.5 13.5C16.5 15.1569 15.1569 16.5 13.5 16.5C11.8431 16.5 10.5 15.1569 10.5 13.5C10.5 11.8431 11.8431 10.5 13.5 10.5C15.1569 10.5 16.5 11.8431 16.5 13.5Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
+  );
+}

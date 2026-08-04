@@ -19,6 +19,14 @@ import { Card, Vacio, Aviso, formatFecha } from './shared';
 // por automatización, solo `correos` = cantidad de pasos de envío en el
 // flujo). Se adaptó la tabla al layout del diseño pero con datos reales:
 // "Correos en el flujo" en vez de un número de envíos inventado.
+//
+// Figma también muestra un botón "+ Nueva automatización" - decisión
+// tomada (hallazgo de auditoría 2026-08-04): NO se agrega. El backend
+// solo expone leer/activar-desactivar/borrar journeys
+// (dashboardApi.ts: getEmailJourneys/toggleEmailJourney/deleteEmailJourney),
+// no crear uno nuevo - un flujo real necesitaría un editor de trigger +
+// secuencia de pasos que no existe todavía. Agregar el botón sin esa
+// pieza sería un CTA que no hace nada real.
 
 const GLOSA_TRIGGER: Record<string, string> = {
   form_submitted: 'Cuando alguien envía el formulario del sitio',

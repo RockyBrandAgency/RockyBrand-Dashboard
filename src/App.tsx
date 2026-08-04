@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { initButtonHoverGsap } from './lib/buttonHoverGsap';
-import { useIsDesktop } from './hooks/useIsDesktop';
+import { useBreakpoint } from './hooks/useBreakpoint';
 import { Sidebar } from './components/Sidebar';
+import { SidebarRail } from './components/SidebarRail';
 import { MobileBar } from './components/MobileBar';
 import { LoginScreen } from './pages/LoginScreen';
 import { Overview } from './pages/Overview';
@@ -63,7 +64,13 @@ function firstVisibleScreen(clientServices: ClientServices | null): Screen | nul
 
 function AuthenticatedShell() {
   const [screen, setScreen] = useState<Screen>('overview');
-  const isDesktop = useIsDesktop();
+  const breakpoint = useBreakpoint();
+  // El contenido de cada pantalla solo distingue mobile vs. "no-mobile" -
+  // tablet reutiliza el layout de contenido de desktop (grillas de 2
+  // columnas, tipografía 24px), tal cual lo muestra el propio frame
+  // tablet de Figma. Lo único que cambia en tablet es el nav (rail
+  // angosto en vez del Sidebar completo), no el contenido.
+  const isDesktop = breakpoint !== 'mobile';
   const { userEmail, logout, clientServices } = useAuth();
   const anyNavVisible =
     isVisible(OVERVIEW, clientServices) ||
@@ -84,13 +91,20 @@ function AuthenticatedShell() {
   }, [clientServices, screen]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: isDesktop ? 'row' : 'column', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {isDesktop ? (
+    <div style={{ display: 'flex', flexDirection: breakpoint === 'mobile' ? 'column' : 'row', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {breakpoint === 'desktop' && (
         <>
           <Sidebar screen={screen} setScreen={setScreen} userEmail={userEmail} onLogout={logout} />
           <div style={{ width: SIDEBAR_W, flexShrink: 0 }} />
         </>
-      ) : (
+      )}
+      {breakpoint === 'tablet' && (
+        <>
+          <SidebarRail screen={screen} setScreen={setScreen} userEmail={userEmail} onLogout={logout} />
+          <div style={{ width: 64, flexShrink: 0 }} />
+        </>
+      )}
+      {breakpoint === 'mobile' && (
         <>
           <MobileBar screen={screen} setScreen={setScreen} />
           <div style={{ height: 56, flexShrink: 0, width: '100%' }} />

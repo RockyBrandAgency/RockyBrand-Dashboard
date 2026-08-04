@@ -9,11 +9,14 @@ import { Card, MiniDash, Vacio, Aviso, Tabla, formatTasa, formatFecha, saludRebo
 // enviados → aperturas → clics en una sola mirada, que es lo que una tabla de
 // porcentajes no deja ver.
 function FilaEmbudo({ label, valor, max }: { label: string; valor: number; max: number }) {
+  const pct = max ? (valor / max) * 100 : 0;
   return (
     <div className="crm-funnel-row">
       <span className="crm-funnel-label">{label}</span>
       <div className="crm-funnel-track">
-        <div className="crm-funnel-fill" style={{ width: `${max ? (valor / max) * 100 : 0}%` }} />
+        <div className="crm-funnel-fill" style={{ width: `${Math.max(pct, 8)}%` }}>
+          {pct >= 12 && <span className="crm-funnel-pct">{pct.toFixed(0)}%</span>}
+        </div>
       </div>
       <span className="crm-funnel-value">{valor.toLocaleString('es-CL')}</span>
     </div>

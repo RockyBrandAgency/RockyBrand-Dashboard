@@ -1,8 +1,17 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import gsap from 'gsap';
+import { SkeletonRows } from './Skeleton';
 
 // El Make no traia ningun estado de carga/error (todo era data estatica
 // hardcodeada) - este wrapper es nuevo, necesario para consumir una API
 // real que puede tardar o fallar.
+//
+// Transición de carga = spec real de Figma (frame 44, items 02 y 04): el
+// contenido anterior hace fade-out 0.15s ANTES de mostrar el skeleton
+// (evita el corte brusco "contenido -> skeleton" cuando cambia un filtro
+// que dispara un nuevo fetch), y el contenido nuevo hace fade-in 0.3s al
+// llegar. `displaySkeleton` desacoplado de `loading` es lo que permite
+// que el contenido viejo siga montado (y visible) durante esos 150ms.
 export function AsyncState({
   loading,
   error,
@@ -14,23 +23,33 @@ export function AsyncState({
   onRetry?: () => void;
   children: ReactNode;
 }) {
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', gap: 12 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            border: '3px solid var(--border)',
-            borderTopColor: 'var(--primary)',
-            animation: 'dashboard-spin 0.8s linear infinite',
-          }}
-        />
-        <style>{'@keyframes dashboard-spin { to { transform: rotate(360deg); } }'}</style>
-        <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>Cargando…</div>
-      </div>
-    );
+  const contentRef = useRef<HTMLDivElement>(null);
+  const prevLoading = useRef(loading);
+  const [displaySkeleton, setDisplaySkeleton] = useState(loading);
+
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (loading && !prevLoading.current) {
+      if (contentRef.current && !reduced) {
+        gsap.to(contentRef.current, { opacity: 0, duration: 0.15, ease: 'power1.in', onComplete: () => setDisplaySkeleton(true) });
+      } else {
+        setDisplaySkeleton(true);
+      }
+    } else if (!loading) {
+      setDisplaySkeleton(false);
+    }
+    prevLoading.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    if (!displaySkeleton && !loading && contentRef.current) {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      gsap.fromTo(contentRef.current, { opacity: 0 }, { opacity: 1, duration: reduced ? 0 : 0.3, ease: 'power1.out' });
+    }
+  }, [displaySkeleton, loading]);
+
+  if (displaySkeleton) {
+    return <SkeletonRows />;
   }
 
   if (error) {
@@ -70,5 +89,5 @@ export function AsyncState({
     );
   }
 
-  return <>{children}</>;
+  return <div ref={contentRef}>{children}</div>;
 }

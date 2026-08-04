@@ -4,6 +4,8 @@ import { AsyncState } from './AsyncState';
 import { getDisponibilidad, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { originLabel } from './OriginBadge';
+import { EmptyStateIllustrated } from './EmptyStateIllustrated';
+import { CalendarRangeIcon } from './icons/RockyIcons';
 import type { EstadoCelda, DisponibilidadResponse } from '../types';
 
 // Definicion de color/icono aprobada (reemplaza la del Make - ver plan de
@@ -71,9 +73,11 @@ function RoomCell({ estado, source }: { estado: EstadoCelda; source?: string | n
 function RoomGridContent({ data, isDesktop }: { data: DisponibilidadResponse; isDesktop: boolean }) {
   if (data.habitaciones.length === 0) {
     return (
-      <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px 0', fontSize: 14 }}>
-        {data.nota ?? 'Sin habitaciones registradas todavía.'}
-      </div>
+      <EmptyStateIllustrated
+        icon={<CalendarRangeIcon size={36} />}
+        title="Sin habitaciones registradas todavía"
+        description={data.nota ?? 'En cuanto tu equipo RockyBrand complete la sincronización con tu sistema de gestión, vas a ver acá la disponibilidad real de cada habitación.'}
+      />
     );
   }
 
