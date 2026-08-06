@@ -257,13 +257,17 @@ export function getTiendaResumen(): Promise<StoreDashboardResumen> {
   return request('/dashboard/tienda/resumen');
 }
 
-export function getTiendaProductos(): Promise<{ productos: StoreProduct[] }> {
+export function getTiendaProductos(): Promise<{ productos: StoreProduct[]; umbral_stock_bajo: number }> {
   return request('/dashboard/tienda/productos');
 }
 
+// stock_actual_esperado: bloqueo optimista. Cuando se edita stock, se manda
+// el valor que la pantalla tenía cargado - si una venta real lo cambió en
+// el medio, el backend rechaza con 409 en vez de pisarlo en silencio (ver
+// store_admin_lambda.py). precio_clp/activo no lo necesitan.
 export function actualizarTiendaProducto(
   sku: string,
-  cambios: { precio_clp?: number; stock?: number; activo?: boolean }
+  cambios: { precio_clp?: number; stock?: number; activo?: boolean; stock_actual_esperado?: number }
 ): Promise<{ ok: boolean }> {
   return request('/dashboard/tienda/productos', 'PUT', { sku, ...cambios });
 }
