@@ -27,7 +27,13 @@ const SERVICE_META: Record<ServiceKey, { label: string }> = {
   content_approval: { label: 'Revisión de Contenido' },
   store: { label: 'Tienda' },
 };
-const SERVICE_ORDER: ServiceKey[] = ['store', 'pms', 'email_marketing', 'content_approval', 'agents', 'crm'];
+// 'store' queda afuera a proposito: a diferencia de PMS/Email/Revision de
+// Contenido (que solo tienen esta entrada informativa o, si tienen pagina
+// propia, UNA sola via SERVICE_ENTRY_SCREEN), Tienda ya tiene su propia
+// seccion completa arriba en NAV_SECTIONS (Inventario + Ventas) - listarla
+// tambien aca era una "Tienda" duplicada, no cliqueable, justo debajo de
+// la Tienda real y cliqueable. Encontrado en vivo (captura real de Mato).
+const SERVICE_ORDER: ServiceKey[] = ['pms', 'email_marketing', 'content_approval', 'agents', 'crm'];
 
 // Visible si CUALQUIERA de los servicios del item está contratado.
 // clientServices null (cargando) -> visible, mismo criterio de "nunca
