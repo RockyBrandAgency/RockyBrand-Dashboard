@@ -104,6 +104,16 @@ export function getReservasResumen(): Promise<ReservasResumenResponse> {
   return request('/dashboard/reservas-resumen');
 }
 
+// Edita fecha/notas de una reserva desde el detalle (2026-08-06, pedido
+// explícito de Mato: click en una reserva → detalle → poder cambiar
+// fechas). Solo manda los campos que cambiaron.
+export function actualizarReserva(
+  bookingId: string,
+  cambios: { CheckIn?: string; CheckOut?: string; BookingNotes?: string }
+): Promise<{ BookingID: string; message: string }> {
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'PUT', cambios);
+}
+
 export function getMetricsReport(days = 30): Promise<MetricsReportResponse> {
   return request(`/dashboard/metrics-report?days=${days}`);
 }

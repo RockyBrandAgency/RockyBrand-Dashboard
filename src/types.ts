@@ -131,7 +131,20 @@ export interface ReservaResumenItem {
   CheckOut: string;
   Status: string;
   Source: string | null;
+  GuestID?: string;
   GuestName: string;
+  // Vacío ({}) si el huésped no se encontró — nunca null. Agregado
+  // 2026-08-06 (detalle al click, pedido explícito de Mato).
+  GuestContact?: { Email?: string; WhatsApp?: string };
+  GuestOriginCountry?: string | null;
+  PartyMembers?: number;
+  BookingNotes?: string;
+  // Lo manda el propio huésped por WhatsApp contestando el correo de
+  // confirmación, así que está vacío hasta que lo haga: llega DESPUÉS de
+  // pagar, no al reservar. Opcional a propósito - tratarlo como obligatorio
+  // haría que una reserva recién creada pareciera incompleta.
+  FlightNumber?: string;
+  FlightReportedAt?: string;
   TotalAmount: number;
   Currency: string;
   PaymentStatus: string | null;

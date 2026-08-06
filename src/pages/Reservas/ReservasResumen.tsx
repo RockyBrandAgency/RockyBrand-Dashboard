@@ -3,9 +3,12 @@ import { AsyncState } from '../../components/AsyncState';
 import { OriginBadge } from '../../components/OriginBadge';
 import { SearchIcon, CalendarIcon, CalendarRangeIcon } from '../../components/icons/RockyIcons';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
+import { BookingDetailModal } from '../../components/BookingDetailModal';
+import { ReservationCalendar } from '../../components/ReservationCalendar';
 import { getReservasResumen, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
+import { temporadaActualCff, CFF_CLIENT_ID } from '../../lib/temporadaCff';
 import type { ReservaResumenItem } from '../../types';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -58,7 +61,7 @@ function monthLabel(key: string): string {
 }
 
 export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized, clientDisplayName, clientId } = useAuth();
+  const { handleUnauthorized, clientDisplayName, clientId, pmsRoomViews } = useAuth();
   const [reservas, setReservas] = useState<ReservaResumenItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +69,16 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   const [month, setMonth] = useState('ALL');
   const [tab, setTab] = useState('ALL');
   const [page, setPage] = useState(0);
+  const [detalle, setDetalle] = useState<ReservaResumenItem | null>(null);
+
+  // Temporada de pesca (12 oct - 30 abr), solo para chile-fly-fishing
+  // (2026-08-06, pedido explícito de Mato: "el PMS debiera siempre
+  // mostrar el calendario... para ver que fechas disponibles quedan en
+  // la temporada"). Es un hecho de negocio de ESTE cliente, no depende
+  // de pmsRoomViews (esa bandera es sobre "no tiene habitaciones", un
+  // concepto distinto).
+  const esCff = clientId === CFF_CLIENT_ID;
+  const temporada = useMemo(() => (esCff ? temporadaActualCff(new Date()) : null), [esCff]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -134,6 +147,17 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
             </div>
           </div>
           {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCap}</div>}
+        </div>
+
+        <div style={{ marginBottom: 'var(--space-8)' }}>
+          <ReservationCalendar
+            reservas={reservas}
+            loading={loading}
+            error={error}
+            onRetry={load}
+            seasonStart={temporada?.inicio}
+            seasonEnd={temporada?.fin}
+          />
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>
@@ -238,11 +262,12 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                       }}
                     >
                       <span style={col(150)}>Huésped</span>
-                      <span style={col(130)}>Habitación</span>
+                      <span style={col(130)}>{pmsRoomViews ? 'Habitación' : 'Programa'}</span>
                       <span style={col(95)}>Check-in</span>
                       <span style={col(95)}>Check-out</span>
                       <span style={col(70, { textAlign: 'center' })}>Noches</span>
                       <span style={col(130)}>Origen</span>
+                      <span style={col(95)}>N° vuelo</span>
                       <span style={col(105)}>Estado</span>
                       <span style={{ flex: 1, textAlign: 'right' }}>Monto Total</span>
                     </div>
@@ -252,6 +277,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                     return (
                       <div
                         key={r.BookingID}
+                        onClick={() => setDetalle(r)}
                         style={{
                           display: 'flex',
                           flexDirection: isDesktop ? 'row' : 'column',
@@ -259,6 +285,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                           gap: isDesktop ? 0 : 6,
                           padding: isDesktop ? '16px 24px' : '14px 16px',
                           borderBottom: '1px solid var(--border-soft)',
+                          cursor: 'pointer',
                         }}
                       >
                         <span style={isDesktop ? col(150, { fontWeight: 600, color: 'var(--text)', fontSize: 14 }) : { fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>
@@ -277,6 +304,16 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                         <span style={isDesktop ? col(130) : { marginTop: 2 }}>
                           <OriginBadge source={r.Source} />
                         </span>
+                        {isDesktop && (
+                          /* Casi siempre vacío, y está bien: el huésped lo
+                             manda por WhatsApp DESPUÉS de pagar, no al
+                             reservar. Por eso el vacío se dibuja como un
+                             guión tenue y no como un hueco: un hueco se lee
+                             como que algo no cargó. */
+                          <span style={col(95, { fontSize: 14, color: r.FlightNumber ? 'var(--text)' : 'var(--text-muted)', fontWeight: r.FlightNumber ? 600 : 400 })}>
+                            {r.FlightNumber || '—'}
+                          </span>
+                        )}
                         <span style={isDesktop ? col(105) : { marginTop: 2 }}>
                           <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: sc?.bg ?? 'var(--status-neutro-bg)', color: sc?.dot ?? 'var(--status-neutro-text)' }}>
                             {STATUS_LABEL[r.Status] ?? r.Status}
@@ -333,6 +370,18 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
           )}
         </AsyncState>
       </div>
+
+      {detalle && (
+        <BookingDetailModal
+          reserva={detalle}
+          roomViews={pmsRoomViews}
+          onClose={() => setDetalle(null)}
+          onGuardado={() => {
+            setDetalle(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }

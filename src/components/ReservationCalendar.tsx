@@ -36,24 +36,43 @@ function buildMonthGrid(year: number, month: number): (Date | null)[][] {
   return weeks;
 }
 
+function fmtDateLarga(d: Date): string {
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 // Reservas reales confirmadas por la web (Directa Web), agrupadas en un
 // calendario mensual - reemplaza la "Ocupación de Habitaciones" para un
 // cliente que vende programas guiados (Chile Fly Fishing), no cabañas:
 // no hay noches que ocupar, hay salidas que agendar.
+//
+// seasonStart/seasonEnd son opcionales (2026-08-06, pedido explícito de
+// Mato: "el PMS debiera siempre mostrar el calendario... para ver que
+// fechas disponibles quedan en la temporada") - cuando vienen, el
+// calendario arranca en el mes vigente de la temporada (o en su inicio si
+// hoy cae fuera de ella) y la navegación no deja salirse de esos límites.
+// Sin esos props el componente se comporta exactamente igual que antes
+// (mes actual, navegación libre) - no es una restricción nueva para
+// ningún otro cliente.
 export function ReservationCalendar({
   reservas,
   loading,
   error,
   onRetry,
+  seasonStart,
+  seasonEnd,
 }: {
   reservas: ReservaResumenItem[] | null;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  seasonStart?: Date;
+  seasonEnd?: Date;
 }) {
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const dentroDeTemporada = !seasonStart || !seasonEnd || (today >= seasonStart && today <= seasonEnd);
+  const inicial = seasonStart && !dentroDeTemporada ? seasonStart : today;
+  const [year, setYear] = useState(inicial.getFullYear());
+  const [month, setMonth] = useState(inicial.getMonth());
   const todayKey = today.toISOString().slice(0, 10);
 
   const porDia = useMemo(() => {
@@ -76,6 +95,9 @@ export function ReservationCalendar({
   const monthLabel = new Date(year, month, 1).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
   const monthLabelCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
+  const puedeAnterior = !seasonStart || new Date(year, month - 1, 1) >= new Date(seasonStart.getFullYear(), seasonStart.getMonth(), 1);
+  const puedeSiguiente = !seasonEnd || new Date(year, month, 1) < new Date(seasonEnd.getFullYear(), seasonEnd.getMonth(), 1);
+
   function shiftMonth(delta: number) {
     const d = new Date(year, month + delta, 1);
     setYear(d.getFullYear());
@@ -85,20 +107,29 @@ export function ReservationCalendar({
   return (
     <AsyncState loading={loading} error={error} onRetry={onRetry}>
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-7)', boxShadow: 'var(--shadow-card)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-6)' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{monthLabelCap}</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--space-6)' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{monthLabelCap}</div>
+            {seasonStart && seasonEnd && (
+              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
+                Temporada {fmtDateLarga(seasonStart)} – {fmtDateLarga(seasonEnd)}
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={() => shiftMonth(-1)}
+              disabled={!puedeAnterior}
               aria-label="Mes anterior"
-              style={{ all: 'unset', cursor: 'pointer', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
+              style={{ all: 'unset', cursor: puedeAnterior ? 'pointer' : 'default', opacity: puedeAnterior ? 1 : 0.3, padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
             >
               ←
             </button>
             <button
               onClick={() => shiftMonth(1)}
+              disabled={!puedeSiguiente}
               aria-label="Mes siguiente"
-              style={{ all: 'unset', cursor: 'pointer', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
+              style={{ all: 'unset', cursor: puedeSiguiente ? 'pointer' : 'default', opacity: puedeSiguiente ? 1 : 0.3, padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
             >
               →
             </button>
@@ -120,15 +151,28 @@ export function ReservationCalendar({
               const key = day.toISOString().slice(0, 10);
               const items = porDia.get(key) ?? [];
               const isToday = key === todayKey;
+              const fueraDeTemporada = !!(seasonStart && seasonEnd) && (day < seasonStart || day > seasonEnd);
+              const disponible = !fueraDeTemporada && items.length === 0;
               return (
                 <div
                   key={key}
-                  title={items.map((r) => `${r.GuestName} · ${r.RoomID}`).join('\n')}
+                  title={
+                    fueraDeTemporada
+                      ? 'Fuera de temporada'
+                      : items.length
+                        ? items.map((r) => `${r.GuestName} · ${r.RoomID}`).join('\n')
+                        : 'Disponible'
+                  }
                   style={{
                     aspectRatio: '1',
                     borderRadius: 'var(--radius-sm)',
                     border: isToday ? '1.5px solid var(--primary)' : '1px solid var(--border-soft)',
-                    background: items.length ? 'var(--status-bien-bg)' : 'transparent',
+                    background: fueraDeTemporada
+                      ? 'var(--surface-2, transparent)'
+                      : items.length
+                        ? 'var(--status-atencion-bg)'
+                        : 'var(--status-bien-bg)',
+                    opacity: fueraDeTemporada ? 0.35 : 1,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -139,7 +183,10 @@ export function ReservationCalendar({
                 >
                   <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 500, color: isToday ? 'var(--primary)' : 'var(--text-sub)' }}>{day.getDate()}</span>
                   {items.length > 0 && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--status-bien-dot)' }}>{items.length}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--status-atencion-dot)' }}>{items.length}</span>
+                  )}
+                  {disponible && (
+                    <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--status-bien-dot)' }}>libre</span>
                   )}
                 </div>
               );
@@ -147,7 +194,24 @@ export function ReservationCalendar({
           )}
         </div>
 
-        <div style={{ marginTop: 'var(--space-7)', borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)' }}>
+        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 11, color: 'var(--text-faint)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--status-bien-bg)', border: '1px solid var(--status-bien-dot)', display: 'inline-block' }} />
+            Disponible
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--status-atencion-bg)', border: '1px solid var(--status-atencion-dot)', display: 'inline-block' }} />
+            Con reserva
+          </span>
+          {seasonStart && seasonEnd && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--surface-2, transparent)', opacity: 0.35, border: '1px solid var(--border-soft)', display: 'inline-block' }} />
+              Fuera de temporada
+            </span>
+          )}
+        </div>
+
+        <div style={{ marginTop: 'var(--space-6)', borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)' }}>
           {delMes.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin reservas de la web para {monthLabelCap.toLowerCase()}.</div>
           ) : (

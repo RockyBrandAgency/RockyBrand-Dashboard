@@ -9,6 +9,7 @@ import { STATUS } from '../components/status';
 import { getSemaforo, getReservasResumen, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { CLIENT_LOCATION } from '../branding';
+import { temporadaActualCff, CFF_CLIENT_ID } from '../lib/temporadaCff';
 import type { SemaforoResponse, ReservaResumenItem } from '../types';
 
 function formatMonto(montoPorMoneda: Record<string, number>): string {
@@ -34,6 +35,7 @@ function greetingByHour(): string {
 export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
   const { handleUnauthorized, clientId, clientDisplayName, pmsRoomViews } = useAuth();
   const location = clientId ? CLIENT_LOCATION[clientId] : undefined;
+  const temporada = clientId === CFF_CLIENT_ID ? temporadaActualCff(new Date()) : null;
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,7 +196,14 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                       sub={formatMonto(s.reservas_nuevas_7d.valor.monto_por_moneda)}
                     />
                   </div>
-                  <ReservationCalendar reservas={reservas} loading={reservasLoading} error={reservasError} onRetry={loadReservas} />
+                  <ReservationCalendar
+                    reservas={reservas}
+                    loading={reservasLoading}
+                    error={reservasError}
+                    onRetry={loadReservas}
+                    seasonStart={temporada?.inicio}
+                    seasonEnd={temporada?.fin}
+                  />
                 </div>
               )}
 
