@@ -38,6 +38,27 @@ export function ChartColumnIcon({ size = 14, color = 'currentColor', strokeWidth
   );
 }
 
+// Unico icono de este archivo que NO sale del export 1:1 de Figma (ver
+// nota de arriba) - Tienda se agrego 2026-08-05 y todavia no tiene un
+// icono propio exportado. Lucide "shopping-bag" tal cual (mismo set que
+// ya usa el resto: ChartColumnIcon/SettingsIcon/etc son ese mismo Lucide
+// exportado desde Figma) - viewBox nativo 24x24 en vez de reescalar la
+// curva a mano al grid 14x14 del resto, que arriesgaba distorsionar el
+// trazo. Reemplazar por el real cuando el diseño lo agregue al sistema.
+export function ShoppingBagIcon({ size = 14, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z M3 6h18 M16 10a4 4 0 0 1-8 0"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({ size = 12, color = 'currentColor', strokeWidth = 2 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">

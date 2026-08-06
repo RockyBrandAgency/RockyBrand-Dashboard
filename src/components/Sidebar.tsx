@@ -2,7 +2,16 @@ import { useState } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import type { ClientServices, ServiceKey } from '../types';
-import { LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon } from './icons/RockyIcons';
+import { LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon, ShoppingBagIcon } from './icons/RockyIcons';
+
+// Icono por seccion de NAV_SECTIONS (screens.ts) - por label porque
+// NavSection.icon hoy es un emoji sin uso real en el desktop/tablet (solo
+// SERVICE_META.icon, otra lista, se usa para el rail/mobile). Agregar acá
+// cuando se sume una seccion nueva.
+const SECTION_ICON: Record<string, (size: number) => import('react').ReactElement> = {
+  Tienda: (size) => <ShoppingBagIcon size={size} />,
+  Métricas: (size) => <ChartColumnIcon size={size} />,
+};
 import { ClientLogo } from './ClientLogo';
 
 // Pedido explícito de Mato (2026-08-01): que el cliente vea qué servicios
@@ -48,9 +57,15 @@ export function Sidebar({
   })).filter((section) => section.items.length > 0);
   const contractedServices = clientServices ? SERVICE_ORDER.filter((key) => clientServices[key]) : [];
 
-  const metricsActive = visibleSections.some((s) => s.items.some((i) => i.id === screen));
-  const [metricsOpen, setMetricsOpen] = useState(metricsActive);
-  const isMetricsScreenNow = visibleSections.some((s) => s.items.some((i) => i.id === screen));
+  // Estado de apertura POR SECCION - antes era un solo booleano compartido,
+  // inofensivo mientras hubo una sola seccion (Metricas). Al sumar Tienda
+  // (2026-08-05) abrir una abria/resaltaba las dos a la vez. El inicializador
+  // lazy corre una sola vez al montar, pero como isVisible() muestra todo
+  // mientras clientServices == null (carga), visibleSections ya trae todas
+  // las secciones reales en ese primer render - ninguna queda sin entrada.
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(visibleSections.map((s) => [s.label, s.items.some((i) => i.id === screen)]))
+  );
 
   return (
     <aside
@@ -118,11 +133,14 @@ export function Sidebar({
           </button>
         )}
 
-        {visibleSections.map((section) => (
+        {visibleSections.map((section) => {
+          const open = openSections[section.label] ?? false;
+          const sectionActive = section.items.some((i) => i.id === screen);
+          return (
           <div key={section.label}>
             <button
-              onClick={() => setMetricsOpen((v) => !v)}
-              aria-expanded={metricsOpen}
+              onClick={() => setOpenSections((prev) => ({ ...prev, [section.label]: !open }))}
+              aria-expanded={open}
               style={{
                 all: 'unset',
                 boxSizing: 'border-box',
@@ -133,24 +151,24 @@ export function Sidebar({
                 padding: 'var(--space-4) var(--space-5)',
                 borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
-                color: isMetricsScreenNow ? 'var(--primary)' : 'var(--text-sub)',
+                color: sectionActive ? 'var(--primary)' : 'var(--text-sub)',
                 fontSize: 14,
-                fontWeight: isMetricsScreenNow ? 600 : 500,
+                fontWeight: sectionActive ? 600 : 500,
               }}
             >
-              <ChartColumnIcon size={16} />
+              {(SECTION_ICON[section.label] ?? ((s: number) => <ChartColumnIcon size={s} />))(16)}
               <span style={{ flex: 1, textAlign: 'left' }}>{section.label}</span>
               <span
                 style={{
                   display: 'inline-flex',
-                  transform: metricsOpen ? 'rotate(180deg)' : 'none',
+                  transform: open ? 'rotate(180deg)' : 'none',
                   transition: 'transform 0.2s ease',
                 }}
               >
                 <ChevronDownIcon size={12} color="var(--text-faint)" />
               </span>
             </button>
-            {metricsOpen && (
+            {open && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', paddingLeft: 'var(--space-8)', marginTop: 'var(--space-1)' }}>
                 {section.items.map((item) => {
                   const active = screen === item.id;
@@ -181,7 +199,8 @@ export function Sidebar({
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
 
         {contractedServices.length > 0 && (
           <div style={{ marginTop: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>

@@ -2,7 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import type { ClientServices, ServiceKey } from '../types';
-import { LayoutGridIcon, ChartColumnIcon, CalendarIcon, ImageIcon, MailIcon, SettingsIcon } from './icons/RockyIcons';
+import { LayoutGridIcon, ChartColumnIcon, ShoppingBagIcon, CalendarIcon, ImageIcon, MailIcon, SettingsIcon } from './icons/RockyIcons';
 import { ClientLogo } from './ClientLogo';
 import { Sidebar } from './Sidebar';
 
@@ -10,6 +10,12 @@ const SERVICE_ICON: Partial<Record<ServiceKey, (size: number) => ReactElement>> 
   pms: (size) => <CalendarIcon size={size} />,
   email_marketing: (size) => <MailIcon size={size} />,
   content_approval: (size) => <ImageIcon size={size} />,
+};
+
+// Icono por seccion de NAV_SECTIONS, mismo criterio que Sidebar.tsx.
+const SECTION_ICON: Record<string, (size: number) => ReactElement> = {
+  Tienda: (size) => <ShoppingBagIcon size={size} />,
+  Métricas: (size) => <ChartColumnIcon size={size} />,
 };
 
 function isVisible(item: { serviceKeys: ServiceKey[] }, clientServices: ClientServices | null): boolean {
@@ -33,8 +39,15 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
   const [expanded, setExpanded] = useState(false);
 
   const showOverview = isVisible(OVERVIEW, clientServices);
-  const metricsEntry = NAV_SECTIONS[0]?.items[0];
-  const showMetrics = metricsEntry && isVisible(metricsEntry, clientServices);
+  // Una entrada por SECCION (antes asumia que NAV_SECTIONS[0] era siempre
+  // Metricas - real hasta que Tienda se sumo como primera seccion 2026-08-05
+  // y quedo mostrando/ocultando el rail de Metricas segun el servicio de
+  // Tienda). Cada seccion navega a su primer item visible, mismo criterio
+  // que "entrar por la primera pantalla" que ya usa el resto del panel.
+  const railSections = NAV_SECTIONS.map((section) => {
+    const firstVisible = section.items.find((i) => isVisible(i, clientServices));
+    return firstVisible ? { section, firstVisible } : null;
+  }).filter((s) => s !== null);
   const serviceEntries = (Object.keys(SERVICE_ENTRY_SCREEN) as ServiceKey[]).filter(
     (key) => clientServices ? clientServices[key] : false,
   );
@@ -75,9 +88,17 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
           <RailItem active={screen === 'overview'} onClick={() => setScreen('overview')} visible={showOverview} label="Overview">
             <LayoutGridIcon size={16} />
           </RailItem>
-          <RailItem active={screen.startsWith('metricas-')} onClick={() => setScreen('metricas-resumen')} visible={!!showMetrics} label="Métricas">
-            <ChartColumnIcon size={16} />
-          </RailItem>
+          {railSections.map(({ section, firstVisible }) => (
+            <RailItem
+              key={section.label}
+              active={section.items.some((i) => i.id === screen)}
+              onClick={() => setScreen(firstVisible.id)}
+              visible
+              label={section.label}
+            >
+              {(SECTION_ICON[section.label] ?? ((s: number) => <ChartColumnIcon size={s} />))(16)}
+            </RailItem>
+          ))}
           {serviceEntries.map((key) => {
             const target = SERVICE_ENTRY_SCREEN[key];
             if (!target) return null;
