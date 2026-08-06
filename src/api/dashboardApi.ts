@@ -22,6 +22,9 @@ import type {
   ContentPiecesResponse,
   ContentPiece,
   HorarioSugerido,
+  StoreDashboardResumen,
+  StoreProduct,
+  StoreOrder,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -240,4 +243,35 @@ export function getEmailCampaignDetalle(id: string): Promise<EmailCampaignDetall
 
 export function scheduleEmailCampaign(campaign_id: string, scheduled_at: string): Promise<{ ok: boolean }> {
   return request('/dashboard/email/campaigns', 'POST', { accion: 'programar', campaign_id, scheduled_at });
+}
+
+// ===== Tienda =====
+// Exclusiva de este cliente (chile-fly-fishing) - el backend igual revalida
+// el client_id del JWT antes de invocar store-admin-api, esto no es la
+// unica barrera. `activo` es el interruptor real de "sacar/agregar" un
+// modelo: no hay DeleteItem sobre productos (se perderia el historial de
+// ordenes que los referencian), asi que "quitar" es desactivar - eso ya
+// saca al SKU de /public/productos, no solo lo deja en $0 de stock.
+
+export function getTiendaResumen(): Promise<StoreDashboardResumen> {
+  return request('/dashboard/tienda/resumen');
+}
+
+export function getTiendaProductos(): Promise<{ productos: StoreProduct[] }> {
+  return request('/dashboard/tienda/productos');
+}
+
+export function actualizarTiendaProducto(
+  sku: string,
+  cambios: { precio_clp?: number; stock?: number; activo?: boolean }
+): Promise<{ ok: boolean }> {
+  return request('/dashboard/tienda/productos', 'PUT', { sku, ...cambios });
+}
+
+export function getTiendaPedidos(estado?: string): Promise<{ ordenes: StoreOrder[] }> {
+  return request(`/dashboard/tienda/pedidos${estado ? `?estado=${encodeURIComponent(estado)}` : ''}`);
+}
+
+export function getTiendaPedidoDetalle(orderId: string): Promise<{ orden: StoreOrder }> {
+  return request(`/dashboard/tienda/pedidos/${encodeURIComponent(orderId)}`);
 }

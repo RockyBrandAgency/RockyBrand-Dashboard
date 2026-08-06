@@ -23,6 +23,8 @@ export type Screen =
   | 'servicio-pms-reservas'
   | 'servicio-email-campanas'
   | 'servicio-contenido-revision'
+  | 'tienda-inventario'
+  | 'tienda-ventas'
   | 'settings'
   | 'login';
 
@@ -52,6 +54,14 @@ export interface NavSection {
 }
 
 export const NAV_SECTIONS: NavSection[] = [
+  {
+    label: 'Tienda',
+    icon: '📦',
+    items: [
+      { id: 'tienda-inventario', label: 'Inventario', shortLabel: 'Inventario', serviceKeys: ['store'] },
+      { id: 'tienda-ventas', label: 'Ventas', shortLabel: 'Ventas', serviceKeys: ['store'] },
+    ],
+  },
   {
     label: 'Métricas',
     icon: '📊',

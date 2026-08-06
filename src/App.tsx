@@ -17,6 +17,8 @@ import { MetricasInstagram } from './pages/Metricas/MetricasInstagram';
 import { MetricasYoutube } from './pages/Metricas/MetricasYoutube';
 import { MetricasSeo } from './pages/Metricas/MetricasSeo';
 import { MetricasTiktok } from './pages/Metricas/MetricasTiktok';
+import { TiendaInventario } from './pages/Tienda/TiendaInventario';
+import { TiendaVentas } from './pages/Tienda/TiendaVentas';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from './screens';
@@ -127,6 +129,8 @@ function AuthenticatedShell() {
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
             {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}
             {screen === 'servicio-contenido-revision' && <RevisionContenido isDesktop={isDesktop} />}
+            {screen === 'tienda-inventario' && <TiendaInventario isDesktop={isDesktop} />}
+            {screen === 'tienda-ventas' && <TiendaVentas isDesktop={isDesktop} />}
             {screen === 'settings' && <SettingsScreen isDesktop={isDesktop} />}
           </>
         )}

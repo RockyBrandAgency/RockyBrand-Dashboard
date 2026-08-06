@@ -16,8 +16,9 @@ const SERVICE_META: Record<ServiceKey, { label: string }> = {
   crm: { label: 'CRM' },
   email_marketing: { label: 'Email Marketing' },
   content_approval: { label: 'Revisión de Contenido' },
+  store: { label: 'Tienda' },
 };
-const SERVICE_ORDER: ServiceKey[] = ['pms', 'email_marketing', 'content_approval', 'agents', 'crm'];
+const SERVICE_ORDER: ServiceKey[] = ['store', 'pms', 'email_marketing', 'content_approval', 'agents', 'crm'];
 
 // Visible si CUALQUIERA de los servicios del item está contratado.
 // clientServices null (cargando) -> visible, mismo criterio de "nunca

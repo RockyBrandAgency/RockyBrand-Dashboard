@@ -106,7 +106,7 @@ export interface DisponibilidadResponse {
   nota?: string;
 }
 
-export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing' | 'content_approval';
+export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing' | 'content_approval' | 'store';
 
 export type ClientServices = Record<ServiceKey, boolean>;
 
@@ -612,4 +612,73 @@ export interface CampaignRecipient {
 export interface EmailCampaignDetalle {
   campana: EmailCampaign;
   destinatarios: CampaignRecipient[];
+}
+
+// ===== Tienda (Chile Fly Fishing Co.) =====
+// Mismos nombres de campo reales que escribe store_orders_lambda.py /
+// store_admin_lambda.py (ver ARQUITECTURA-TIENDA-CFF.md) - no una
+// convencion inventada acá. `activo` es el unico campo nuevo respecto de
+// lo que ya usa 05-panel-web: es lo que store_catalog_lambda.py (el
+// endpoint publico que lee la tienda) usa para excluir un SKU de
+// /public/productos por completo.
+
+export interface StoreProduct {
+  sku: string;
+  nombre: string;
+  slug?: string;
+  familia?: string;
+  precio_clp: number;
+  stock: number;
+  activo: boolean;
+}
+
+export type StoreOrderStatus =
+  | 'pendiente_pago'
+  | 'pago_iniciado'
+  | 'pagada'
+  | 'pago_rechazado'
+  | 'pago_anulado'
+  | 'expirada'
+  | 'revision_monto';
+
+export interface StoreOrderItem {
+  sku: string;
+  cantidad: number;
+  nombre: string;
+  precio_unitario_clp?: number;
+  total_linea_clp?: number;
+}
+
+export interface StoreOrderCliente {
+  nombre: string;
+  email: string;
+  telefono: string;
+  direccion: string;
+  comuna: string;
+  region: string;
+  notas?: string;
+}
+
+export interface StoreOrder {
+  order_id: string;
+  estado: StoreOrderStatus;
+  email?: string;
+  cliente?: StoreOrderCliente;
+  items?: StoreOrderItem[];
+  subtotal_clp?: number;
+  despacho_clp?: number | null;
+  despacho_estado?: string;
+  total_clp?: number;
+  pago?: string;
+  webpay_token?: string;
+  created_at?: string;
+  numero_seguimiento?: string | null;
+  despachado_en?: string | null;
+}
+
+export interface StoreDashboardResumen {
+  ventas_semana: { cantidad: number; total_clp: number };
+  riesgo_quiebre_stock: StoreProduct[];
+  despachos_pendientes: StoreOrder[];
+  en_revision_monto: StoreOrder[];
 }

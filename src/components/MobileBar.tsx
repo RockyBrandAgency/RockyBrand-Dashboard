@@ -15,8 +15,9 @@ const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
   pms: { label: 'PMS', icon: '⌂' },
   crm: { label: 'CRM', icon: '☎' },
   email_marketing: { label: 'Email Marketing', icon: '✉' },
+  store: { label: 'Tienda', icon: '▤' },
 };
-const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'pms', 'crm', 'email_marketing'];
+const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'pms', 'crm', 'email_marketing', 'store'];
 
 function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
   return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
