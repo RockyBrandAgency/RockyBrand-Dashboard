@@ -118,6 +118,10 @@ export interface MeResponse {
   // 2026-08-03) - el frontend cae a CLIENT_BRANDING/LogoPlaceholder.
   logo_data_url: string | null;
   services: ClientServices;
+  // Default true si el backend por algun motivo no lo manda (cliente
+  // viejo antes de este campo) - preserva el comportamiento de hoy
+  // (mostrar habitaciones) hasta que se apague a proposito.
+  pms_room_views: boolean;
 }
 
 export interface ReservaResumenItem {

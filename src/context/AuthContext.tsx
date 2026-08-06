@@ -43,6 +43,11 @@ interface AuthContextValue {
   // varían por cliente pero no tienen su propio branding (ej.
   // WeatherWidget, ubicación real). null mientras carga.
   clientId: string | null;
+  // false para un cliente sin habitaciones (ej. Chile Fly Fishing, que
+  // vende programas de pesca guiados) - Overview.tsx lo usa para no
+  // mostrarle "Ocupación de Habitaciones". true mientras carga (mismo
+  // criterio "nunca esconder por un falso negativo" que clientServices).
+  pmsRoomViews: boolean;
   // SettingsScreen la llama después de subir un logo nuevo, para que el
   // Sidebar/MobileBar lo reflejen sin esperar a un remount de toda la app.
   setUploadedLogo: (src: string) => void;
@@ -69,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientLogoSrcLight, setClientLogoSrcLight] = useState<string | null>(null);
   const [clientLogoSrcDark, setClientLogoSrcDark] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [pmsRoomViews, setPmsRoomViews] = useState(true);
 
   const setUploadedLogo = useCallback((src: string) => {
     setClientLogoSrcLight(src);
@@ -95,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientLogoSrcLight(me.logo_data_url ?? CLIENT_BRANDING[me.client_id]?.logoSrcLight ?? null);
         setClientLogoSrcDark(me.logo_data_url ?? CLIENT_BRANDING[me.client_id]?.logoSrcDark ?? null);
         setClientId(me.client_id);
+        setPmsRoomViews(me.pms_room_views);
         // Solo SETEA acá, nunca resetea (ver la rama !isAuthenticated de
         // arriba) - si reseteara en cada mount, pisaría el theme que
         // LoginScreen ya aplicó por subdominio antes del login (efectos
@@ -169,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clientLogoSrcLight,
         clientLogoSrcDark,
         clientId,
+        pmsRoomViews,
         setUploadedLogo,
       }}
     >

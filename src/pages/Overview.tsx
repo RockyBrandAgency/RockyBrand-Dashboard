@@ -3,12 +3,13 @@ import { SectionHead } from '../components/SectionHead';
 import { MetricCard } from '../components/MetricCard';
 import { WeatherWidget } from '../components/WeatherWidget';
 import { RoomGrid } from '../components/RoomGrid';
+import { ReservationCalendar } from '../components/ReservationCalendar';
 import { AsyncState } from '../components/AsyncState';
 import { STATUS } from '../components/status';
-import { getSemaforo, UnauthorizedError } from '../api/dashboardApi';
+import { getSemaforo, getReservasResumen, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { CLIENT_LOCATION } from '../branding';
-import type { SemaforoResponse } from '../types';
+import type { SemaforoResponse, ReservaResumenItem } from '../types';
 
 function formatMonto(montoPorMoneda: Record<string, number>): string {
   const entries = Object.entries(montoPorMoneda);
@@ -31,11 +32,14 @@ function greetingByHour(): string {
 // (MetricasResumen.tsx), misma fuente de datos (getSemaforo), solo
 // cambia dónde se muestra.
 export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
-  const { handleUnauthorized, clientId, clientDisplayName } = useAuth();
+  const { handleUnauthorized, clientId, clientDisplayName, pmsRoomViews } = useAuth();
   const location = clientId ? CLIENT_LOCATION[clientId] : undefined;
   const [data, setData] = useState<SemaforoResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reservas, setReservas] = useState<ReservaResumenItem[] | null>(null);
+  const [reservasLoading, setReservasLoading] = useState(true);
+  const [reservasError, setReservasError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -52,9 +56,28 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
       .finally(() => setLoading(false));
   }, [handleUnauthorized]);
 
+  // Solo hace falta para el calendario (clientes sin habitaciones) - se
+  // pide igual siempre para no depender de un orden de carga entre
+  // pmsRoomViews (llega con /dashboard/me, async) y este fetch.
+  const loadReservas = useCallback(() => {
+    setReservasLoading(true);
+    setReservasError(null);
+    getReservasResumen()
+      .then((r) => setReservas(r.reservas))
+      .catch((e: unknown) => {
+        if (e instanceof UnauthorizedError) {
+          handleUnauthorized();
+          return;
+        }
+        setReservasError(e instanceof Error ? e.message : 'Error de red.');
+      })
+      .finally(() => setReservasLoading(false));
+  }, [handleUnauthorized]);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadReservas();
+  }, [load, loadReservas]);
 
   const col2 = isDesktop ? '1fr 1fr' : '1fr';
   const s = data?.semaforo;
@@ -139,26 +162,41 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                 </div>
               </div>
 
-              <div style={{ marginBottom: 'var(--space-10)' }}>
-                <SectionHead>Ocupación de Habitaciones</SectionHead>
-                <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 'var(--space-6)' }}>
-                  <MetricCard
-                    title="Ocupación próximos 30 días"
-                    estado={s.ocupacion_30d.estado}
-                    value={s.ocupacion_30d.valor != null ? `${s.ocupacion_30d.valor}%` : '—'}
-                    sub={s.ocupacion_30d.umbral_usado ? `Umbral verde ≥ ${(s.ocupacion_30d.umbral_usado as Record<string, number>).verde_pct}%` : undefined}
-                  />
-                  <MetricCard
-                    title="Reservas nuevas esta semana"
-                    estado={s.reservas_nuevas_7d.estado}
-                    value={`${s.reservas_nuevas_7d.valor.cantidad} reserva${s.reservas_nuevas_7d.valor.cantidad === 1 ? '' : 's'}`}
-                    sub={formatMonto(s.reservas_nuevas_7d.valor.monto_por_moneda)}
-                  />
+              {pmsRoomViews ? (
+                <div style={{ marginBottom: 'var(--space-10)' }}>
+                  <SectionHead>Ocupación de Habitaciones</SectionHead>
+                  <div style={{ display: 'grid', gridTemplateColumns: col2, gap: 'var(--space-6)' }}>
+                    <MetricCard
+                      title="Ocupación próximos 30 días"
+                      estado={s.ocupacion_30d.estado}
+                      value={s.ocupacion_30d.valor != null ? `${s.ocupacion_30d.valor}%` : '—'}
+                      sub={s.ocupacion_30d.umbral_usado ? `Umbral verde ≥ ${(s.ocupacion_30d.umbral_usado as Record<string, number>).verde_pct}%` : undefined}
+                    />
+                    <MetricCard
+                      title="Reservas nuevas esta semana"
+                      estado={s.reservas_nuevas_7d.estado}
+                      value={`${s.reservas_nuevas_7d.valor.cantidad} reserva${s.reservas_nuevas_7d.valor.cantidad === 1 ? '' : 's'}`}
+                      sub={formatMonto(s.reservas_nuevas_7d.valor.monto_por_moneda)}
+                    />
+                  </div>
+                  <div style={{ marginTop: 'var(--space-6)' }}>
+                    <RoomGrid isDesktop={isDesktop} />
+                  </div>
                 </div>
-                <div style={{ marginTop: 'var(--space-6)' }}>
-                  <RoomGrid isDesktop={isDesktop} />
+              ) : (
+                <div style={{ marginBottom: 'var(--space-10)' }}>
+                  <SectionHead>Calendario de Reservas</SectionHead>
+                  <div style={{ marginBottom: 'var(--space-6)' }}>
+                    <MetricCard
+                      title="Reservas nuevas esta semana"
+                      estado={s.reservas_nuevas_7d.estado}
+                      value={`${s.reservas_nuevas_7d.valor.cantidad} reserva${s.reservas_nuevas_7d.valor.cantidad === 1 ? '' : 's'}`}
+                      sub={formatMonto(s.reservas_nuevas_7d.valor.monto_por_moneda)}
+                    />
+                  </div>
+                  <ReservationCalendar reservas={reservas} loading={reservasLoading} error={reservasError} onRetry={loadReservas} />
                 </div>
-              </div>
+              )}
 
               <div style={{ marginBottom: 'var(--space-10)' }}>
                 <SectionHead>Operación</SectionHead>
