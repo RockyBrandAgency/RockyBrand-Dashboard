@@ -20,6 +20,7 @@ import { MetricasSeo } from './pages/Metricas/MetricasSeo';
 import { MetricasTiktok } from './pages/Metricas/MetricasTiktok';
 import { TiendaInventario } from './pages/Tienda/TiendaInventario';
 import { TiendaVentas } from './pages/Tienda/TiendaVentas';
+import { TiendaGarantias } from './pages/Tienda/TiendaGarantias';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from './screens';
@@ -134,6 +135,7 @@ function AuthenticatedShell() {
             {screen === 'servicio-contenido-revision' && <RevisionContenido isDesktop={isDesktop} />}
             {screen === 'tienda-inventario' && <TiendaInventario isDesktop={isDesktop} />}
             {screen === 'tienda-ventas' && <TiendaVentas isDesktop={isDesktop} />}
+            {screen === 'tienda-garantias' && <TiendaGarantias isDesktop={isDesktop} />}
             {screen === 'settings' && <SettingsScreen isDesktop={isDesktop} />}
           </>
         )}

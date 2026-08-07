@@ -727,6 +727,29 @@ export interface StoreOrder {
   despachado_en?: string | null;
 }
 
+/** Solicitud de garantia (reposicion de un tramo de cana Douglas).
+ *
+ *  Viene YA aplanada del backend: la direccion llega armada en un solo campo
+ *  y `veces_usada` calculado. Esta pantalla no rearma nada, solo muestra.
+ */
+export interface StoreGarantia {
+  solicitud_id: string;
+  estado: string;
+  created_at: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  direccion: string;
+  cana: string;
+  modelo: string;
+  /** "1" a "4". El 1 es la punta. */
+  tramo: string;
+  descripcion: string;
+  costo_clp: number;
+  /** Cuantas solicitudes lleva ESE correo en total, contando esta. */
+  veces_usada: number;
+}
+
 export interface StoreDashboardResumen {
   ventas_semana: { cantidad: number; total_clp: number };
   riesgo_quiebre_stock: StoreProduct[];

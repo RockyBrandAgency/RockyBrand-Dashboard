@@ -25,6 +25,7 @@ export type Screen =
   | 'servicio-contenido-revision'
   | 'tienda-inventario'
   | 'tienda-ventas'
+  | 'tienda-garantias'
   | 'settings'
   | 'login';
 
@@ -60,6 +61,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { id: 'tienda-inventario', label: 'Inventario', shortLabel: 'Inventario', serviceKeys: ['store'] },
       { id: 'tienda-ventas', label: 'Ventas', shortLabel: 'Ventas', serviceKeys: ['store'] },
+      { id: 'tienda-garantias', label: 'Garantías', shortLabel: 'Garantías', serviceKeys: ['store'] },
     ],
   },
   {

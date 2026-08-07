@@ -27,6 +27,7 @@ import type {
   StoreDashboardResumen,
   StoreProduct,
   StoreOrder,
+  StoreGarantia,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -306,4 +307,11 @@ export function getTiendaPedidos(estado?: string): Promise<{ ordenes: StoreOrder
 
 export function getTiendaPedidoDetalle(orderId: string): Promise<{ orden: StoreOrder }> {
   return request(`/dashboard/tienda/pedidos/${encodeURIComponent(orderId)}`);
+}
+
+// Garantias. `veces_usada` NO viene guardado en cada solicitud: lo calcula el
+// backend sobre todas las del mismo correo, para que el numero siga siendo
+// correcto aunque se borre una. Ver store_admin_lambda._listar_garantias.
+export function getTiendaGarantias(): Promise<{ garantias: StoreGarantia[] }> {
+  return request('/dashboard/tienda/garantias');
 }
