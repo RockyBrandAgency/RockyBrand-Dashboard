@@ -525,9 +525,17 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
 
     if (!listMode) {
       container.style.removeProperty('height');
-      S = Math.min(ringRx / 1.62, ringRy / 1.3, W * 0.32, H * 0.38);
-      ringRx = Math.min(ringRx, S * 1.8);
-      ringRy = Math.min(ringRy, S * 1.48);
+      // El cerebro es el protagonista: se dimensiona por el hueco que de verdad
+      // queda entre él y el anillo, no por una fracción arbitraria del viewport.
+      // Sus semiejes reales son ~1.10*S de ancho y ~0.95*S de alto (ver F()),
+      // así que se despeja S de "borde del cerebro + aire <= radio del anillo".
+      const GAP_X = 74;
+      const GAP_Y = 44;
+      S = Math.min((ringRx - GAP_X) / 1.1, (ringRy - GAP_Y) / 0.95, W * 0.34, H * 0.44);
+      // El anillo se abre hasta donde de verdad alcanza el ancho de pantalla:
+      // antes se recortaba a S*1.8 y dejaba franjas muertas a los costados.
+      ringRx = Math.min(ringRx, S * 2.4);
+      ringRy = Math.min(ringRy, S * 1.7);
       bcx = W / 2;
       ringCy = H / 2;
       bcy = ringCy - 0.07 * S;

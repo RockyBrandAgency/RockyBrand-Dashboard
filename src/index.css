@@ -328,10 +328,12 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   margin: 0;
   padding: 10px 14px 11px 11px;
   text-align: left;
-  /* La ficha completa va acá adentro, pegada al agente. El tope de ancho es lo
-     que hace que el anillo siga cerrando: sin él, "Chief Marketing Officer" +
-     la frase estiran la etiqueta hasta sacarla de pantalla. */
-  max-width: 232px;
+  /* La ficha completa va acá adentro, pegada al agente. Más ancha que alta a
+     propósito (2026-08-07, pedido de Mato: usar más el ancho de la pantalla):
+     con 268px la frase y la herramienta entran en menos líneas, la ficha baja
+     de alto, y ese alto que se libera es exactamente lo que deja crecer al
+     cerebro - el anillo estaba limitado por la vertical, no por la horizontal. */
+  max-width: 268px;
   background: rgba(6, 13, 24, 0.74);
   border: 1px solid rgba(var(--brain-lit), 0.24);
   border-radius: 11px;

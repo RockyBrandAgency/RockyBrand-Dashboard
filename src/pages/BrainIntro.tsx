@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { mountBrainScene, brainPalette, type BrainAgent } from '../lib/brainScene';
-import type { Agent } from '../agents';
+import { FRASE_ALINEACION, type Agent } from '../agents';
 
 // Pantalla de entrada al panel: el cerebro de marca del cliente con su equipo
 // de agentes alrededor. Aprobada por Mato el 2026-08-07 con esta forma exacta:
@@ -28,15 +28,15 @@ export function BrainIntro({
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
-    // Rox no es un agente táctico más: es quien emite la directiva estratégica
-    // que los otros 6 consumen como contexto obligatorio (agent_core.py). Por
-    // eso su conexión va más marcada y sus paquetes viajan SOLO hacia el
-    // núcleo - escribe la memoria de marca, no la recibe.
+    // Los 7 declaran la MISMA frase de alineación, sin excepciones. Lo que sí
+    // sigue distinguiendo a Rox es cómo se dibuja: es quien emite la directiva
+    // que los otros 6 consumen como contexto obligatorio (agent_core.py), así
+    // que su conexión va más marcada y sus paquetes viajan SOLO hacia el núcleo.
     const scene: BrainAgent[] = agents.map((a) => ({
       name: a.name,
       role: a.role,
       tarea: a.tarea,
-      frase: a.frase,
+      frase: FRASE_ALINEACION,
       dir: a.key === 'rox' ? 'in' : 'both',
       emphasis: a.key === 'rox',
     }));
