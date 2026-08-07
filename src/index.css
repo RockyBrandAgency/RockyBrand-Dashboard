@@ -340,7 +340,10 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   cursor: pointer;
   backdrop-filter: blur(3px);
   font-family: Inter, system-ui, sans-serif;
-  animation: brain-rise 0.6s cubic-bezier(0.22, 0.7, 0.28, 1) backwards;
+  /* La entrada anima opacity, NO transform: el hover global de botones
+     (buttonHoverGsap) escribe transform con GSAP, y dos dueños de la misma
+     propiedad es exactamente el bug que hacía saltar la ficha de Rox. */
+  animation: brain-fade-in 0.6s ease-out backwards;
   animation-delay: calc(0.55s + var(--i) * 0.055s);
   transition: border-color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
 }
@@ -475,6 +478,11 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
 @keyframes brain-rise {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes brain-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

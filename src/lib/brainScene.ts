@@ -471,6 +471,21 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
     return c;
   }
 
+  // Las fichas se posicionan SOLO con left/top, nunca con transform.
+  //
+  // initButtonHoverGsap() (lib/buttonHoverGsap.ts) anima `y: -2` sobre CUALQUIER
+  // <button> del panel por delegacion en document, y GSAP escribe la propiedad
+  // `transform` COMPLETA. Como estas etiquetas son <button> de verdad, ese hover
+  // pisaba el translate(-50%,-100%) con que se anclaban: la ficha de arriba
+  // (Rox) perdia su desplazamiento hacia arriba y caia su propia altura de golpe
+  // al pasarle el cursor. Sin transform propio no hay nada que pisar, y ademas
+  // la ficha recibe gratis el mismo hover de 2px del resto del panel.
+  function placeChip(nd: NodeState, left: number, top: number) {
+    nd.el.style.left = `${Math.round(left)}px`;
+    nd.el.style.top = `${Math.round(top)}px`;
+    nd.el.style.removeProperty('transform');
+  }
+
   function setLink(nd: NodeState, a: number, index: number) {
     const er = edgeRadius(a) * 1.02;
     nd.sx = bcx + Math.cos(a) * er * S;
@@ -541,17 +556,18 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
       bcx = W / 2;
       ringCy = H / 2;
       bcy = ringCy - 0.07 * S;
+      // Se miden TODAS las fichas antes de mover ninguna: leer offsetWidth
+      // despues de escribir un left/top fuerza un reflow por nodo.
+      const size = nodes.map((nd) => ({ w: nd.el.offsetWidth, h: nd.el.offsetHeight }));
       nodes.forEach((nd, i) => {
         const a = -Math.PI / 2 + (i / nodes.length) * Math.PI * 2 + 0.17;
         nd.x = bcx + ringRx * Math.cos(a);
         nd.y = ringCy + ringRy * Math.sin(a);
         const ox = Math.cos(a);
         const oy = Math.sin(a);
-        const tx = ox > 0.3 ? '0%' : ox < -0.3 ? '-100%' : '-50%';
-        const ty = ox > 0.3 || ox < -0.3 ? '-50%' : oy > 0 ? '0%' : '-100%';
-        nd.el.style.left = `${nd.x + ox * 17}px`;
-        nd.el.style.top = `${nd.y + oy * 17}px`;
-        nd.el.style.transform = `translate(${tx}, ${ty})`;
+        const fx = ox > 0.3 ? 0 : ox < -0.3 ? -1 : -0.5;
+        const fy = ox > 0.3 || ox < -0.3 ? -0.5 : oy > 0 ? 0 : -1;
+        placeChip(nd, nd.x + ox * 17 + fx * size[i].w, nd.y + oy * 17 + fy * size[i].h);
         setLink(nd, a, i);
       });
     } else {
@@ -590,14 +606,13 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
       const colX = cols === 1
         ? [W / 2]
         : [Math.max(half, W * 0.26), Math.min(W - half, W * 0.74)];
+      const sizeL = nodes.map((nd) => ({ w: nd.el.offsetWidth, h: nd.el.offsetHeight }));
       nodes.forEach((nd, i) => {
         const col = i % cols;
         const row = (i / cols) | 0;
         nd.x = colX[col];
         nd.y = top + row * rowH + rowH * 0.5;
-        nd.el.style.left = `${nd.x}px`;
-        nd.el.style.top = `${nd.y}px`;
-        nd.el.style.transform = 'translate(-50%, -50%)';
+        placeChip(nd, nd.x - sizeL[i].w / 2, nd.y - sizeL[i].h / 2);
         setLink(nd, Math.atan2(nd.y - bcy, nd.x - bcx), i);
       });
     }
