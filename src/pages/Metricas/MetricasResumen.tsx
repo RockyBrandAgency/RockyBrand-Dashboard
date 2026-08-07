@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SectionHead } from '../../components/SectionHead';
 import { MetricCard } from '../../components/MetricCard';
+import { AnimatedStatBox } from '../../components/AnimatedStatBox';
 import { AsyncState } from '../../components/AsyncState';
 import { getSemaforo, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
@@ -218,6 +219,23 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
                     value="No Conectado"
                     disconnected
                     onClick={() => onNavigate('metricas-tiktok')}
+                  />
+                </div>
+              )}
+            </AsyncState>
+          </div>
+        )}
+
+        {showAgentsChannels && (
+          <div style={{ marginBottom: 40 }}>
+            <SectionHead>Tráfico del sitio</SectionHead>
+            <AsyncState loading={reportLoading} error={reportError} onRetry={reloadReport}>
+              {report && (
+                <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(2,1fr)' : 'repeat(1,1fr)', gap: 12 }}>
+                  <AnimatedStatBox
+                    label="Visitas desde Estados Unidos"
+                    value={report.web.visitas_eeuu_7d}
+                    sub={report.web.nota ?? 'Usuarios activos · últimos 7 días (GA4)'}
                   />
                 </div>
               )}

@@ -349,6 +349,15 @@ export interface SeoMetrics {
   clics_organicos_actual: number | null;
 }
 
+// GA4 real (2026-08-07) - visitas_eeuu_7d es null cuando falta la
+// propiedad/credencial o la consulta falló (ver `nota`), y 0 cuando GA4
+// consultó bien pero de verdad no hubo ningún usuario de Estados Unidos
+// en la ventana - dos casos distintos, nunca se confunden en la UI.
+export interface WebMetrics {
+  visitas_eeuu_7d: number | null;
+  nota: string | null;
+}
+
 export interface MetricsReportResponse {
   client_id: string;
   range: { from: string; to: string; days: number };
@@ -357,6 +366,7 @@ export interface MetricsReportResponse {
   facebook: FacebookMetrics;
   youtube: YoutubeMetrics;
   seo: SeoMetrics;
+  web: WebMetrics;
 }
 
 // --- Email Marketing: las 6 secciones (2026-08-03) -------------------------
