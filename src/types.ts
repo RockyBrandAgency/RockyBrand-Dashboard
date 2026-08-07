@@ -665,6 +665,12 @@ export interface StoreProduct {
   precio_clp: number;
   stock: number;
   activo: boolean;
+  // Ya vivía en Dynamo (specs.linea = "Línea {n}", cargado por
+  // store_seed_products.py) pero nunca se tipó ni se mostraba en el
+  // panel - 2026-08-07, pedido explícito de Mato. Solo las cañas lo
+  // tienen; el resto del catálogo (moscas, reels, accesorios) queda sin
+  // este campo, nunca se inventa un "N/A".
+  specs?: { largo?: string; linea?: string; tramos?: string; peso?: string };
 }
 
 export type StoreOrderStatus =

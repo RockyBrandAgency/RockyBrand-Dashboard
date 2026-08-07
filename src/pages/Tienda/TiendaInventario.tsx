@@ -9,6 +9,15 @@ function money(clp: number): string {
   return clp.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 }
 
+// specs.linea llega como "Línea 5" (así lo carga store_seed_products.py) -
+// acá solo se muestra el número con el formato que se usa en la industria
+// de pesca con mosca ("#5"). Vacío para productos sin ese dato (moscas,
+// reels, accesorios) - nunca se inventa un placeholder.
+function numeroLinea(specs?: StoreProduct['specs']): string {
+  const match = specs?.linea?.match(/\d+/);
+  return match ? `#${match[0]}` : '—';
+}
+
 type Campo = 'precio_clp' | 'stock';
 type Filtro = 'todos' | 'activos' | 'inactivos' | 'stock_bajo';
 type Orden = { campo: 'nombre' | 'stock' | 'precio_clp'; dir: 1 | -1 };
@@ -272,6 +281,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
                     >
                       <span style={col(280)}>Modelo</span>
                       <span style={col(120)}>SKU</span>
+                      <span style={col(70)}>Línea</span>
                       <span style={col(150, { textAlign: 'right' })}>Precio</span>
                       <button
                         onClick={toggleOrdenStock}
@@ -301,7 +311,11 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
                           {p.nombre}
                           {p.familia && <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}> · {p.familia}</span>}
                         </span>
-                        <span style={isDesktop ? col(120, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>{p.sku}</span>
+                        <span style={isDesktop ? col(120, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
+                          {p.sku}
+                          {!isDesktop && p.specs?.linea && <span style={{ color: 'var(--text-faint)' }}> · {numeroLinea(p.specs)}</span>}
+                        </span>
+                        {isDesktop && <span style={col(70, { fontSize: 13, color: 'var(--text-sub)' })}>{numeroLinea(p.specs)}</span>}
 
                         <span style={isDesktop ? col(150, { textAlign: 'right' }) : { marginTop: 2 }}>
                           {editando?.sku === p.sku && editando.campo === 'precio_clp' ? (
