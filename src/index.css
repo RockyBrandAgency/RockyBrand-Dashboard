@@ -362,30 +362,37 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   gap: 1px;
 }
 
+/* El nombre va SEGUNDO, debajo del rol (2026-08-07, pedido de Mato). Es la
+   identidad del agente, así que carga el peso visual de la ficha. */
 .brain-node-name {
-  font-size: 12px;
+  margin-top: 1px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #d9e8f6;
+  color: #eaf3fc;
   line-height: 1.2;
   white-space: nowrap;
 }
 
 .brain-node-role {
   font-size: 9px;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: #7c92a9;
+  color: rgb(var(--brain-lit));
   line-height: 1.2;
   white-space: nowrap;
+  opacity: 0.85;
 }
 
-/* El compromiso con la marca: va justo debajo del rol, siempre visible, en
-   todos los agentes. No aparece con el hover. */
+/* El compromiso con la marca cierra la ficha, al fondo de todo y separado por
+   una línea fina (2026-08-07, pedido de Mato). Idéntico en los 7 agentes y
+   siempre visible: no aparece con el hover. */
 .brain-node-frase {
-  margin-top: 5px;
-  font-size: 11px;
-  line-height: 1.38;
-  color: #b6c9dc;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(var(--brain-lit), 0.18);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: #7f93a8;
   white-space: normal;
   text-wrap: pretty;
 }
@@ -393,12 +400,10 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
 /* Su herramienta real. Antes vivía en una tarjeta abajo a la izquierda y solo
    se veía al pasar el cursor - ahora está pegada a su agente. */
 .brain-node-toolkit {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(var(--brain-lit), 0.16);
-  font-size: 10px;
-  line-height: 1.35;
-  color: #7f93a8;
+  margin-top: 5px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: #9db1c6;
   white-space: normal;
   text-wrap: pretty;
 }

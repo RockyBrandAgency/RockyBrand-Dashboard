@@ -30,7 +30,8 @@ export interface Agent {
   key: AgentKey;
   name: string;
   role: string;
-  /** Su herramienta real: con qué trabaja. Se muestra pegado al agente. */
+  /** Su herramienta real: con qué trabaja. Se muestra pegado al agente.
+   *  En inglés, igual que el rol y la frase de alineación. */
   tarea: string;
 }
 
@@ -43,55 +44,60 @@ export interface Agent {
 // agente justamente para que no pueda divergir: si algún día hay que
 // matizarla, se cambia en un solo lugar.
 //
+// EN INGLÉS, igual que los roles (decisión de Mato, 2026-08-07). Ojo: hoy es
+// inglés para TODOS los clientes, no según el idioma de cada uno - el panel no
+// expone `content_language` en GET /dashboard/me, así que no hay de dónde
+// leerlo sin agregar el campo al backend.
+//
 // Es cierta a nivel de sistema, no es copy de relleno: agent_core.mandato_de_rox
 // le inyecta la directiva estratégica vigente a los agentes como contexto
 // obligatorio ("Estas directivas son obligatorias. Si tu output las contradice,
 // corrigelo."), y todos leen además la misma base de conocimiento de marca del
 // cliente.
-export const FRASE_ALINEACION = 'Va en línea con los objetivos y lineamientos de la marca.';
+export const FRASE_ALINEACION = "In line with the brand's objectives and guidelines.";
 
 export const AGENTS: Record<AgentKey, Agent> = {
   rox: {
     key: 'rox',
     name: 'Rox',
     role: 'Chief Marketing Officer',
-    tarea: 'Define el norte de la marca y la directiva que siguen los demás',
+    tarea: "Sets the brand's direction and the mandate the others follow",
   },
   content_strategist: {
     key: 'content_strategist',
     name: 'Dave',
     role: 'Content & Social Strategist',
-    tarea: 'Arma el calendario de contenido',
+    tarea: 'Builds the content calendar',
   },
   art_director: {
     key: 'art_director',
     name: 'Jimi',
     role: 'Art Director',
-    tarea: 'Dirige el arte con el inventario real de fotos',
+    tarea: 'Directs the art from the real photo inventory',
   },
   analytics: {
     key: 'analytics',
     name: 'Neil',
     role: 'Performance & Data Analytics',
-    tarea: 'Reporta el rendimiento de redes y YouTube',
+    tarea: 'Reports social and YouTube performance',
   },
   seo_geo_aeo: {
     key: 'seo_geo_aeo',
     name: 'Slash',
     role: 'SEO, GEO & AEO',
-    tarea: 'Trabaja el posicionamiento con Search Console',
+    tarea: 'Works search rankings with Search Console',
   },
   filmmaker: {
     key: 'filmmaker',
     name: 'Thelma',
     role: 'Filmmaker',
-    tarea: 'Monta los videos con clips y voz',
+    tarea: 'Edits the videos from clips and voice',
   },
   research: {
     key: 'research',
     name: 'Cameron',
     role: 'Research',
-    tarea: 'Busca insights de mercado en Reddit y RSS',
+    tarea: 'Finds market insights on Reddit and RSS',
   },
 };
 

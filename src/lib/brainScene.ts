@@ -417,7 +417,9 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
     const tk = document.createElement('span');
     tk.className = 'brain-node-toolkit';
     tk.textContent = agent.tarea;
-    tx.append(nm, rl, fr, tk);
+    // Orden de la ficha (2026-08-07, pedido de Mato): el ROL primero, y la
+    // frase de alineación al fondo de todo.
+    tx.append(rl, nm, tk, fr);
     el.append(dot, tx);
     el.setAttribute('aria-label', `${agent.name}, ${agent.role}. ${agent.frase} ${agent.tarea}`);
     el.addEventListener('mouseenter', () => focusNode(i));

@@ -59,7 +59,7 @@ export function BrainIntro({
     <div className="brain-screen" style={themeVars}>
       <div className="brain-stage" ref={stageRef} />
       <button type="button" className="brain-enter" onClick={onEnter}>
-        Entrar <span aria-hidden="true">&#8594;</span>
+        Enter <span aria-hidden="true">&#8594;</span>
       </button>
     </div>
   );
