@@ -61,6 +61,32 @@ export const CLIENT_THEME: Record<string, ClientTheme> = {
   'chile-fly-fishing': { primary: '#202020', primaryHover: '#333333', sage: '#c2bcb3', sageMid: '#b0a79a' },
 };
 
+// Color de acento sobre FONDO OSCURO, para la pantalla del cerebro de marca
+// (BrainIntro). `CLIENT_THEME.primary` no sirve ahí: es un color pensado para
+// pintar superficies sobre fondo claro (sidebar blanco, botones), y sobre negro
+// desaparece - el de Chile Fly Fishing es Charcoal #202020, que sobre un fondo
+// #04070E es literalmente invisible.
+//
+// Hex reales de cada manual de marca, con la línea exacta de su tabla de color
+// (verificado 2026-08-07 leyendo los extractos, no de memoria):
+// - chile-fly-fishing: Corporate Blue #006DC6, fila "Exclusivo: UI Buttons &
+//   Text Links" de clientes/chile-fly-fishing/01-knowledge-base/brand-guidelines-extracto.md.
+//   Es su único color vívido y el mismo azul de su propio logotipo; la pantalla
+//   del cerebro es UI, que es justo el uso que su guideline le reserva. Luxury
+//   Gold quedaría muy apagado sobre negro y Charcoal no se ve.
+// - alto-castillo: Verde Salvia #BCC2B3, fila "texto de apoyo sobre fondos
+//   oscuros" de su propio extracto - o sea, el color que su guideline ya
+//   designa para exactamente esta situación. Verde Bosque #425327 es demasiado
+//   oscuro sobre negro.
+//
+// Un client_id sin entrada acá NO ve la pantalla del cerebro (App.tsx la
+// omite): mismo criterio que el resto del archivo - antes de inventarle un
+// color a un cliente, no se le muestra la pantalla.
+export const CLIENT_ACCENT_ON_DARK: Record<string, string> = {
+  'alto-castillo': '#bcc2b3',
+  'chile-fly-fishing': '#006dc6',
+};
+
 // Aplica el theme del cliente sobre las custom properties de :root. Sin
 // client_id conocido, restaura los defaults neutros de RockyBrand
 // (index.css) - nunca se deja "pegado" el color de un cliente anterior ni

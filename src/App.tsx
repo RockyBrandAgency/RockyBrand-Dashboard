@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { initButtonHoverGsap } from './lib/buttonHoverGsap';
 import { useBreakpoint } from './hooks/useBreakpoint';
@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { SidebarRail } from './components/SidebarRail';
 import { MobileBar } from './components/MobileBar';
 import { LoginScreen } from './pages/LoginScreen';
+import { BrainIntro } from './pages/BrainIntro';
 import { Overview } from './pages/Overview';
 import { DetailScreen } from './pages/DetailScreen';
 import { ReservasResumen } from './pages/Reservas/ReservasResumen';
@@ -22,6 +23,8 @@ import { TiendaVentas } from './pages/Tienda/TiendaVentas';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from './screens';
+import { CLIENT_ACCENT_ON_DARK } from './branding';
+import { agentsForClient } from './agents';
 import type { ClientServices } from './types';
 
 function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
@@ -139,9 +142,53 @@ function AuthenticatedShell() {
   );
 }
 
+// Una vez por sesión de navegador, no por navegación ni por render: la
+// bienvenida se ve al entrar y no vuelve a aparecer hasta el próximo login en
+// una pestaña nueva. sessionStorage y no localStorage a propósito - que se vea
+// de nuevo mañana está bien; que se vea 8 veces en la misma tarde, no.
+const BRAIN_INTRO_KEY = 'rockybrand.brainIntroSeen';
+
 function Root() {
-  const { isAuthenticated, sessionExpiredMessage } = useAuth();
+  const { isAuthenticated, sessionExpiredMessage, clientId, clientServices, clientLogoSrcDark, clientDisplayName } = useAuth();
+  const [introSeen, setIntroSeen] = useState(() => sessionStorage.getItem(BRAIN_INTRO_KEY) === '1');
+
+  const dismissIntro = useCallback(() => {
+    sessionStorage.setItem(BRAIN_INTRO_KEY, '1');
+    setIntroSeen(true);
+  }, []);
+
+  const agents = agentsForClient(clientId);
+  const accent = clientId ? CLIENT_ACCENT_ON_DARK[clientId] : undefined;
+  // Solo con datos REALES: el cliente tiene el servicio de agentes contratado,
+  // tiene equipo definido y tiene un acento documentado en su manual de marca.
+  // Si falta cualquiera de los tres, no se muestra - antes que inventarle un
+  // color o un equipo a un cliente, entra derecho al panel.
+  //
+  // `clientServices?.agents` y no `clientServices !== null && clientServices.agents`:
+  // si /dashboard/me alguna vez responde sin el campo `services`, lo segundo
+  // tira un TypeError acá arriba de todo el árbol y tumba el panel entero por
+  // una pantalla de bienvenida (pasó de verdad probando esto). Con optional
+  // chaining, un payload raro simplemente no muestra la bienvenida.
+  const servicesLoaded = clientServices !== null;
+  const canShowIntro = !!clientServices?.agents && agents.length > 0 && !!accent;
+
+  // Mientras /dashboard/me carga todavía no se sabe si corresponde mostrarla.
+  // En vez de mostrar el panel y que la bienvenida aparezca encima medio
+  // segundo después, se espera con la misma superficie oscura sobre la que va a
+  // dibujarse el cerebro: sin salto, y sin afirmar nada del cliente todavía.
   if (!isAuthenticated) return <LoginScreen sessionExpiredMessage={sessionExpiredMessage} />;
+  if (!introSeen && !servicesLoaded) return <div className="brain-screen" />;
+  if (!introSeen && canShowIntro && accent) {
+    return (
+      <BrainIntro
+        agents={agents}
+        accent={accent}
+        logoSrc={clientLogoSrcDark}
+        logoAlt={clientDisplayName ?? 'Logo del cliente'}
+        onEnter={dismissIntro}
+      />
+    );
+  }
   return <AuthenticatedShell />;
 }
 
