@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { actualizarReserva, UnauthorizedError } from '../api/dashboardApi';
+import { actualizarReserva, cancelarReserva, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import type { ReservaResumenItem } from '../types';
 
@@ -46,6 +46,7 @@ export function BookingDetailModal({
   const [checkOut, setCheckOut] = useState(reserva.CheckOut);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
+  const [cancelando, setCancelando] = useState(false);
 
   const sc = STATUS_COLOR[reserva.Status];
   const contacto = reserva.GuestContact || {};
@@ -70,6 +71,25 @@ export function BookingDetailModal({
       setError(e instanceof Error ? e.message : 'No se pudo guardar.');
     } finally {
       setGuardando(false);
+    }
+  }
+
+  // "Eliminar" una reserva = cancelarla (Status -> CANCELLED), nunca un
+  // borrado real - confirmado explícitamente con Mato (2026-08-06): queda
+  // en el historial/reportes, es reversible (una reserva cancelada por
+  // error se puede volver a editar). Mismo criterio ya usado en Tienda.
+  async function cancelar() {
+    if (!confirm(`¿Cancelar la reserva de ${reserva.GuestName}? Queda marcada como Cancelada, no se borra - se puede filtrar/ocultar de la vista activa.`)) return;
+    setCancelando(true);
+    setError('');
+    try {
+      await cancelarReserva(reserva.BookingID);
+      onGuardado();
+    } catch (e) {
+      if (e instanceof UnauthorizedError) return handleUnauthorized();
+      setError(e instanceof Error ? e.message : 'No se pudo cancelar la reserva.');
+    } finally {
+      setCancelando(false);
     }
   }
 
@@ -215,6 +235,18 @@ export function BookingDetailModal({
           <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)' }}>
             <div style={fieldLabel}>Notas</div>
             <div style={{ ...fieldValue, whiteSpace: 'pre-wrap' }}>{reserva.BookingNotes}</div>
+          </div>
+        )}
+
+        {reserva.Status !== 'CANCELLED' && (
+          <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)' }}>
+            <button
+              onClick={() => void cancelar()}
+              disabled={cancelando}
+              style={{ all: 'unset', cursor: cancelando ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--status-critico-dot)' }}
+            >
+              {cancelando ? 'Cancelando…' : 'Cancelar reserva'}
+            </button>
           </div>
         )}
       </div>

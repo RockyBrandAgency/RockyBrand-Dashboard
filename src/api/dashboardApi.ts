@@ -6,6 +6,8 @@ import type {
   DisponibilidadResponse,
   MeResponse,
   ReservasResumenResponse,
+  NuevaReservaPayload,
+  NuevoHuespedPayload,
   MetricsReportResponse,
   EmailContact,
   EmailSegment,
@@ -112,6 +114,22 @@ export function actualizarReserva(
   cambios: { CheckIn?: string; CheckOut?: string; BookingNotes?: string }
 ): Promise<{ BookingID: string; message: string }> {
   return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'PUT', cambios);
+}
+
+// Reserva manual (llamada/mail/walk-in) y su cancelación (2026-08-06,
+// pedido explícito de Mato: "el PMS... debe ser capaz de agregar o
+// eliminar reservas", para todos los clientes). "Eliminar" cancela
+// (Status=CANCELLED), nunca borra el registro — confirmado con Mato.
+export function crearReserva(payload: NuevaReservaPayload): Promise<{ BookingID: string; message: string }> {
+  return request('/dashboard/reservas', 'POST', payload);
+}
+
+export function cancelarReserva(bookingId: string): Promise<{ BookingID: string; message: string }> {
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'DELETE');
+}
+
+export function crearHuesped(payload: NuevoHuespedPayload): Promise<{ GuestID: string; message: string }> {
+  return request('/dashboard/huespedes', 'POST', payload);
 }
 
 export function getMetricsReport(days = 30): Promise<MetricsReportResponse> {

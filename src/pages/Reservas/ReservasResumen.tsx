@@ -4,7 +4,9 @@ import { OriginBadge } from '../../components/OriginBadge';
 import { SearchIcon, CalendarIcon, CalendarRangeIcon } from '../../components/icons/RockyIcons';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { BookingDetailModal } from '../../components/BookingDetailModal';
+import { NewBookingModal } from '../../components/NewBookingModal';
 import { ReservationCalendar } from '../../components/ReservationCalendar';
+import { PlusIcon } from '../../components/icons/RockyIcons';
 import { getReservasResumen, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
@@ -70,6 +72,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   const [tab, setTab] = useState('ALL');
   const [page, setPage] = useState(0);
   const [detalle, setDetalle] = useState<ReservaResumenItem | null>(null);
+  const [nuevaAbierta, setNuevaAbierta] = useState(false);
 
   // Temporada de pesca (12 oct - 30 abr), solo para chile-fly-fishing
   // (2026-08-06, pedido explícito de Mato: "el PMS debiera siempre
@@ -146,7 +149,28 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
               Administra y visualiza todas las estancias en {clientDisplayName ?? 'tu negocio'}.
             </div>
           </div>
-          {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCap}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCap}</div>}
+            <button
+              onClick={() => setNuevaAbierta(true)}
+              style={{
+                all: 'unset',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                cursor: 'pointer',
+                background: 'var(--primary)',
+                color: '#fff',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 14px',
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              <PlusIcon size={13} color="#fff" />
+              Nueva reserva
+            </button>
+          </div>
         </div>
 
         <div style={{ marginBottom: 'var(--space-8)' }}>
@@ -378,6 +402,18 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
           onClose={() => setDetalle(null)}
           onGuardado={() => {
             setDetalle(null);
+            load();
+          }}
+        />
+      )}
+
+      {nuevaAbierta && (
+        <NewBookingModal
+          reservas={reservas}
+          roomViews={pmsRoomViews}
+          onClose={() => setNuevaAbierta(false)}
+          onCreado={() => {
+            setNuevaAbierta(false);
             load();
           }}
         />

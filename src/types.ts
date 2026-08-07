@@ -155,6 +155,24 @@ export interface ReservasResumenResponse {
   reservas: ReservaResumenItem[];
 }
 
+// Reserva manual (llamada/mail/walk-in) - 2026-08-06, pedido explícito de
+// Mato, para todos los clientes. GuestID debe ser de un huésped ya
+// existente (ver NuevaHuespedPayload si es nuevo).
+export interface NuevaReservaPayload {
+  GuestID: string;
+  RoomID: string;
+  CheckIn: string;
+  CheckOut: string;
+  PartyMembers: number;
+  Financials: { Currency: string; TotalAmount: number; PaymentStatus: string };
+}
+
+export interface NuevoHuespedPayload {
+  FullName: string;
+  Contact: { Email?: string; WhatsApp?: string };
+  OriginCountry?: string;
+}
+
 // Formas reales devueltas por dashboard_metrics.compute_metrics_report -
 // mismo cálculo que ya usa el panel de staff (get_metrics_report), ver
 // panel_config_api_lambda.py:handle_get_metrics_report para la fuente de
