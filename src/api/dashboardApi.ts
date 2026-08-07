@@ -28,6 +28,7 @@ import type {
   StoreProduct,
   StoreOrder,
   StoreGarantia,
+  StoreGarantiaEstado,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -314,4 +315,15 @@ export function getTiendaPedidoDetalle(orderId: string): Promise<{ orden: StoreO
 // correcto aunque se borre una. Ver store_admin_lambda._listar_garantias.
 export function getTiendaGarantias(): Promise<{ garantias: StoreGarantia[] }> {
   return request('/dashboard/tienda/garantias');
+}
+
+// Mover una garantía de estado. El backend valida que el id sea de una
+// garantía y no de una venta: mandar el id de una orden por acá no le escribe
+// un estado de garantía encima a un pedido real.
+export function actualizarTiendaGarantia(
+  solicitud_id: string,
+  estado: StoreGarantiaEstado,
+  nota?: string,
+): Promise<{ ok: boolean }> {
+  return request('/dashboard/tienda/garantias', 'PUT', { solicitud_id, estado, nota });
 }

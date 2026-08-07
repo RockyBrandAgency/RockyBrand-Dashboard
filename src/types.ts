@@ -732,9 +732,14 @@ export interface StoreOrder {
  *  Viene YA aplanada del backend: la direccion llega armada en un solo campo
  *  y `veces_usada` calculado. Esta pantalla no rearma nada, solo muestra.
  */
+/** Los cuatro estados por los que pasa una garantía. Son cuatro y no más:
+ *  cada uno corresponde a algo que la tienda de verdad hace distinto. Espejo
+ *  exacto de ESTADOS_GARANTIA en store_admin_lambda.py. */
+export type StoreGarantiaEstado = 'recibida' | 'en_revision' | 'despachada' | 'rechazada';
+
 export interface StoreGarantia {
   solicitud_id: string;
-  estado: string;
+  estado: StoreGarantiaEstado;
   created_at: string;
   nombre: string;
   email: string;
@@ -748,6 +753,8 @@ export interface StoreGarantia {
   costo_clp: number;
   /** Cuantas solicitudes lleva ESE correo en total, contando esta. */
   veces_usada: number;
+  /** Nota de la tienda. No la ve el cliente. */
+  nota_interna: string;
 }
 
 export interface StoreDashboardResumen {

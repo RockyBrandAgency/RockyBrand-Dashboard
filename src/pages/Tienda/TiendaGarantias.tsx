@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { KpiRow } from '../../components/KpiRow';
-import { getTiendaGarantias, UnauthorizedError } from '../../api/dashboardApi';
+import { getTiendaGarantias, actualizarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
-import type { StoreGarantia } from '../../types';
+import type { StoreGarantia, StoreGarantiaEstado } from '../../types';
 
 function money(clp: number | undefined): string {
   return (clp ?? 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
@@ -16,6 +16,16 @@ function fmtWhen(iso?: string): string {
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
+
+// Cuatro estados, espejo de ESTADOS_GARANTIA en store_admin_lambda.py. Sin
+// esto la pantalla es una lista que solo crece: todo queda en "recibida" para
+// siempre y a los pocos meses no se distingue lo pendiente de lo resuelto.
+const ESTADOS: { key: StoreGarantiaEstado; label: string; bg: string; fg: string }[] = [
+  { key: 'recibida', label: 'Recibida', bg: 'var(--status-atencion-bg)', fg: 'var(--status-atencion-dot)' },
+  { key: 'en_revision', label: 'En revisión', bg: 'var(--status-neutro-bg)', fg: 'var(--text-sub)' },
+  { key: 'despachada', label: 'Despachada', bg: 'var(--status-bien-bg)', fg: 'var(--status-bien-dot)' },
+  { key: 'rechazada', label: 'Rechazada', bg: 'var(--status-critico-bg)', fg: 'var(--status-critico-dot)' },
+];
 
 // El número de tramo solo dice algo si se sabe desde dónde se cuenta. Acá el
 // 1 es la punta — mismo criterio que el formulario público, que se lo explica
@@ -34,6 +44,31 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [soloReincidentes, setSoloReincidentes] = useState(false);
   const [abierta, setAbierta] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState<string | null>(null);
+  const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
+
+  // Se actualiza la fila en memoria en vez de recargar la lista entera: el
+  // backend ya confirmó el cambio, y recargar haría parpadear la pantalla y
+  // cerraría el detalle que la persona tiene abierto.
+  async function cambiarEstado(g: StoreGarantia, estado: StoreGarantiaEstado) {
+    if (g.estado === estado) return;
+    setGuardando(g.solicitud_id);
+    setErrorGuardar(null);
+    try {
+      await actualizarTiendaGarantia(g.solicitud_id, estado);
+      setGarantias((prev) =>
+        (prev ?? []).map((x) => (x.solicitud_id === g.solicitud_id ? { ...x, estado } : x)),
+      );
+    } catch (e: unknown) {
+      if (e instanceof UnauthorizedError) {
+        handleUnauthorized();
+        return;
+      }
+      setErrorGuardar(e instanceof Error ? e.message : 'No se pudo guardar el cambio.');
+    } finally {
+      setGuardando(null);
+    }
+  }
 
   const load = useCallback(() => {
     setLoading(true);
@@ -61,7 +96,8 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     const personas = new Set(g.map((x) => x.email)).size;
     const reincidentes = new Set(g.filter((x) => x.veces_usada > 1).map((x) => x.email)).size;
     const total = g.reduce((s, x) => s + (x.costo_clp || 0), 0);
-    return { solicitudes: g.length, personas, reincidentes, total };
+    const pendientes = g.filter((x) => x.estado === 'recibida' || x.estado === 'en_revision').length;
+    return { solicitudes: g.length, personas, reincidentes, total, pendientes };
   }, [garantias]);
 
   const filtradas = useMemo(
@@ -101,7 +137,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
             <div style={{ marginBottom: 'var(--space-8)' }}>
               <KpiRow
                 items={[
-                  { label: 'Solicitudes', value: kpis.solicitudes, sub: 'en total' },
+                  { label: 'Por atender', value: kpis.pendientes, sub: `de ${kpis.solicitudes} en total` },
                   { label: 'Personas', value: kpis.personas, sub: 'distintas' },
                   { label: 'Repiten garantía', value: kpis.reincidentes, sub: 'con más de una solicitud' },
                   { label: 'Reposiciones', value: money(kpis.total), sub: 'sumando todas las solicitudes' },
@@ -156,8 +192,9 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                   >
                     <span style={col(210)}>Cliente</span>
                     <span style={col(190)}>Caña</span>
-                    <span style={col(130)}>Tramo</span>
-                    <span style={col(110, { textAlign: 'center' })}>Veces</span>
+                    <span style={col(120)}>Tramo</span>
+                    <span style={col(130)}>Estado</span>
+                    <span style={col(95, { textAlign: 'center' })}>Veces</span>
                     <span style={{ flex: 1, textAlign: 'right' }}>Fecha</span>
                   </div>
                 )}
@@ -165,6 +202,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                 {filtradas.map((g) => {
                   const repite = g.veces_usada > 1;
                   const abierto = abierta === g.solicitud_id;
+                  const estadoMeta = ESTADOS.find((e) => e.key === g.estado);
                   return (
                     <div key={g.solicitud_id} style={{ borderBottom: '1px solid var(--border-soft)' }}>
                       {/* La fila entera abre el detalle. Los datos de despacho
@@ -196,10 +234,24 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                           {g.cana}
                           {g.modelo ? ` · ${g.modelo}` : ''}
                         </span>
-                        <span style={isDesktop ? col(130, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 13, color: 'var(--text-sub)' }}>
+                        <span style={isDesktop ? col(120, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 13, color: 'var(--text-sub)' }}>
                           {g.tramo} · {TRAMO_NOMBRE[g.tramo] ?? '—'}
                         </span>
-                        <span style={isDesktop ? col(110, { textAlign: 'center' }) : { marginTop: 2 }}>
+                        <span style={isDesktop ? col(130) : { marginTop: 2 }}>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              padding: '4px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: estadoMeta?.bg,
+                              color: estadoMeta?.fg,
+                            }}
+                          >
+                            {estadoMeta?.label ?? g.estado}
+                          </span>
+                        </span>
+                        <span style={isDesktop ? col(95, { textAlign: 'center' }) : { marginTop: 2 }}>
                           <span
                             style={{
                               fontSize: 12,
@@ -236,6 +288,44 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                               <Dato label="Qué pasó" valor={g.descripcion} />
                             </div>
                           )}
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 8 }}>
+                              Marcar como
+                            </div>
+                            <div role="radiogroup" aria-label="Estado de la solicitud" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                              {ESTADOS.map((e) => {
+                                const activo = g.estado === e.key;
+                                return (
+                                  <button
+                                    key={e.key}
+                                    role="radio"
+                                    aria-checked={activo}
+                                    disabled={guardando === g.solicitud_id}
+                                    onClick={() => cambiarEstado(g, e.key)}
+                                    style={{
+                                      all: 'unset',
+                                      cursor: guardando === g.solicitud_id ? 'wait' : 'pointer',
+                                      padding: '7px 14px',
+                                      borderRadius: 'var(--radius-sm)',
+                                      fontSize: 13,
+                                      fontWeight: activo ? 700 : 500,
+                                      background: activo ? e.bg : 'var(--border)',
+                                      color: activo ? e.fg : 'var(--text-sub)',
+                                      opacity: guardando === g.solicitud_id ? 0.6 : 1,
+                                    }}
+                                  >
+                                    {activo ? '✓ ' : ''}
+                                    {e.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {errorGuardar && (
+                              <div role="alert" style={{ marginTop: 8, fontSize: 13, color: 'var(--status-critico-dot)' }}>
+                                {errorGuardar}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
