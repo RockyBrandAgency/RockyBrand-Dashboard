@@ -298,12 +298,16 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   inset: 0;
   z-index: 60;
   background: radial-gradient(96% 78% at 50% 50%, #0c1c31 0%, #060c15 56%, #04070e 100%);
-  overflow: hidden;
+  overflow-x: hidden;
+  /* En pantalla angosta el equipo pasa a una columna y 7 fichas completas no
+     entran en un viewport: la pantalla scrollea en vez de recortarlas. */
+  overflow-y: auto;
 }
 
 .brain-stage {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
 }
 
 .brain-canvas {
@@ -322,8 +326,12 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   align-items: center;
   gap: 9px;
   margin: 0;
-  padding: 7px 13px 7px 10px;
+  padding: 10px 14px 11px 11px;
   text-align: left;
+  /* La ficha completa va acá adentro, pegada al agente. El tope de ancho es lo
+     que hace que el anillo siga cerrando: sin él, "Chief Marketing Officer" +
+     la frase estiran la etiqueta hasta sacarla de pantalla. */
+  max-width: 232px;
   background: rgba(6, 13, 24, 0.74);
   border: 1px solid rgba(var(--brain-lit), 0.24);
   border-radius: 11px;
@@ -340,6 +348,8 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   height: 6px;
   border-radius: 50%;
   flex: none;
+  margin-top: 4px;
+  align-self: flex-start;
   background: rgb(var(--brain-lit));
   box-shadow: 0 0 8px rgba(var(--brain-lit), 0.8);
 }
@@ -365,6 +375,30 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   color: #7c92a9;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+/* El compromiso con la marca: va justo debajo del rol, siempre visible, en
+   todos los agentes. No aparece con el hover. */
+.brain-node-frase {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.38;
+  color: #b6c9dc;
+  white-space: normal;
+  text-wrap: pretty;
+}
+
+/* Su herramienta real. Antes vivía en una tarjeta abajo a la izquierda y solo
+   se veía al pasar el cursor - ahora está pegada a su agente. */
+.brain-node-toolkit {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(var(--brain-lit), 0.16);
+  font-size: 10px;
+  line-height: 1.35;
+  color: #7f93a8;
+  white-space: normal;
+  text-wrap: pretty;
 }
 
 .brain-node.is-lead {
@@ -394,52 +428,8 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   border-color: rgba(var(--brain-syn), 0.74);
 }
 
-.brain-readout {
-  position: absolute;
-  z-index: 5;
-  left: 22px;
-  bottom: 20px;
-  max-width: 310px;
-  padding: 13px 15px;
-  border: 1px solid rgba(var(--brain-lit), 0.24);
-  border-radius: 10px;
-  background: rgba(5, 11, 20, 0.9);
-  backdrop-filter: blur(6px);
-  opacity: 0;
-  transform: translateY(6px);
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.brain-readout.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.brain-ro-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-  margin: 0 0 3px;
-}
-
-.brain-ro-role {
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgb(var(--brain-lit));
-  margin: 0 0 7px;
-}
-
-.brain-ro-task {
-  font-size: 12.5px;
-  color: #93a8be;
-  margin: 0;
-  line-height: 1.5;
-}
-
 .brain-enter {
-  position: absolute;
+  position: fixed;
   right: clamp(18px, 2.4vw, 36px);
   bottom: clamp(18px, 2.4vw, 32px);
   z-index: 7;

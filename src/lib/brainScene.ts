@@ -15,6 +15,7 @@ export interface BrainAgent {
   name: string;
   role: string;
   tarea: string;
+  frase: string;
   /** 'in' = solo reporta hacia el núcleo (Rox, que escribe la directiva).
    *  'both' = lee y reporta (los otros 6). */
   dir: 'in' | 'both';
@@ -376,19 +377,6 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d')!;
 
-  const readout = document.createElement('div');
-  readout.className = 'brain-readout';
-  readout.setAttribute('role', 'status');
-  readout.setAttribute('aria-live', 'polite');
-  const roName = document.createElement('p');
-  roName.className = 'brain-ro-name';
-  const roRole = document.createElement('p');
-  roRole.className = 'brain-ro-role';
-  const roTask = document.createElement('p');
-  roTask.className = 'brain-ro-task';
-  readout.append(roName, roRole, roTask);
-  container.appendChild(readout);
-
   let logo: HTMLImageElement | null = null;
   let logoReady = false;
   if (opts.logoSrc) {
@@ -400,15 +388,12 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
   let hovered = -1;
   const nodes: NodeState[] = [];
 
+  // Sin tarjeta de detalle aparte: la ficha completa (rol, compromiso y
+  // herramienta) vive DENTRO de la etiqueta de cada agente, pegada a él. El
+  // hover solo la resalta; no revela información que estuviera escondida.
   const focusNode = (i: number) => {
     hovered = i;
     for (let k = 0; k < nodes.length; k++) nodes[k].el.classList.toggle('is-active', k === i);
-    if (i < 0) { readout.classList.remove('show'); return; }
-    const a = nodes[i].agent;
-    roName.textContent = a.name;
-    roRole.textContent = a.role;
-    roTask.textContent = a.tarea;
-    readout.classList.add('show');
   };
 
   opts.agents.forEach((agent, i) => {
@@ -426,9 +411,15 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
     const rl = document.createElement('span');
     rl.className = 'brain-node-role';
     rl.textContent = agent.role;
-    tx.append(nm, rl);
+    const fr = document.createElement('span');
+    fr.className = 'brain-node-frase';
+    fr.textContent = agent.frase;
+    const tk = document.createElement('span');
+    tk.className = 'brain-node-toolkit';
+    tk.textContent = agent.tarea;
+    tx.append(nm, rl, fr, tk);
     el.append(dot, tx);
-    el.setAttribute('aria-label', `${agent.name}, ${agent.role}. ${agent.tarea}`);
+    el.setAttribute('aria-label', `${agent.name}, ${agent.role}. ${agent.frase} ${agent.tarea}`);
     el.addEventListener('mouseenter', () => focusNode(i));
     el.addEventListener('mouseleave', () => focusNode(-1));
     el.addEventListener('focus', () => focusNode(i));
@@ -508,7 +499,13 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
   function layout() {
     const rect = container.getBoundingClientRect();
     W = Math.max(1, Math.round(rect.width));
-    H = Math.max(1, Math.round(rect.height));
+    // La altura del VIEWPORT, no la del contenedor. En modo lista el contenedor
+    // crece para que quepan las fichas, y si el layout se calculara con esa
+    // altura crecida el ResizeObserver volveria a dispararse con un valor mayor
+    // cada vez: la pantalla se inflaba sola (bug real, 900px -> 2210px en dos
+    // pasadas). Con el viewport como entrada, layout() es idempotente.
+    const viewH = Math.max(1, Math.round(container.parentElement?.clientHeight || window.innerHeight));
+    H = viewH;
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(W * DPR);
     canvas.height = Math.round(H * DPR);
@@ -527,6 +524,7 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
     listMode = ringRx < chipW * 0.9 || ringRx < 150;
 
     if (!listMode) {
+      container.style.removeProperty('height');
       S = Math.min(ringRx / 1.62, ringRy / 1.3, W * 0.32, H * 0.38);
       ringRx = Math.min(ringRx, S * 1.8);
       ringRy = Math.min(ringRy, S * 1.48);
@@ -550,7 +548,7 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
       // Pantalla angosta: el anillo no cabe con etiquetas de 2 líneas, así que
       // pasa a cerebro arriba + equipo en dos columnas abajo. Las conexiones se
       // siguen dibujando, solo cambia a dónde llegan.
-      const zone = H * 0.44;
+      const zone = viewH * 0.44;
       S = Math.min(W * 0.3, zone * 0.42);
       bcx = W / 2;
       bcy = zone * 0.52;
@@ -564,8 +562,19 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
       const cols = chipW * 2 + 28 <= W ? 2 : 1;
       const rows = Math.ceil(nodes.length / cols);
       const top = zone + 26;
-      // 64px reservados abajo: es donde vive el botón Entrar, y en una
-      // columna la última etiqueta le quedaba pegada al lado.
+      // Con la ficha completa, 7 agentes en una columna no entran en un
+      // viewport de teléfono. En vez de apretarlos hasta que se pisen, el
+      // contenedor crece a la altura que de verdad necesitan y la pantalla
+      // scrollea (.brain-screen tiene overflow-y:auto). 64px abajo para que la
+      // última ficha no quede debajo del botón Entrar, que es fixed.
+      const needed = Math.round(top + rows * (chipH + 22) + 64);
+      if (needed > viewH) {
+        H = needed;
+        container.style.height = `${H}px`;
+        canvas.height = Math.round(H * DPR);
+      } else {
+        container.style.removeProperty('height');
+      }
       const rowH = (H - top - 64) / rows;
       const half = chipW / 2 + 10;
       const colX = cols === 1
@@ -817,7 +826,6 @@ export function mountBrainScene(container: HTMLElement, opts: BrainSceneOptions)
     window.clearTimeout(resizeTimer);
     observer.disconnect();
     canvas.remove();
-    readout.remove();
     for (const nd of nodes) nd.el.remove();
   };
 }

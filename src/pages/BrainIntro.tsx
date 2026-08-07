@@ -36,6 +36,7 @@ export function BrainIntro({
       name: a.name,
       role: a.role,
       tarea: a.tarea,
+      frase: a.frase,
       dir: a.key === 'rox' ? 'in' : 'both',
       emphasis: a.key === 'rox',
     }));

@@ -30,7 +30,15 @@ export interface Agent {
   key: AgentKey;
   name: string;
   role: string;
+  /** Su herramienta real: con qué trabaja. Se muestra pegado al agente. */
   tarea: string;
+  /** Su compromiso con la marca, en primera persona. No es marketing: es
+   *  literal cómo funciona el sistema. Rox emite una directiva estratégica y
+   *  agent_core.mandato_de_rox se la inyecta a los otros 6 como contexto
+   *  OBLIGATORIO ("Estas directivas son obligatorias. Si tu output las
+   *  contradice, corrigelo."). Por eso Rox dice que los define y el resto dice
+   *  que los sigue - no son la misma frase porque no hacen lo mismo. */
+  frase: string;
 }
 
 // Rox va primero a propósito: es el único que no produce táctica. Emite la
@@ -43,42 +51,49 @@ export const AGENTS: Record<AgentKey, Agent> = {
     name: 'Rox',
     role: 'Chief Marketing Officer',
     tarea: 'Define el norte de la marca y la directiva que siguen los demás',
+    frase: 'Yo defino los objetivos de la marca, y el resto del equipo trabaja alineado a ellos.',
   },
   content_strategist: {
     key: 'content_strategist',
     name: 'Dave',
     role: 'Content & Social Strategist',
     tarea: 'Arma el calendario de contenido',
+    frase: 'Todo lo que planifico va en línea con los objetivos de la marca.',
   },
   art_director: {
     key: 'art_director',
     name: 'Jimi',
     role: 'Art Director',
     tarea: 'Dirige el arte con el inventario real de fotos',
+    frase: 'Todo lo que diseño va en línea con los objetivos de la marca.',
   },
   analytics: {
     key: 'analytics',
     name: 'Neil',
     role: 'Performance & Data Analytics',
     tarea: 'Reporta el rendimiento de redes y YouTube',
+    frase: 'Todo lo que mido va en línea con los objetivos de la marca.',
   },
   seo_geo_aeo: {
     key: 'seo_geo_aeo',
     name: 'Slash',
     role: 'SEO, GEO & AEO',
     tarea: 'Trabaja el posicionamiento con Search Console',
+    frase: 'Todo lo que posiciono va en línea con los objetivos de la marca.',
   },
   filmmaker: {
     key: 'filmmaker',
     name: 'Thelma',
     role: 'Filmmaker',
     tarea: 'Monta los videos con clips y voz',
+    frase: 'Todo lo que edito va en línea con los objetivos de la marca.',
   },
   research: {
     key: 'research',
     name: 'Cameron',
     role: 'Research',
     tarea: 'Busca insights de mercado en Reddit y RSS',
+    frase: 'Todo lo que investigo va en línea con los objetivos de la marca.',
   },
 };
 
