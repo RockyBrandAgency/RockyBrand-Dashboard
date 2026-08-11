@@ -31,10 +31,28 @@ export function AsyncState({
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (loading && !prevLoading.current) {
       if (contentRef.current && !reduced) {
-        gsap.to(contentRef.current, { opacity: 0, duration: 0.15, ease: 'power1.in', onComplete: () => setDisplaySkeleton(true) });
-      } else {
-        setDisplaySkeleton(true);
+        // El tween se GUARDA y se mata en el cleanup. Sin eso, una recarga
+        // que termina en menos de 150ms dejaba la pantalla en skeleton
+        // PARA SIEMPRE: loading volvía a false y la rama de abajo ponía
+        // displaySkeleton=false, pero el onComplete del tween todavía
+        // vivo lo volvía a poner en true y ya nadie lo bajaba (loading no
+        // vuelve a cambiar). Encontrado en vivo (2026-08-11) con
+        // Playwright en Housekeeping, al recargar el tablero después de
+        // marcar una habitación - pero le pasa a CUALQUIER pantalla de
+        // este panel que recargue rápido (guardar fechas de una reserva,
+        // Tienda, Email), no es propio de esa pantalla.
+        const tween = gsap.to(contentRef.current, {
+          opacity: 0,
+          duration: 0.15,
+          ease: 'power1.in',
+          onComplete: () => setDisplaySkeleton(true),
+        });
+        prevLoading.current = loading;
+        return () => {
+          tween.kill();
+        };
       }
+      setDisplaySkeleton(true);
     } else if (!loading) {
       setDisplaySkeleton(false);
     }
