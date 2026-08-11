@@ -11,6 +11,7 @@ import { getReservasResumen, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
 import { temporadaActualCff, CFF_CLIENT_ID } from '../../lib/temporadaCff';
+import { terminologiaPms } from '../../lib/terminologiaPms';
 import type { ReservaResumenItem } from '../../types';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -73,6 +74,10 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   const [page, setPage] = useState(0);
   const [detalle, setDetalle] = useState<ReservaResumenItem | null>(null);
   const [nuevaAbierta, setNuevaAbierta] = useState(false);
+  // Fecha con la que se abre "Nueva reserva" cuando el disparador fue un
+  // click en un día del calendario (2026-08-11, pedido de Mato). Vacía
+  // cuando se abre desde el botón de la cabecera.
+  const [fechaNueva, setFechaNueva] = useState<string | undefined>(undefined);
 
   // Temporada de pesca (12 oct - 30 abr), solo para chile-fly-fishing
   // (2026-08-06, pedido explícito de Mato: "el PMS debiera siempre
@@ -82,6 +87,16 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   // concepto distinto).
   const esCff = clientId === CFF_CLIENT_ID;
   const temporada = useMemo(() => (esCff ? temporadaActualCff(new Date()) : null), [esCff]);
+
+  // Terminología propia de cada cliente (2026-08-11, pedido explícito de
+  // Mato: "para el cliente chile fly fishing, SOLO para este cliente, la
+  // columna huésped se reemplaza por Angler, se quita la columna noches").
+  // La regla vive en un solo lugar (lib/terminologiaPms.ts) para que la
+  // tabla, los modales y el menú no puedan quedar diciendo cosas
+  // distintas.
+  const t = terminologiaPms(clientId);
+  const guestLabel = t.columnaPersona;
+  const mostrarNoches = t.mostrarNoches;
 
   const load = useCallback(() => {
     setLoading(true);
@@ -143,7 +158,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
         >
           <div>
             <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-              Reservas
+              Calendario de Reservas
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
               Administra y visualiza todas las estancias en {clientDisplayName ?? 'tu negocio'}.
@@ -152,7 +167,10 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCap}</div>}
             <button
-              onClick={() => setNuevaAbierta(true)}
+              onClick={() => {
+                setFechaNueva(undefined);
+                setNuevaAbierta(true);
+              }}
               style={{
                 all: 'unset',
                 display: 'flex',
@@ -171,17 +189,6 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
               Nueva reserva
             </button>
           </div>
-        </div>
-
-        <div style={{ marginBottom: 'var(--space-8)' }}>
-          <ReservationCalendar
-            reservas={reservas}
-            loading={loading}
-            error={error}
-            onRetry={load}
-            seasonStart={temporada?.inicio}
-            seasonEnd={temporada?.fin}
-          />
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>
@@ -203,8 +210,8 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                   <SearchIcon size={14} color="var(--text-faint)" />
                   <input
                     className="crm-search"
-                    placeholder="Buscar huésped…"
-                    aria-label="Buscar huésped"
+                    placeholder={`Buscar ${guestLabel.toLowerCase()}…`}
+                    aria-label={`Buscar ${guestLabel.toLowerCase()}`}
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
@@ -285,11 +292,11 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                         color: 'var(--text-sub)',
                       }}
                     >
-                      <span style={col(150)}>Huésped</span>
+                      <span style={col(150)}>{guestLabel}</span>
                       <span style={col(130)}>{pmsRoomViews ? 'Habitación' : 'Programa'}</span>
                       <span style={col(95)}>Check-in</span>
                       <span style={col(95)}>Check-out</span>
-                      <span style={col(70, { textAlign: 'center' })}>Noches</span>
+                      {mostrarNoches && <span style={col(70, { textAlign: 'center' })}>Noches</span>}
                       <span style={col(130)}>Origen</span>
                       <span style={col(95)}>N° vuelo</span>
                       <span style={col(105)}>Estado</span>
@@ -312,17 +319,37 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                           cursor: 'pointer',
                         }}
                       >
-                        <span style={isDesktop ? col(150, { fontWeight: 600, color: 'var(--text)', fontSize: 14 }) : { fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>
+                        <span
+                          title={isDesktop ? r.GuestName : undefined}
+                          style={
+                            isDesktop
+                              ? col(150, { fontWeight: 600, color: 'var(--text)', fontSize: 14, paddingRight: 8, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+                              : { fontWeight: 700, color: 'var(--text)', fontSize: 14 }
+                          }
+                        >
                           {r.GuestName}
                         </span>
-                        <span style={isDesktop ? col(130, { fontSize: 14, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
+                        {/* Ancho fijo + texto largo (ej. "Pesca con mosca 4
+                            días") se montaba encima de la columna Check-in:
+                            la celda no recortaba nada. El nombre completo
+                            queda en el title y en el detalle al hacer click. */}
+                        <span
+                          title={isDesktop ? r.RoomID : undefined}
+                          style={
+                            isDesktop
+                              ? col(130, { fontSize: 14, color: 'var(--text-sub)', paddingRight: 8, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+                              : { fontSize: 12, color: 'var(--text-muted)' }
+                          }
+                        >
                           {r.RoomID} {!isDesktop && `· ${fmtDate(r.CheckIn)} → ${fmtDate(r.CheckOut)}`}
                         </span>
                         {isDesktop && (
                           <>
                             <span style={col(95, { fontSize: 14, color: 'var(--text-sub)' })}>{fmtDate(r.CheckIn)}</span>
                             <span style={col(95, { fontSize: 14, color: 'var(--text-sub)' })}>{fmtDate(r.CheckOut)}</span>
-                            <span style={col(70, { fontSize: 14, color: 'var(--text-sub)', textAlign: 'center' })}>{nights(r.CheckIn, r.CheckOut)}</span>
+                            {mostrarNoches && (
+                              <span style={col(70, { fontSize: 14, color: 'var(--text-sub)', textAlign: 'center' })}>{nights(r.CheckIn, r.CheckOut)}</span>
+                            )}
                           </>
                         )}
                         <span style={isDesktop ? col(130) : { marginTop: 2 }}>
@@ -393,12 +420,36 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
             </>
           )}
         </AsyncState>
+
+        {/* El calendario va DESPUÉS de la tabla (2026-08-11, pedido de
+            Mato). Sigue el mes del filtro de arriba cuando hay uno
+            elegido; con "Todos los meses" navega por su cuenta. La
+            sincronización es en un solo sentido a propósito: moverse por
+            los meses del calendario no filtra la tabla, para que nadie
+            pierda filas de vista sin haberlo pedido. */}
+        <div style={{ marginTop: 'var(--space-8)' }}>
+          <ReservationCalendar
+            reservas={reservas}
+            loading={loading}
+            error={error}
+            onRetry={load}
+            seasonStart={temporada?.inicio}
+            seasonEnd={temporada?.fin}
+            focusMonth={month === 'ALL' ? undefined : month}
+            onDayClick={(fechaISO) => {
+              setFechaNueva(fechaISO);
+              setNuevaAbierta(true);
+            }}
+            onReservaClick={(r) => setDetalle(r)}
+          />
+        </div>
       </div>
 
       {detalle && (
         <BookingDetailModal
           reserva={detalle}
           roomViews={pmsRoomViews}
+          showNights={mostrarNoches}
           onClose={() => setDetalle(null)}
           onGuardado={() => {
             setDetalle(null);
@@ -411,9 +462,15 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
         <NewBookingModal
           reservas={reservas}
           roomViews={pmsRoomViews}
-          onClose={() => setNuevaAbierta(false)}
+          guestLabel={guestLabel}
+          checkInInicial={fechaNueva}
+          onClose={() => {
+            setNuevaAbierta(false);
+            setFechaNueva(undefined);
+          }}
           onCreado={() => {
             setNuevaAbierta(false);
+            setFechaNueva(undefined);
             load();
           }}
         />

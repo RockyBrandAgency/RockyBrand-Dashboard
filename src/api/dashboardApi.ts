@@ -8,6 +8,9 @@ import type {
   ReservasResumenResponse,
   NuevaReservaPayload,
   NuevoHuespedPayload,
+  HuespedesResponse,
+  HousekeepingResponse,
+  RoomState,
   MetricsReportResponse,
   EmailContact,
   EmailSegment,
@@ -128,6 +131,28 @@ export function crearReserva(payload: NuevaReservaPayload): Promise<{ BookingID:
 
 export function cancelarReserva(bookingId: string): Promise<{ BookingID: string; message: string }> {
   return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'DELETE');
+}
+
+// Lista real de huespedes/pescadores del cliente (pantalla propia del
+// PMS, 2026-08-11). Sale del mismo GSI1 que ya usa el panel de staff -
+// ver listar_huespedes() en crm_dashboard_api_lambda.py.
+export function getHuespedes(): Promise<HuespedesResponse> {
+  return request('/dashboard/huespedes');
+}
+
+// Housekeeping (2026-08-11, pedido explícito de Mato). Solo responde para
+// clientes con habitaciones (pms_room_views) - el gate real está en el
+// backend, la UI además esconde el acceso.
+export function getHousekeeping(fecha?: string): Promise<HousekeepingResponse> {
+  return request(`/dashboard/housekeeping${fecha ? `?fecha=${encodeURIComponent(fecha)}` : ''}`);
+}
+
+export function setRoomState(
+  roomId: string,
+  estado: RoomState,
+  nota?: string
+): Promise<{ RoomID: string; Estado: string; message: string }> {
+  return request('/dashboard/housekeeping', 'PUT', { RoomID: roomId, Estado: estado, Nota: nota ?? '' });
 }
 
 export function crearHuesped(payload: NuevoHuespedPayload): Promise<{ GuestID: string; message: string }> {

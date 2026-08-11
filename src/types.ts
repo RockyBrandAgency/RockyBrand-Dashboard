@@ -124,6 +124,51 @@ export interface MeResponse {
   pms_room_views: boolean;
 }
 
+// Huesped/pescador del PMS (GET /dashboard/huespedes, 2026-08-11 —
+// "Huespedes (para alto castillo), Pescadores para ChileFlyFishing").
+// El backend recorta el item de DynamoDB: IdentityDocument (pasaporte/RUT
+// del registro de pasajeros) NO viaja, esta pantalla no lo muestra.
+export interface HuespedItem {
+  GuestID: string;
+  FullName: string;
+  Contact: { Email?: string; WhatsApp?: string };
+  OriginCountry?: string | null;
+  VIP_Tags: string[];
+  DietaryRestrictions: string[];
+  MobilityNotes: string;
+  SpecialNotes: string;
+  TotalLTV: number;
+  UpdatedAt?: string | null;
+}
+
+// Tablero de limpieza del día (GET /dashboard/housekeeping, 2026-08-11).
+// Lo arma pms_frontdesk.tablero_housekeeping() en el backend, incluida la
+// prioridad: el orden no lo decide la UI, para que dos pantallas distintas
+// no ordenen la lista distinto.
+export type RoomState = 'CLEAN' | 'DIRTY' | 'INSPECTED' | 'OUT_OF_SERVICE';
+
+export interface HousekeepingHabitacion {
+  room_id: string;
+  estado: RoomState;
+  nota: string;
+  actualizado?: string | null;
+  ocupada_ahora: boolean;
+  huesped_actual?: string | null;
+  salida_hoy: boolean;
+  llegada_hoy: boolean;
+  /** 3 urgente · 2 hay que limpiarla hoy · 1 sucia sin apuro · 0 lista */
+  prioridad: number;
+}
+
+export interface HousekeepingResponse {
+  fecha: string;
+  habitaciones: HousekeepingHabitacion[];
+}
+
+export interface HuespedesResponse {
+  huespedes: HuespedItem[];
+}
+
 export interface ReservaResumenItem {
   BookingID: string;
   RoomID: string;

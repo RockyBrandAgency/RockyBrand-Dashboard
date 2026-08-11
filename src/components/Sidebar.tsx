@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
-import type { ClientServices, ServiceKey } from '../types';
-import { LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon, ShoppingBagIcon } from './icons/RockyIcons';
+import { labelNav } from '../lib/terminologiaPms';
+import type { ServiceKey } from '../types';
+import { LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon, ShoppingBagIcon, CalendarRangeIcon } from './icons/RockyIcons';
 
 // Icono por seccion de NAV_SECTIONS (screens.ts) - por label porque
 // NavSection.icon hoy es un emoji sin uso real en el desktop/tablet (solo
 // SERVICE_META.icon, otra lista, se usa para el rail/mobile). Agregar acá
 // cuando se sume una seccion nueva.
 const SECTION_ICON: Record<string, (size: number) => import('react').ReactElement> = {
+  PMS: (size) => <CalendarRangeIcon size={size} />,
   Tienda: (size) => <ShoppingBagIcon size={size} />,
   Métricas: (size) => <ChartColumnIcon size={size} />,
 };
@@ -33,14 +35,11 @@ const SERVICE_META: Record<ServiceKey, { label: string }> = {
 // seccion completa arriba en NAV_SECTIONS (Inventario + Ventas) - listarla
 // tambien aca era una "Tienda" duplicada, no cliqueable, justo debajo de
 // la Tienda real y cliqueable. Encontrado en vivo (captura real de Mato).
-const SERVICE_ORDER: ServiceKey[] = ['pms', 'email_marketing', 'content_approval', 'agents', 'crm'];
-
-// Visible si CUALQUIERA de los servicios del item está contratado.
-// clientServices null (cargando) -> visible, mismo criterio de "nunca
-// esconder por un falso negativo" de todo el panel.
-function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
-  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
-}
+// 'pms' sale de esta lista por el mismo motivo que 'store' (2026-08-11):
+// desde que tiene sus dos accesos propios en NAV_SECTIONS, listarlo
+// tambien aca dejaba un "PMS" duplicado y no clickeable debajo del PMS
+// real.
+const SERVICE_ORDER: ServiceKey[] = ['email_marketing', 'content_approval', 'agents', 'crm'];
 
 const activeTint = 'color-mix(in srgb, var(--primary) 8%, transparent)';
 
@@ -55,18 +54,18 @@ export function Sidebar({
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight } = useAuth();
-  const showOverview = isVisible(OVERVIEW, clientServices);
+  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews } = useAuth();
+  const showOverview = isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => isVisible(item, clientServices)),
+    items: section.items.filter((item) => isNavLeafVisible(item, clientServices, pmsRoomViews)),
   })).filter((section) => section.items.length > 0);
   const contractedServices = clientServices ? SERVICE_ORDER.filter((key) => clientServices[key]) : [];
 
   // Estado de apertura POR SECCION - antes era un solo booleano compartido,
   // inofensivo mientras hubo una sola seccion (Metricas). Al sumar Tienda
   // (2026-08-05) abrir una abria/resaltaba las dos a la vez. El inicializador
-  // lazy corre una sola vez al montar, pero como isVisible() muestra todo
+  // lazy corre una sola vez al montar, pero como isNavLeafVisible() muestra todo
   // mientras clientServices == null (carga), visibleSections ya trae todas
   // las secciones reales en ese primer render - ninguna queda sin entrada.
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
@@ -198,7 +197,7 @@ export function Sidebar({
                         cursor: 'pointer',
                       }}
                     >
-                      {item.label}
+                      {labelNav(item, clientId)}
                     </button>
                   );
                 })}

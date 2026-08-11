@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
+import { labelNav } from '../lib/terminologiaPms';
 import { HomeIcon, ChartColumnIcon, BellIcon } from './icons/RockyIcons';
 import { ClientLogo } from './ClientLogo';
-import type { ClientServices, ServiceKey } from '../types';
-import type { NavLeaf } from '../screens';
+import type { ServiceKey } from '../types';
 
 const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
   agents: { label: 'Agentes de IA', icon: '◈' },
@@ -17,11 +17,10 @@ const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
   email_marketing: { label: 'Email Marketing', icon: '✉' },
   store: { label: 'Tienda', icon: '▤' },
 };
-const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'pms', 'crm', 'email_marketing', 'store'];
-
-function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
-  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
-}
+// Sin 'pms' desde 2026-08-11: dejo de tener una entrada unica en
+// SERVICE_ENTRY_SCREEN (ahora es una seccion con dos accesos), asi que
+// listarlo aca no agregaba nada.
+const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'crm', 'email_marketing', 'store'];
 
 // Rediseño 2026-08-03 contra Figma (frames "21 — Mobile: Overview" y
 // hermanos): el mockup muestra exactamente 4 tabs fijos (Inicio/Métricas/
@@ -42,16 +41,16 @@ export function MobileBar({
   screen: Screen;
   setScreen: (s: Screen) => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews } = useAuth();
 
   const bottomItems: { id: Screen; icon: ReactNode; label: string }[] = [];
-  if (isVisible(OVERVIEW, clientServices)) {
+  if (isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews)) {
     bottomItems.push({ id: OVERVIEW.id, icon: <HomeIcon size={18} />, label: OVERVIEW.shortLabel });
   }
   for (const section of NAV_SECTIONS) {
     for (const item of section.items) {
-      if (isVisible(item, clientServices)) {
-        bottomItems.push({ id: item.id, icon: <ChartColumnIcon size={18} />, label: item.shortLabel });
+      if (isNavLeafVisible(item, clientServices, pmsRoomViews)) {
+        bottomItems.push({ id: item.id, icon: <ChartColumnIcon size={18} />, label: labelNav(item, clientId, true) });
       }
     }
   }

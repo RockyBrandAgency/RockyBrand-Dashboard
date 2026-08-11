@@ -10,6 +10,8 @@ import { BrainIntro } from './pages/BrainIntro';
 import { Overview } from './pages/Overview';
 import { DetailScreen } from './pages/DetailScreen';
 import { ReservasResumen } from './pages/Reservas/ReservasResumen';
+import { HuespedesLista } from './pages/Reservas/HuespedesLista';
+import { Housekeeping } from './pages/Reservas/Housekeeping';
 import { RevisionContenido } from './pages/Contenido/RevisionContenido';
 import { EmailCampanas } from './pages/Servicios/EmailCampanas';
 import { MetricasResumen } from './pages/Metricas/MetricasResumen';
@@ -23,14 +25,10 @@ import { TiendaVentas } from './pages/Tienda/TiendaVentas';
 import { TiendaGarantias } from './pages/Tienda/TiendaGarantias';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, type NavLeaf, type Screen } from './screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type Screen } from './screens';
 import { CLIENT_ACCENT_ON_DARK } from './branding';
 import { agentsForClient } from './agents';
 import type { ClientServices } from './types';
-
-function isVisible(item: NavLeaf, clientServices: ClientServices | null): boolean {
-  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
-}
 
 function isServiceEntryVisible(screen: Screen, clientServices: ClientServices | null): boolean {
   if (!clientServices) return true;
@@ -46,21 +44,21 @@ function isServiceEntryVisible(screen: Screen, clientServices: ClientServices | 
 // ya no es visible para este cliente, hay que moverse a la primera que sí
 // lo sea, nunca dejarlo parado en una pantalla rota/vacía sin salida en
 // el sidebar.
-function isScreenVisible(screen: Screen, clientServices: ClientServices | null): boolean {
+function isScreenVisible(screen: Screen, clientServices: ClientServices | null, pmsRoomViews: boolean): boolean {
   if (screen === 'settings') return true;
-  if (screen === 'overview' || screen === 'llegadas-detalle') return isVisible(OVERVIEW, clientServices);
+  if (screen === 'overview' || screen === 'llegadas-detalle') return isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
   for (const section of NAV_SECTIONS) {
     const item = section.items.find((i) => i.id === screen);
-    if (item) return isVisible(item, clientServices);
+    if (item) return isNavLeafVisible(item, clientServices, pmsRoomViews);
   }
   if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas' || screen === 'servicio-contenido-revision') return isServiceEntryVisible(screen, clientServices);
   return true;
 }
 
-function firstVisibleScreen(clientServices: ClientServices | null): Screen | null {
-  if (isVisible(OVERVIEW, clientServices)) return OVERVIEW.id;
+function firstVisibleScreen(clientServices: ClientServices | null, pmsRoomViews: boolean): Screen | null {
+  if (isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews)) return OVERVIEW.id;
   for (const section of NAV_SECTIONS) {
-    const item = section.items.find((i) => isVisible(i, clientServices));
+    const item = section.items.find((i) => isNavLeafVisible(i, clientServices, pmsRoomViews));
     if (item) return item.id;
   }
   if (isServiceEntryVisible('servicio-pms-reservas', clientServices)) return 'servicio-pms-reservas';
@@ -77,10 +75,10 @@ function AuthenticatedShell() {
   // tablet de Figma. Lo único que cambia en tablet es el nav (rail
   // angosto en vez del Sidebar completo), no el contenido.
   const isDesktop = breakpoint !== 'mobile';
-  const { userEmail, logout, clientServices } = useAuth();
+  const { userEmail, logout, clientServices, pmsRoomViews } = useAuth();
   const anyNavVisible =
-    isVisible(OVERVIEW, clientServices) ||
-    NAV_SECTIONS.some((section) => section.items.some((item) => isVisible(item, clientServices))) ||
+    isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews) ||
+    NAV_SECTIONS.some((section) => section.items.some((item) => isNavLeafVisible(item, clientServices, pmsRoomViews))) ||
     isServiceEntryVisible('servicio-pms-reservas', clientServices) ||
     isServiceEntryVisible('servicio-email-campanas', clientServices);
   // clientServices ya cargó y este cliente no tiene ningún servicio de los
@@ -91,10 +89,10 @@ function AuthenticatedShell() {
 
   useEffect(() => {
     if (clientServices === null) return;
-    if (isScreenVisible(screen, clientServices)) return;
-    const fallback = firstVisibleScreen(clientServices);
+    if (isScreenVisible(screen, clientServices, pmsRoomViews)) return;
+    const fallback = firstVisibleScreen(clientServices, pmsRoomViews);
     if (fallback) setScreen(fallback);
-  }, [clientServices, screen]);
+  }, [clientServices, pmsRoomViews, screen]);
 
   return (
     <div style={{ display: 'flex', flexDirection: breakpoint === 'mobile' ? 'column' : 'row', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -131,6 +129,8 @@ function AuthenticatedShell() {
             {screen === 'metricas-seo' && <MetricasSeo isDesktop={isDesktop} />}
             {screen === 'metricas-tiktok' && <MetricasTiktok isDesktop={isDesktop} />}
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
+            {screen === 'servicio-pms-huespedes' && <HuespedesLista isDesktop={isDesktop} />}
+            {screen === 'servicio-pms-housekeeping' && <Housekeeping isDesktop={isDesktop} />}
             {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}
             {screen === 'servicio-contenido-revision' && <RevisionContenido isDesktop={isDesktop} />}
             {screen === 'tienda-inventario' && <TiendaInventario isDesktop={isDesktop} />}

@@ -1,4 +1,4 @@
-import type { ServiceKey } from './types';
+import type { ClientServices, ServiceKey } from './types';
 
 // Estructura de navegación 2026-08-01, pedido explícito de Mato (2 rondas
 // de mensajes, sintetizadas acá):
@@ -21,6 +21,8 @@ export type Screen =
   | 'metricas-seo'
   | 'metricas-tiktok'
   | 'servicio-pms-reservas'
+  | 'servicio-pms-huespedes'
+  | 'servicio-pms-housekeeping'
   | 'servicio-email-campanas'
   | 'servicio-contenido-revision'
   | 'tienda-inventario'
@@ -39,6 +41,28 @@ export interface NavLeaf {
   label: string;
   shortLabel: string;
   serviceKeys: ServiceKey[];
+  // Solo para clientes CON habitaciones (pms_room_views). Housekeeping es
+  // el primer item con esta condición: un cliente que vende programas
+  // guiados y no alojamiento (Chile Fly Fishing) no tiene habitaciones
+  // que limpiar. Mismo gate que ya usa /dashboard/disponibilidad.
+  requiereHabitaciones?: boolean;
+}
+
+// Visible si CUALQUIERA de los servicios del item está contratado.
+// clientServices null (cargando) -> visible, criterio "nunca esconder por
+// un falso negativo" de todo el panel; pmsRoomViews es true mientras
+// carga por el mismo motivo.
+//
+// Vivía copiada en App/Sidebar/SidebarRail/MobileBar (4 copias idénticas);
+// se centralizó acá al sumar requiereHabitaciones, para que una condición
+// nueva no haya que acordarse de replicarla en los 4 lados.
+export function isNavLeafVisible(
+  item: { serviceKeys: ServiceKey[]; requiereHabitaciones?: boolean },
+  clientServices: ClientServices | null,
+  pmsRoomViews = true,
+): boolean {
+  if (item.requiereHabitaciones && !pmsRoomViews) return false;
+  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
 }
 
 export const OVERVIEW: NavLeaf = {
@@ -55,6 +79,27 @@ export interface NavSection {
 }
 
 export const NAV_SECTIONS: NavSection[] = [
+  // PMS con varios accesos (2026-08-11, pedido explícito de Mato: "el PMS
+  // en el panel de cada cliente debe ser un servicio con varios accesos:
+  // Calendario de Reservas, Huespedes (para alto castillo), Pescadores
+  // para ChileFlyFishing"). Sube de una entrada suelta en "Servicios
+  // Contratados" a una sección propia con sus dos pantallas — mismo
+  // camino que ya había recorrido Tienda, y por eso mismo sale de
+  // SERVICE_ENTRY_SCREEN/SERVICE_ORDER: listarlo en los dos lados dejaba
+  // un "PMS" duplicado en el sidebar (pasó de verdad con Tienda, ver el
+  // comentario de SERVICE_ORDER en Sidebar.tsx).
+  //
+  // El label del segundo item lo resuelve labelNav() (lib/terminologiaPms.ts)
+  // según el cliente logueado; el de acá es el default.
+  {
+    label: 'PMS',
+    icon: '🛎️',
+    items: [
+      { id: 'servicio-pms-reservas', label: 'Calendario de Reservas', shortLabel: 'Reservas', serviceKeys: ['pms'] },
+      { id: 'servicio-pms-huespedes', label: 'Huéspedes', shortLabel: 'Huéspedes', serviceKeys: ['pms'] },
+      { id: 'servicio-pms-housekeeping', label: 'Housekeeping', shortLabel: 'Aseo', serviceKeys: ['pms'], requiereHabitaciones: true },
+    ],
+  },
   {
     label: 'Tienda',
     icon: '📦',
@@ -90,7 +135,9 @@ export const NAV_SECTIONS: NavSection[] = [
 // sidebar (informativo, ya contratado) pero sin entrar a ningún lado -
 // no existe contenido propio real para ellos todavía, no se inventa uno.
 export const SERVICE_ENTRY_SCREEN: Partial<Record<ServiceKey, Screen>> = {
-  pms: 'servicio-pms-reservas',
+  // 'pms' ya no está acá: pasó a ser una sección propia de NAV_SECTIONS
+  // con dos accesos (ver arriba), igual que Tienda. Dejarlo también acá
+  // duplicaba la entrada en el sidebar.
   email_marketing: 'servicio-email-campanas',
   // Aprobación de contenido de redes (2026-08-03). Entra como servicio
   // propio y no dentro de "Agentes de IA": es una capacidad que se

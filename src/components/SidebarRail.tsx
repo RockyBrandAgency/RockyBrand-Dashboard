@@ -1,8 +1,8 @@
 import { useState, type ReactElement } from 'react';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
-import type { ClientServices, ServiceKey } from '../types';
-import { LayoutGridIcon, ChartColumnIcon, ShoppingBagIcon, CalendarIcon, ImageIcon, MailIcon, SettingsIcon } from './icons/RockyIcons';
+import type { ServiceKey } from '../types';
+import { LayoutGridIcon, ChartColumnIcon, ShoppingBagIcon, CalendarIcon, CalendarRangeIcon, ImageIcon, MailIcon, SettingsIcon } from './icons/RockyIcons';
 import { ClientLogo } from './ClientLogo';
 import { Sidebar } from './Sidebar';
 
@@ -14,13 +14,10 @@ const SERVICE_ICON: Partial<Record<ServiceKey, (size: number) => ReactElement>> 
 
 // Icono por seccion de NAV_SECTIONS, mismo criterio que Sidebar.tsx.
 const SECTION_ICON: Record<string, (size: number) => ReactElement> = {
+  PMS: (size) => <CalendarRangeIcon size={size} />,
   Tienda: (size) => <ShoppingBagIcon size={size} />,
   Métricas: (size) => <ChartColumnIcon size={size} />,
 };
-
-function isVisible(item: { serviceKeys: ServiceKey[] }, clientServices: ClientServices | null): boolean {
-  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
-}
 
 // Nav-rail de 64px (Figma frame "25 — Tablet: Overview") - entre el ancho
 // mobile y el desktop (768-1023px) no existía NINGÚN layout propio antes:
@@ -35,17 +32,17 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, pmsRoomViews } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
-  const showOverview = isVisible(OVERVIEW, clientServices);
+  const showOverview = isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
   // Una entrada por SECCION (antes asumia que NAV_SECTIONS[0] era siempre
   // Metricas - real hasta que Tienda se sumo como primera seccion 2026-08-05
   // y quedo mostrando/ocultando el rail de Metricas segun el servicio de
   // Tienda). Cada seccion navega a su primer item visible, mismo criterio
   // que "entrar por la primera pantalla" que ya usa el resto del panel.
   const railSections = NAV_SECTIONS.map((section) => {
-    const firstVisible = section.items.find((i) => isVisible(i, clientServices));
+    const firstVisible = section.items.find((i) => isNavLeafVisible(i, clientServices, pmsRoomViews));
     return firstVisible ? { section, firstVisible } : null;
   }).filter((s) => s !== null);
   const serviceEntries = (Object.keys(SERVICE_ENTRY_SCREEN) as ServiceKey[]).filter(

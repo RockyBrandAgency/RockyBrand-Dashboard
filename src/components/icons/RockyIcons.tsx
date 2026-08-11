@@ -202,3 +202,13 @@ export function ImageIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }
     </svg>
   );
 }
+
+// "users" de lucide, escalado al viewBox 0 0 36 36 que usa todo este set
+// (los iconos de este panel son 24x24 de lucide multiplicados x1.5).
+export function UsersIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 31.5V28.5C24 26.9087 23.3679 25.3826 22.2426 24.2574C21.1174 23.1321 19.5913 22.5 18 22.5H9C7.4087 22.5 5.88258 23.1321 4.75736 24.2574C3.63214 25.3826 3 26.9087 3 28.5V31.5M31.5 31.5V28.5C31.499 27.1708 31.0566 25.8796 30.2422 24.8292C29.4278 23.7788 28.2876 23.0284 27 22.6950M22.5 4.6950C23.7909 5.0264 24.9346 5.7771 25.7513 6.8293C26.5679 7.8815 27.0111 9.1757 27.0111 10.5075C27.0111 11.8393 26.5679 13.1335 25.7513 14.1857C24.9346 15.2379 23.7909 15.9886 22.5 16.32M19.5 10.5C19.5 13.8137 16.8137 16.5 13.5 16.5C10.1863 16.5 7.5 13.8137 7.5 10.5C7.5 7.1863 10.1863 4.5 13.5 4.5C16.8137 4.5 19.5 7.1863 19.5 10.5Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
