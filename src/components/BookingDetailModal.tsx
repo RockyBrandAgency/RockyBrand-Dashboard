@@ -23,20 +23,40 @@ function nights(checkIn: string, checkOut: string): number {
 const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' };
 const fieldValue: React.CSSProperties = { fontSize: 14, color: 'var(--text)', marginTop: 4 };
 
+// Las notas llegan como texto libre desde el PMS/la web. Se parten por
+// salto de línea y por los separadores que la gente escribe a mano (·, ;,
+// viñetas tipeadas) para poder listarlas - 2026-08-11, pedido de Mato:
+// "las notas deben quedar en bullets, fácil de leer". Una nota de un solo
+// párrafo sigue siendo un bullet: el formato no cambia según el contenido,
+// así siempre se lee igual.
+function notasEnBullets(texto: string): string[] {
+  return texto
+    .split(/\r?\n|·|;/)
+    .map((n) => n.replace(/^\s*[-*•]\s*/, '').trim())
+    .filter(Boolean);
+}
+
 // Detalle real al hacer click en una reserva (2026-08-06, pedido explícito
 // de Mato) — quién es, contacto, fechas, y edición real de fechas. Este
 // panel no tenía ningún componente de modal propio (a diferencia de
 // 05-panel-web) - se arma inline, mismas convenciones de estilo que
 // ReservationCalendar.tsx/TiendaInventario.tsx (CSS vars, sin clases
 // compartidas).
+//
+// 2026-08-11 (pedido de Mato): fechas como "Llega:"/"Se va:" en dos líneas
+// con la etiqueta en negrita, notas en bullets, y "Modificar fechas" pasa
+// de ser un link chico en la cabecera de la sección a un botón secundario
+// real al final, junto a la acción destructiva.
 export function BookingDetailModal({
   reserva,
   roomViews,
+  showNights = true,
   onClose,
   onGuardado,
 }: {
   reserva: ReservaResumenItem;
   roomViews: boolean;
+  showNights?: boolean;
   onClose: () => void;
   onGuardado: () => void;
 }) {
@@ -167,17 +187,7 @@ export function BookingDetailModal({
         </div>
 
         <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-            <div style={fieldLabel}>Fechas</div>
-            {!editandoFechas && (
-              <button
-                onClick={() => setEditandoFechas(true)}
-                style={{ all: 'unset', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}
-              >
-                Modificar fechas
-              </button>
-            )}
-          </div>
+          <div style={{ ...fieldLabel, marginBottom: 'var(--space-4)' }}>Fechas</div>
 
           {editandoFechas ? (
             <div>
@@ -224,9 +234,16 @@ export function BookingDetailModal({
               </div>
             </div>
           ) : (
-            <div style={{ fontSize: 14, color: 'var(--text)' }}>
-              {fmtDate(reserva.CheckIn)} → {fmtDate(reserva.CheckOut)}
-              <span style={{ color: 'var(--text-sub)' }}> · {nights(reserva.CheckIn, reserva.CheckOut)} noches</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, color: 'var(--text)' }}>
+              <div>
+                <strong style={{ fontWeight: 700 }}>Llega:</strong> {fmtDate(reserva.CheckIn)}
+              </div>
+              <div>
+                <strong style={{ fontWeight: 700 }}>Se va:</strong> {fmtDate(reserva.CheckOut)}
+              </div>
+              {showNights && (
+                <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{nights(reserva.CheckIn, reserva.CheckOut)} noches</div>
+              )}
             </div>
           )}
         </div>
@@ -234,20 +251,47 @@ export function BookingDetailModal({
         {reserva.BookingNotes && (
           <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)' }}>
             <div style={fieldLabel}>Notas</div>
-            <div style={{ ...fieldValue, whiteSpace: 'pre-wrap' }}>{reserva.BookingNotes}</div>
+            <ul style={{ ...fieldValue, margin: '8px 0 0', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.5 }}>
+              {notasEnBullets(reserva.BookingNotes).map((n, i) => (
+                <li key={i}>{n}</li>
+              ))}
+            </ul>
           </div>
         )}
 
-        {reserva.Status !== 'CANCELLED' && (
-          <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)' }}>
-            <button
-              onClick={() => void cancelar()}
-              disabled={cancelando}
-              style={{ all: 'unset', cursor: cancelando ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--status-critico-dot)' }}
-            >
-              {cancelando ? 'Cancelando…' : 'Cancelar reserva'}
+        {!editandoFechas && (
+          <div
+            style={{
+              borderTop: '1px solid var(--border-soft)',
+              marginTop: 'var(--space-6)',
+              paddingTop: 'var(--space-6)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 8,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <button className="crm-btn crm-btn-ghost" onClick={() => setEditandoFechas(true)}>
+              Modificar fechas
             </button>
+            {reserva.Status !== 'CANCELLED' && (
+              <button
+                onClick={() => void cancelar()}
+                disabled={cancelando}
+                style={{ all: 'unset', cursor: cancelando ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--status-critico-dot)', padding: '10px 4px' }}
+              >
+                {cancelando ? 'Cancelando…' : 'Cancelar reserva'}
+              </button>
+            )}
           </div>
+        )}
+
+        {/* El error de cancelar no vive dentro del bloque de edición de
+            fechas, así que sin esto una cancelación fallida no decía nada
+            (el botón volvía de "Cancelando…" a su estado normal y listo). */}
+        {!editandoFechas && error && (
+          <div style={{ fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 10 }}>{error}</div>
         )}
       </div>
     </div>

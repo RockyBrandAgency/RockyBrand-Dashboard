@@ -491,3 +491,38 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
     animation: none;
   }
 }
+
+/* ==========================================================================
+   Calendario de reservas (PMS)
+   ==========================================================================
+   2026-08-11 (pedido de Mato): cada día del calendario es un botón que abre
+   "nueva reserva" con esa fecha ya puesta, y cada fila del listado del mes
+   abre el detalle de esa reserva. El hover existe para que se note que son
+   clickeables: sin él, la celda se lee como una etiqueta de color y nadie
+   descubre la acción. El anillo de foco lo pone la regla global
+   :focus-visible, no hace falta repetirlo acá. */
+.cal-dia { transition: box-shadow 0.12s, transform 0.12s; }
+.cal-dia:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
+
+/* Todo el reset vive acá y no en un style inline: `all:unset` inline le gana
+   a cualquier regla de esta hoja (misma trampa ya documentada arriba en
+   :focus-visible), y se comía el padding y el hover de esta fila. */
+.cal-fila {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  margin: 0 -6px;
+  transition: background 0.12s;
+}
+.cal-fila:hover { background: var(--surface-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-dia { transition: none; }
+  .cal-dia:hover { transform: none; }
+}

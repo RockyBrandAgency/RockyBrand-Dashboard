@@ -24,14 +24,24 @@ const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 
 // ese exige elegir de una lista de huéspedes ya creados por separado -
 // acá no hay una pantalla de "Huéspedes" aparte, así que se agrega el
 // modo "huésped nuevo" inline en el mismo formulario.
+//
+// 2026-08-11 (pedido de Mato): `checkInInicial` llega cuando el modal se
+// abre desde un click en un día del calendario - solo precarga el
+// check-in, nunca el check-out: la duración es una decisión del negocio
+// (cada programa dura lo suyo) y adivinarla dejaría reservas con largo
+// inventado si alguien guarda sin mirar.
 export function NewBookingModal({
   reservas,
   roomViews,
+  guestLabel = 'Huésped',
+  checkInInicial,
   onClose,
   onCreado,
 }: {
   reservas: ReservaResumenItem[] | null;
   roomViews: boolean;
+  guestLabel?: string;
+  checkInInicial?: string;
   onClose: () => void;
   onCreado: () => void;
 }) {
@@ -53,7 +63,7 @@ export function NewBookingModal({
   const [originCountry, setOriginCountry] = useState('');
 
   const [roomId, setRoomId] = useState('');
-  const [checkIn, setCheckIn] = useState('');
+  const [checkIn, setCheckIn] = useState(checkInInicial ?? '');
   const [checkOut, setCheckOut] = useState('');
   const [partyMembers, setPartyMembers] = useState('2');
   const [currency, setCurrency] = useState('CLP');
@@ -144,7 +154,7 @@ export function NewBookingModal({
         </div>
 
         <div style={{ marginBottom: 'var(--space-5)' }}>
-          <div style={fieldLabel}>Huésped</div>
+          <div style={fieldLabel}>{guestLabel}</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 6, marginBottom: 8 }}>
             <button
               onClick={() => setHuespedNuevo(false)}
