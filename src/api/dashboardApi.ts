@@ -155,6 +155,15 @@ export function setRoomState(
   return request('/dashboard/housekeeping', 'PUT', { RoomID: roomId, Estado: estado, Nota: nota ?? '' });
 }
 
+// Fechas importantes del huésped (2026-08-11). Mandar '' borra la fecha;
+// no mandar el campo lo deja como está.
+export function actualizarHuesped(
+  guestId: string,
+  cambios: { BirthDate?: string; AnniversaryDate?: string }
+): Promise<{ GuestID: string; message: string }> {
+  return request(`/dashboard/huespedes/${encodeURIComponent(guestId)}`, 'PUT', cambios);
+}
+
 export function crearHuesped(payload: NuevoHuespedPayload): Promise<{ GuestID: string; message: string }> {
   return request('/dashboard/huespedes', 'POST', payload);
 }

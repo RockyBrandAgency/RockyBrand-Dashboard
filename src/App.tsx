@@ -12,6 +12,7 @@ import { DetailScreen } from './pages/DetailScreen';
 import { ReservasResumen } from './pages/Reservas/ReservasResumen';
 import { HuespedesLista } from './pages/Reservas/HuespedesLista';
 import { Housekeeping } from './pages/Reservas/Housekeeping';
+import { PmsResumen } from './pages/Reservas/PmsResumen';
 import { RevisionContenido } from './pages/Contenido/RevisionContenido';
 import { EmailCampanas } from './pages/Servicios/EmailCampanas';
 import { MetricasResumen } from './pages/Metricas/MetricasResumen';
@@ -128,6 +129,7 @@ function AuthenticatedShell() {
             {screen === 'metricas-youtube' && <MetricasYoutube isDesktop={isDesktop} />}
             {screen === 'metricas-seo' && <MetricasSeo isDesktop={isDesktop} />}
             {screen === 'metricas-tiktok' && <MetricasTiktok isDesktop={isDesktop} />}
+            {screen === 'servicio-pms-resumen' && <PmsResumen isDesktop={isDesktop} />}
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
             {screen === 'servicio-pms-huespedes' && <HuespedesLista isDesktop={isDesktop} />}
             {screen === 'servicio-pms-housekeeping' && <Housekeeping isDesktop={isDesktop} />}

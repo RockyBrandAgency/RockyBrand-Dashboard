@@ -138,6 +138,10 @@ export interface HuespedItem {
   MobilityNotes: string;
   SpecialNotes: string;
   TotalLTV: number;
+  /** ISO YYYY-MM-DD. Fecha operativa (no la del registro legal de
+   * pasajeros, que vive en IdentityDocument y no viaja a este panel). */
+  BirthDate?: string | null;
+  AnniversaryDate?: string | null;
   UpdatedAt?: string | null;
 }
 

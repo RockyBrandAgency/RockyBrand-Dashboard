@@ -20,6 +20,7 @@ export type Screen =
   | 'metricas-youtube'
   | 'metricas-seo'
   | 'metricas-tiktok'
+  | 'servicio-pms-resumen'
   | 'servicio-pms-reservas'
   | 'servicio-pms-huespedes'
   | 'servicio-pms-housekeeping'
@@ -95,6 +96,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'PMS',
     icon: '🛎️',
     items: [
+      { id: 'servicio-pms-resumen', label: 'Resumen', shortLabel: 'Resumen', serviceKeys: ['pms'] },
       { id: 'servicio-pms-reservas', label: 'Calendario de Reservas', shortLabel: 'Reservas', serviceKeys: ['pms'] },
       { id: 'servicio-pms-huespedes', label: 'Huéspedes', shortLabel: 'Huéspedes', serviceKeys: ['pms'] },
       { id: 'servicio-pms-housekeeping', label: 'Housekeeping', shortLabel: 'Aseo', serviceKeys: ['pms'], requiereHabitaciones: true },

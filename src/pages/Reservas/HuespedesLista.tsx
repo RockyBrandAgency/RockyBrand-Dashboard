@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { SearchIcon, UsersIcon } from '../../components/icons/RockyIcons';
-import { getHuespedes, getReservasResumen, UnauthorizedError } from '../../api/dashboardApi';
+import { getHuespedes, getReservasResumen, actualizarHuesped, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
@@ -12,6 +12,12 @@ const PAGE_SIZE = 20;
 function fmtDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function fmtDiaMes(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
 }
 
 const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' };
@@ -195,8 +201,9 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
                     >
                       <span style={col(190)}>{t.columnaPersona}</span>
                       <span style={col(220)}>Contacto</span>
-                      <span style={col(140)}>País</span>
-                      <span style={col(90, { textAlign: 'center' })}>Reservas</span>
+                      <span style={col(120)}>País</span>
+                      <span style={col(120)}>Fechas</span>
+                      <span style={col(80, { textAlign: 'center' })}>Reservas</span>
                       <span style={{ flex: 1, textAlign: 'right' }}>Próxima llegada</span>
                     </div>
                   )}
@@ -220,10 +227,21 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
                       <span style={isDesktop ? col(220, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
                         {f.Contact.Email || f.Contact.WhatsApp || '—'}
                       </span>
-                      <span style={isDesktop ? col(140, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
+                      <span style={isDesktop ? col(120, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
                         {f.OriginCountry || '—'}
                       </span>
-                      <span style={isDesktop ? col(90, { fontSize: 14, color: 'var(--text-sub)', textAlign: 'center' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
+                      <span style={isDesktop ? col(120, { fontSize: 12, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
+                        {f.BirthDate || f.AnniversaryDate ? (
+                          <>
+                            {f.BirthDate && <span title="Cumpleaños">🎂 {fmtDiaMes(f.BirthDate)}</span>}
+                            {f.BirthDate && f.AnniversaryDate && ' '}
+                            {f.AnniversaryDate && <span title="Aniversario">💛 {fmtDiaMes(f.AnniversaryDate)}</span>}
+                          </>
+                        ) : (
+                          <span style={{ color: 'var(--text-faint)' }}>—</span>
+                        )}
+                      </span>
+                      <span style={isDesktop ? col(80, { fontSize: 14, color: 'var(--text-sub)', textAlign: 'center' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
                         {isDesktop ? f.reservas.length : `${f.reservas.length} reserva${f.reservas.length === 1 ? '' : 's'}`}
                       </span>
                       <span
@@ -265,12 +283,42 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
         </AsyncState>
       </div>
 
-      {detalle && <DetalleHuesped fila={detalle} onClose={() => setDetalle(null)} />}
+      {detalle && (
+        <DetalleHuesped
+          fila={detalle}
+          onClose={() => setDetalle(null)}
+          onGuardado={() => {
+            setDetalle(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function DetalleHuesped({ fila, onClose }: { fila: FilaHuesped; onClose: () => void }) {
+function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onClose: () => void; onGuardado: () => void }) {
+  const { handleUnauthorized } = useAuth();
+  const [editando, setEditando] = useState(false);
+  const [birth, setBirth] = useState(fila.BirthDate ?? '');
+  const [anniv, setAnniv] = useState(fila.AnniversaryDate ?? '');
+  const [guardando, setGuardando] = useState(false);
+  const [errorFechas, setErrorFechas] = useState('');
+
+  async function guardarFechas() {
+    setGuardando(true);
+    setErrorFechas('');
+    try {
+      await actualizarHuesped(fila.GuestID, { BirthDate: birth, AnniversaryDate: anniv });
+      onGuardado();
+    } catch (e) {
+      if (e instanceof UnauthorizedError) return handleUnauthorized();
+      setErrorFechas(e instanceof Error ? e.message : 'No se pudieron guardar las fechas.');
+    } finally {
+      setGuardando(false);
+    }
+  }
+
   const notas = [
     ...fila.DietaryRestrictions.map((d) => `Alimentación: ${d}`),
     ...(fila.MobilityNotes ? [`Movilidad: ${fila.MobilityNotes}`] : []),
@@ -344,6 +392,71 @@ function DetalleHuesped({ fila, onClose }: { fila: FilaHuesped; onClose: () => v
             <div style={fieldLabel}>Reservas en el panel</div>
             <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 4 }}>{fila.reservas.length}</div>
           </div>
+        </div>
+
+
+        <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={fieldLabel}>Fechas importantes</div>
+            {!editando && (
+              <button className="crm-btn crm-btn-ghost crm-btn-sm" onClick={() => setEditando(true)}>
+                {fila.BirthDate || fila.AnniversaryDate ? 'Editar' : 'Agregar'}
+              </button>
+            )}
+          </div>
+
+          {editando ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
+                <div>
+                  <label style={fieldLabel} htmlFor="hu-birth">Cumpleaños</label>
+                  <input
+                    id="hu-birth"
+                    type="date"
+                    value={birth}
+                    onChange={(e) => setBirth(e.target.value)}
+                    style={{ width: '100%', marginTop: 4, fontSize: 14, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', boxSizing: 'border-box', fontFamily: 'inherit', background: 'var(--white)', color: 'var(--text)' }}
+                  />
+                </div>
+                <div>
+                  <label style={fieldLabel} htmlFor="hu-anniv">Aniversario</label>
+                  <input
+                    id="hu-anniv"
+                    type="date"
+                    value={anniv}
+                    onChange={(e) => setAnniv(e.target.value)}
+                    style={{ width: '100%', marginTop: 4, fontSize: 14, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', boxSizing: 'border-box', fontFamily: 'inherit', background: 'var(--white)', color: 'var(--text)' }}
+                  />
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8 }}>
+                El año queda guardado pero no se usa para avisar: cada año la fecha vuelve a aparecer sola en el
+                Resumen. Dejar el campo vacío borra la fecha.
+              </div>
+              {errorFechas && <div style={{ fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 8 }}>{errorFechas}</div>}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => void guardarFechas()} disabled={guardando}>
+                  {guardando ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button
+                  className="crm-btn crm-btn-ghost crm-btn-sm"
+                  onClick={() => {
+                    setEditando(false);
+                    setBirth(fila.BirthDate ?? '');
+                    setAnniv(fila.AnniversaryDate ?? '');
+                    setErrorFechas('');
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 8, fontSize: 14, color: 'var(--text)' }}>
+              <span>🎂 Cumpleaños: {fila.BirthDate ? fmtDate(fila.BirthDate) : <span style={{ color: 'var(--text-faint)' }}>sin cargar</span>}</span>
+              <span>💛 Aniversario: {fila.AnniversaryDate ? fmtDate(fila.AnniversaryDate) : <span style={{ color: 'var(--text-faint)' }}>sin cargar</span>}</span>
+            </div>
+          )}
         </div>
 
         {notas.length > 0 && (
