@@ -458,6 +458,13 @@ export interface SeoImpressionsPoint {
   impresiones: number;
 }
 
+// Posición promedio en Google a lo largo del tiempo. Menos es mejor: se
+// grafica con el eje invertido (LineChart, prop `menorEsMejor`).
+export interface SeoPosicionPoint {
+  fecha: string;
+  posicion: number;
+}
+
 export interface SeoMetrics {
   snapshots: SeoSnapshotPoint[];
   // Promedio ponderado por impresiones sobre TODAS las consultas del
@@ -470,6 +477,7 @@ export interface SeoMetrics {
   keyword_matrix: SeoKeywordRow[];
   clicks_snapshots: SeoClicksPoint[];
   impressions_snapshots: SeoImpressionsPoint[];
+  posicion_snapshots?: SeoPosicionPoint[];
   clics_organicos_actual: number | null;
 }
 

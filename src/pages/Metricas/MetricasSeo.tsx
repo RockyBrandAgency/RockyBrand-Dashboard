@@ -48,6 +48,10 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
       ['Consultas medidas', seo.keywords_contadas ?? null],
       ['Clics orgánicos (último dato)', seo.clics_organicos_actual],
       [],
+      ['Posición promedio en Google'],
+      ['Fecha', 'Posición'],
+      ...(seo.posicion_snapshots ?? []).map((s) => [s.fecha, s.posicion]),
+      [],
       ['Clics orgánicos'],
       ['Fecha', 'Clics'],
       ...seo.clicks_snapshots.map((s) => [s.fecha, s.clics]),
@@ -98,6 +102,24 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
                     },
                     { label: 'Clics orgánicos (último dato)', value: seo.clics_organicos_actual },
                   ]}
+                />
+              </div>
+
+              {/* La posición va sola y arriba: es la tendencia que dice si el
+                  SEO avanza. Clics e impresiones suben y bajan con la
+                  estacionalidad de la demanda aunque el sitio no se mueva. */}
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', boxShadow: 'var(--shadow-card)', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Posición promedio en Google</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>más arriba es mejor · el eje va invertido</div>
+                </div>
+                <LineChart
+                  points={(seo.posicion_snapshots ?? []).map((s) => ({ fecha: s.fecha, valor: s.posicion }))}
+                  color="#C4944E"
+                  height={150}
+                  menorEsMejor
+                  formatValue={(v) => `#${v.toFixed(1)}`}
+                  formatDate={formatDateShort}
                 />
               </div>
 

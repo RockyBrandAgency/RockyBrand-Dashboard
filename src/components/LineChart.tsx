@@ -1,30 +1,45 @@
-import { useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import gsap from 'gsap';
 
 interface TrendPoint {
   fecha: string;
   valor: number | null;
 }
 
-// Gráfico de línea SVG real (sin librería - mismo criterio que ya usa
-// 05-panel-web/TrendChart.tsx, versión simplificada sin GSAP para no
-// sumar una dependencia nueva a este app). Los nulls se saltan al armar
-// la línea (se conecta el punto real anterior con el siguiente), pero
-// SÍ cuentan para la posición en el eje X - un hueco se ve como tramo
-// más inclinado, nunca como un corte.
+// Gráfico de tendencia SVG (sin librería de charts). La línea se dibuja al
+// aparecer con GSAP (stroke-dashoffset), el área hace fade y el punto del
+// último dato entra con un pop; al mover el mouse, una guía vertical y un
+// punto siguen el dato real más cercano.
+//
+// Los nulls se saltan al armar la línea (se conecta el punto real anterior
+// con el siguiente), pero SÍ cuentan para la posición en el eje X - un
+// hueco se ve como tramo más inclinado, nunca como un corte.
+//
+// `menorEsMejor` invierte el eje Y. Es para la posición en Google: con el
+// eje normal, subir del puesto 30 al 5 se dibuja como una caída, que es
+// exactamente lo contrario de lo que pasó. Un gráfico que miente al revés
+// es peor que no tenerlo.
 export function LineChart({
   points,
   color,
   height = 120,
   formatValue = (v: number) => v.toLocaleString('es-CL'),
   formatDate,
+  menorEsMejor = false,
 }: {
   points: TrendPoint[];
   color: string;
   height?: number;
   formatValue?: (v: number) => string;
   formatDate?: (fecha: string) => string;
+  menorEsMejor?: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const pathRef = useRef<SVGPolylineElement>(null);
+  const areaRef = useRef<SVGPolygonElement>(null);
+  const lastDotRef = useRef<HTMLDivElement>(null);
+  const hoverDotRef = useRef<HTMLDivElement>(null);
+  const guideRef = useRef<SVGLineElement>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const W = 100;
   const H = height;
@@ -43,13 +58,83 @@ export function LineChart({
     const c = points.map((p, i) => {
       if (p.valor === null) return null;
       const x = points.length > 1 ? i * stepX : W / 2;
-      const y = H - ((p.valor - minV) / span) * (H - PAD_Y * 2) - PAD_Y;
+      const alto = (H - PAD_Y * 2);
+      // Sin invertir: el valor más alto queda arriba. Invertido: el más
+      // bajo queda arriba, porque "mejor" siempre tiene que ir hacia arriba.
+      const y = menorEsMejor
+        ? PAD_Y + ((p.valor - minV) / span) * alto
+        : H - ((p.valor - minV) / span) * alto - PAD_Y;
       return [x, y] as [number, number];
     });
     return { coords: c, min: minV, max: maxV };
-  }, [points, H]);
+  }, [points, H, menorEsMejor]);
 
   const realCoords = coords.filter((c): c is [number, number] => c !== null);
+  const hayLinea = realCoords.length > 1;
+
+  // Entrada: la línea se dibuja sola. Cada tween se guarda para matarlo en
+  // el cleanup - sin eso, StrictMode (que este app tiene activo) monta dos
+  // veces y quedan dos tweens peleando por el mismo nodo, y un desmontaje a
+  // mitad de animación deja el trazo cortado para siempre.
+  useEffect(() => {
+    const path = pathRef.current;
+    if (!path || !hayLinea) return;
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const largo = path.getTotalLength();
+    const tweens: gsap.core.Tween[] = [];
+
+    if (reducido) {
+      gsap.set(path, { strokeDasharray: 'none', strokeDashoffset: 0 });
+      if (areaRef.current) gsap.set(areaRef.current, { opacity: 1 });
+      if (lastDotRef.current) gsap.set(lastDotRef.current, { opacity: 1, scale: 1 });
+    } else {
+      gsap.set(path, { strokeDasharray: largo, strokeDashoffset: largo });
+      tweens.push(gsap.to(path, { strokeDashoffset: 0, duration: 1.1, ease: 'power2.out' }));
+      if (areaRef.current) {
+        tweens.push(gsap.fromTo(areaRef.current, { opacity: 0 }, { opacity: 1, duration: 0.8, delay: 0.3, ease: 'power1.out' }));
+      }
+      if (lastDotRef.current) {
+        tweens.push(gsap.fromTo(lastDotRef.current,
+          { opacity: 0, scale: 0.2 },
+          { opacity: 1, scale: 1, duration: 0.45, delay: 0.9, ease: 'back.out(2.2)' }));
+      }
+    }
+
+    return () => {
+      tweens.forEach((t) => t.kill());
+      // Deja el gráfico en su estado final, no a medio dibujar: si el
+      // componente se remonta (recarga de datos), lo que se ve un instante
+      // antes del próximo tween es el trazo completo.
+      gsap.set(path, { strokeDasharray: 'none', strokeDashoffset: 0 });
+      if (areaRef.current) gsap.set(areaRef.current, { opacity: 1 });
+      if (lastDotRef.current) gsap.set(lastDotRef.current, { opacity: 1, scale: 1 });
+    };
+  }, [hayLinea, realCount, menorEsMejor]);
+
+  // Hover: la guía y el punto viven siempre en el DOM con opacidad 0 y se
+  // mueven con GSAP. Montarlos y desmontarlos con React haría que salten
+  // de posición en vez de seguir al cursor.
+  useEffect(() => {
+    const dot = hoverDotRef.current;
+    const guide = guideRef.current;
+    if (!dot || !guide) return;
+    const tweens: gsap.core.Tween[] = [];
+    const coord = hoverIdx !== null ? coords[hoverIdx] : null;
+
+    if (!coord) {
+      tweens.push(gsap.to([dot, guide], { opacity: 0, duration: 0.15, overwrite: 'auto' }));
+    } else {
+      const [x, y] = coord;
+      tweens.push(gsap.to(dot, {
+        left: `${(x / W) * 100}%`, top: `${(y / H) * 100}%`,
+        opacity: 1, duration: 0.12, ease: 'power2.out', overwrite: 'auto',
+      }));
+      tweens.push(gsap.to(guide, {
+        attr: { x1: x, x2: x }, opacity: 1, duration: 0.12, ease: 'power2.out', overwrite: 'auto',
+      }));
+    }
+    return () => tweens.forEach((t) => t.kill());
+  }, [hoverIdx, coords, H]);
 
   if (!realCoords.length) {
     return (
@@ -75,22 +160,35 @@ export function LineChart({
     setHoverIdx(closest);
   };
 
-  const areaPoints =
-    realCoords.length > 1
-      ? `${realCoords[0][0]},${H} ${realCoords.map(([x, y]) => `${x},${y}`).join(' ')} ${realCoords[realCoords.length - 1][0]},${H}`
-      : '';
+  const areaPoints = hayLinea
+    ? `${realCoords[0][0]},${H} ${realCoords.map(([x, y]) => `${x},${y}`).join(' ')} ${realCoords[realCoords.length - 1][0]},${H}`
+    : '';
 
   const lastReal = realCoords[realCoords.length - 1];
   const hoverPoint = hoverIdx !== null ? points[hoverIdx] : null;
-  const hoverCoord = hoverIdx !== null ? coords[hoverIdx] : null;
-  const gradientId = `lc-${color.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const gradientId = `lc-${color.replace(/[^a-zA-Z0-9]/g, '')}${menorEsMejor ? '-inv' : ''}`;
+  // Arriba siempre va "mejor": el valor más alto, salvo en posición.
+  const etiquetaArriba = menorEsMejor ? min : max;
+  const etiquetaAbajo = menorEsMejor ? max : min;
+
+  const punto = (ref: React.RefObject<HTMLDivElement | null>, x: number, y: number, visible: boolean) => (
+    <div
+      ref={ref}
+      style={{
+        position: 'absolute', left: `${(x / W) * 100}%`, top: `${(y / H) * 100}%`,
+        width: 7, height: 7, borderRadius: '50%', background: color,
+        transform: 'translate(-50%,-50%)', border: '2px solid var(--white)',
+        opacity: visible ? 1 : 0, pointerEvents: 'none',
+      }}
+    />
+  );
 
   return (
     <div>
       <div style={{ display: 'flex', gap: 8 }}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', width: 44, flexShrink: 0, textAlign: 'right' }}>
-          <span>{formatValue(max)}</span>
-          <span>{formatValue(min)}</span>
+          <span>{formatValue(etiquetaArriba)}</span>
+          <span>{formatValue(etiquetaAbajo)}</span>
         </div>
         <div style={{ position: 'relative', flex: 1, height: H }}>
           <svg
@@ -107,10 +205,11 @@ export function LineChart({
                 <stop offset="100%" stopColor={color} stopOpacity="0" />
               </linearGradient>
             </defs>
-            {realCoords.length > 1 && (
+            {hayLinea && (
               <>
-                {areaPoints && <polygon points={areaPoints} fill={`url(#${gradientId})`} stroke="none" />}
+                {areaPoints && <polygon ref={areaRef} points={areaPoints} fill={`url(#${gradientId})`} stroke="none" />}
                 <polyline
+                  ref={pathRef}
                   points={realCoords.map(([x, y]) => `${x},${y}`).join(' ')}
                   fill="none"
                   stroke={color}
@@ -121,14 +220,15 @@ export function LineChart({
                 />
               </>
             )}
-            {hoverCoord && (
-              <line x1={hoverCoord[0]} x2={hoverCoord[0]} y1={0} y2={H} stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-            )}
+            <line
+              ref={guideRef}
+              x1={0} x2={0} y1={0} y2={H}
+              stroke="var(--border)" strokeWidth={1}
+              vectorEffect="non-scaling-stroke" opacity={0}
+            />
           </svg>
-          <div style={{ position: 'absolute', left: `${(lastReal[0] / W) * 100}%`, top: `${(lastReal[1] / H) * 100}%`, width: 7, height: 7, borderRadius: '50%', background: color, transform: 'translate(-50%,-50%)', border: '2px solid var(--white)' }} />
-          {hoverCoord && (
-            <div style={{ position: 'absolute', left: `${(hoverCoord[0] / W) * 100}%`, top: `${(hoverCoord[1] / H) * 100}%`, width: 7, height: 7, borderRadius: '50%', background: color, transform: 'translate(-50%,-50%)', border: '2px solid var(--white)' }} />
-          )}
+          {punto(lastDotRef, lastReal[0], lastReal[1], !hayLinea)}
+          {punto(hoverDotRef, 0, 0, false)}
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginLeft: 52, marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
