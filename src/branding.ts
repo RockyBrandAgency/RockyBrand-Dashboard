@@ -87,6 +87,21 @@ export const CLIENT_ACCENT_ON_DARK: Record<string, string> = {
   'chile-fly-fishing': '#006dc6',
 };
 
+// Clientes que entran DERECHO al panel: el login los deja en Overview, sin la
+// pantalla del cerebro.
+//
+// Es una lista aparte y no se resuelve borrando al cliente de
+// CLIENT_ACCENT_ON_DARK, aunque eso también lo sacaría de la pantalla: ese hex
+// es un dato de su manual de marca y sigue siendo cierto. Mezclar las dos
+// cosas deja una trampa para después - el día que alguien reponga el acento
+// porque lo necesita para otra cosa, la bienvenida vuelve a aparecer sin que
+// nadie la haya pedido.
+//
+// alto-castillo sale por decisión de Mato el 2026-08-12: Carolina y Adrián
+// prueban el circuito completo y la bienvenida les mete una pantalla que no
+// pidieron entre el login y lo que vienen a ver.
+export const CLIENTES_SIN_INTRO: ReadonlySet<string> = new Set(['alto-castillo']);
+
 // Aplica el theme del cliente sobre las custom properties de :root. Sin
 // client_id conocido, restaura los defaults neutros de RockyBrand
 // (index.css) - nunca se deja "pegado" el color de un cliente anterior ni

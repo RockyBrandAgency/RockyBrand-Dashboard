@@ -29,7 +29,7 @@ import { AgenciasReporte } from './pages/Agencias/AgenciasReporte';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type Screen } from './screens';
-import { CLIENT_ACCENT_ON_DARK } from './branding';
+import { CLIENT_ACCENT_ON_DARK, CLIENTES_SIN_INTRO, clientIdFromHostname } from './branding';
 import { agentsForClient } from './agents';
 import type { ClientServices } from './types';
 
@@ -178,14 +178,25 @@ function Root() {
   // una pantalla de bienvenida (pasó de verdad probando esto). Con optional
   // chaining, un payload raro simplemente no muestra la bienvenida.
   const servicesLoaded = clientServices !== null;
-  const canShowIntro = !!clientServices?.agents && agents.length > 0 && !!accent;
+  // Y además: que el cliente no esté en la lista de los que entran derecho
+  // (CLIENTES_SIN_INTRO en branding.ts, con el porqué de cada uno).
+  //
+  // Se mira el clientId real y, mientras /dashboard/me no responde, el
+  // subdominio - que es el mismo indicio que LoginScreen ya usa para pintar el
+  // theme antes del login. Sirve solo para saltarse la espera oscura de abajo:
+  // si el hostname dijera un cliente y el JWT otro, lo único que pasa es que la
+  // bienvenida aparece un instante tarde. Ninguna decisión de datos cuelga de
+  // acá; el aislamiento sigue saliendo del claim del JWT, nunca del hostname.
+  const sinIntro = CLIENTES_SIN_INTRO.has(clientId ?? clientIdFromHostname(window.location.hostname) ?? '');
+  const canShowIntro = !sinIntro && !!clientServices?.agents && agents.length > 0 && !!accent;
 
   // Mientras /dashboard/me carga todavía no se sabe si corresponde mostrarla.
   // En vez de mostrar el panel y que la bienvenida aparezca encima medio
   // segundo después, se espera con la misma superficie oscura sobre la que va a
   // dibujarse el cerebro: sin salto, y sin afirmar nada del cliente todavía.
+  // Para quien no la ve nunca, esa espera es una pantalla negra gratis.
   if (!isAuthenticated) return <LoginScreen sessionExpiredMessage={sessionExpiredMessage} />;
-  if (!introSeen && !servicesLoaded) return <div className="brain-screen" />;
+  if (!introSeen && !servicesLoaded && !sinIntro) return <div className="brain-screen" />;
   if (!introSeen && canShowIntro && accent) {
     return (
       <BrainIntro
