@@ -72,11 +72,20 @@ function toStoredSession(result: CognitoAuthResult, previousRefreshToken?: strin
   };
 }
 
+// El USERNAME de Cognito es sensible a mayusculas: "Info@..." con la I
+// grande responde UserNotFoundException, que aca se traduce a "Correo o
+// contraseña inválidos" - o sea el cliente ve el mismo mensaje que si se
+// hubiera equivocado de clave, con la credencial correcta escrita. Pasa
+// solo, sin que nadie haga nada raro: el teclado del telefono capitaliza la
+// primera letra, y el correo con las credenciales se copia y pega tal cual
+// venga escrito. Se normaliza aca y no en la pantalla para que cubra a
+// cualquier otro punto de entrada. Todas las cuentas del pool son correos
+// en minuscula, asi que bajar el caso no puede dejar a nadie afuera.
 export async function login(email: string, password: string): Promise<StoredSession> {
   const result = await cognitoRequest('InitiateAuth', {
     AuthFlow: 'USER_PASSWORD_AUTH',
     ClientId: COGNITO_CLIENT_ID,
-    AuthParameters: { USERNAME: email, PASSWORD: password },
+    AuthParameters: { USERNAME: email.trim().toLowerCase(), PASSWORD: password },
   });
   const session = toStoredSession(result);
   setStoredSession(session);
