@@ -431,14 +431,21 @@ export interface SeoSnapshotPoint {
   posicion: number | null;
 }
 
+// Una fila = una consulta real de Search Console del ultimo periodo
+// capturado (dashboard_metrics.keyword_matrix_desde_gsc). `clics` y `ctr`
+// solo existen en el camino nuevo: el respaldo, que se arma con el reporte
+// del modelo cuando no hay snapshot crudo, no los trae.
 export interface SeoKeywordRow {
   keyword: string | null;
   posicion_actual: number | null;
   posicion_anterior: number | null;
   delta: number | null;
   impresiones: number | null;
+  clics?: number | null;
+  ctr?: number | null;
   periodo: string | null;
   landing_page: string | null;
+  accion_recomendada?: string | null;
 }
 
 export interface SeoClicksPoint {
@@ -453,8 +460,13 @@ export interface SeoImpressionsPoint {
 
 export interface SeoMetrics {
   snapshots: SeoSnapshotPoint[];
+  // Promedio ponderado por impresiones sobre TODAS las consultas del
+  // periodo, no la posicion de la mejor keyword (que es lo que este campo
+  // traia hasta el 2026-08-12 bajo la misma etiqueta).
   posicion_actual: number | null;
   keyword: string | null;
+  posicion_periodo?: string | null;
+  keywords_contadas?: number | null;
   keyword_matrix: SeoKeywordRow[];
   clicks_snapshots: SeoClicksPoint[];
   impressions_snapshots: SeoImpressionsPoint[];

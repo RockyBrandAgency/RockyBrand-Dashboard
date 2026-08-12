@@ -135,7 +135,9 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
       ['Facebook', report?.facebook.seguidores_actuales ?? '', 'seguidores'],
       ['Instagram', report?.social.seguidores_actuales ?? '', 'seguidores'],
       ['Youtube', report?.youtube.suscriptores_actuales ?? '', 'suscriptores'],
-      ['SEO', report?.seo.posicion_actual ?? '', report?.seo.keyword ?? 'posición promedio'],
+      ['SEO', report?.seo.posicion_actual ?? '', report?.seo.posicion_periodo
+        ? `posición promedio · ${report.seo.posicion_periodo}`
+        : (report?.seo.keyword ?? 'posición promedio')],
     ];
     downloadCsv(`metricas-resumen-${days}d.csv`, rows);
   };
@@ -208,8 +210,10 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
                     icon={<GoogleIcon />}
                     iconBg="#ebf7ed"
                     label="SEO Orgánico"
-                    value={report.seo.posicion_actual !== null ? `Posición: #${report.seo.posicion_actual}` : '—'}
-                    sub={report.seo.keyword ?? null}
+                    value={report.seo.posicion_actual !== null ? `Posición promedio: ${report.seo.posicion_actual}` : '—'}
+                    sub={report.seo.posicion_periodo
+                      ? `${report.seo.keywords_contadas ?? 0} consultas · ${report.seo.posicion_periodo}`
+                      : (report.seo.keyword ?? null)}
                     onClick={() => onNavigate('metricas-seo')}
                   />
                   <ChannelCard
