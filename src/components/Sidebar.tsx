@@ -28,6 +28,7 @@ const SERVICE_META: Record<ServiceKey, { label: string }> = {
   email_marketing: { label: 'Email Marketing' },
   content_approval: { label: 'Revisión de Contenido' },
   store: { label: 'Tienda' },
+  agencias: { label: 'Agencias' },
 };
 // 'store' queda afuera a proposito: a diferencia de PMS/Email/Revision de
 // Contenido (que solo tienen esta entrada informativa o, si tienen pagina

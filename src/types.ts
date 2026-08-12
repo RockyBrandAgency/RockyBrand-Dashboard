@@ -106,7 +106,70 @@ export interface DisponibilidadResponse {
   nota?: string;
 }
 
-export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing' | 'content_approval' | 'store';
+export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing' | 'content_approval' | 'store' | 'agencias';
+
+// ---------------------------------------------------------------- agencias --
+// Portal B2B: agencias de viaje con tarifa negociada propia. Espejo de
+// `agencias.vista_para_panel()` en agencias_admin.py — si cambia allá,
+// cambia acá.
+
+export type AgenciaEstado = 'ACTIVA' | 'SUSPENDIDA';
+
+export interface AgenciaTemporada {
+  nombre: string;
+  desde: string;
+  hasta: string;
+  tarifas: Record<string, number>;
+  multiplicador: number | null;
+  min_noches: number | null;
+}
+
+export interface Agencia {
+  agency_id: string;
+  nombre: string;
+  moneda: 'CLP' | 'USD';
+  estado: AgenciaEstado;
+  min_noches: number;
+  // null = esta agencia no vende media pensión. Un 0 significaría que la
+  // regala, que es un error caro; el backend distingue los dos casos.
+  suplemento_media_pension: number | null;
+  tarifas: Record<string, number>;
+  temporadas: AgenciaTemporada[];
+  habitaciones: string[];
+  contacto: { nombre: string; email: string; telefono: string };
+  notas: string;
+  actualizado_en: string;
+}
+
+export interface AgenciaAcceso {
+  email: string;
+  // FORCE_CHANGE_PASSWORD = todavía no entró por primera vez.
+  estado: string;
+  habilitado: boolean;
+  creado_en: string;
+}
+
+export interface AgenciasResponse {
+  agencias: Agencia[];
+  habitaciones: string[];
+  monedas: string[];
+}
+
+export interface AgenciaFila {
+  agency_id: string;
+  nombre: string;
+  estado: string;
+  moneda: string;
+  reservas: number;
+  confirmadas: number;
+  canceladas: number;
+  noches: number;
+  monto_confirmado: number;
+  monto_pendiente: number;
+  ticket_promedio: number;
+  conversion_pct: number;
+  ultima_reserva: string;
+}
 
 export type ClientServices = Record<ServiceKey, boolean>;
 

@@ -32,6 +32,11 @@ import type {
   StoreOrder,
   StoreGarantia,
   StoreGarantiaEstado,
+  Agencia,
+  AgenciaAcceso,
+  AgenciaEstado,
+  AgenciaFila,
+  AgenciasResponse,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -360,4 +365,63 @@ export function actualizarTiendaGarantia(
   nota?: string,
 ): Promise<{ ok: boolean }> {
   return request('/dashboard/tienda/garantias', 'PUT', { solicitud_id, estado, nota });
+}
+
+// ------------------------------------------------------------- agencias --
+// Portal B2B. Este cliente NUNCA manda un precio ni un agency_id de sesión:
+// el precio lo calcula el servidor con la tarifa de la agencia y el
+// agency_id de una URL de administración va siempre acompañado del claim
+// del lodge, que es lo que acota qué agencias existen.
+
+export function getAgencias(): Promise<AgenciasResponse> {
+  return request('/dashboard/agencias');
+}
+
+export function getAgencia(agencyId: string): Promise<{ agencia: Agencia; accesos: AgenciaAcceso[] }> {
+  return request(`/dashboard/agencias/${encodeURIComponent(agencyId)}`);
+}
+
+export interface AgenciaPayload {
+  AgencyID?: string;
+  Nombre?: string;
+  Moneda?: 'CLP' | 'USD';
+  Estado?: AgenciaEstado;
+  Contacto?: { Nombre?: string; Email?: string; Telefono?: string };
+  MinNoches?: number;
+  SuplementoMediaPension?: number | null;
+  Notas?: string;
+  Tarifas?: Record<string, number>;
+}
+
+export function crearAgencia(payload: AgenciaPayload): Promise<{ agencia: Agencia }> {
+  return request('/dashboard/agencias', 'POST', payload);
+}
+
+// Mergea sobre lo guardado: lo que no se manda se conserva. No hace falta
+// reenviar la agencia entera para cambiar un precio.
+export function actualizarAgencia(agencyId: string, payload: AgenciaPayload): Promise<{ agencia: Agencia }> {
+  return request(`/dashboard/agencias/${encodeURIComponent(agencyId)}`, 'PUT', payload);
+}
+
+// La clave temporal viene UNA vez en esta respuesta y no se guarda en
+// ningún lado. Si se pierde, se resetea.
+export function crearAccesoAgencia(agencyId: string, email: string):
+  Promise<{ email: string; clave_temporal: string; aviso: string }> {
+  return request(`/dashboard/agencias/${encodeURIComponent(agencyId)}/acceso`, 'POST', { email });
+}
+
+export function gestionarAccesoAgencia(
+  agencyId: string,
+  email: string,
+  accion: 'resetear' | 'deshabilitar' | 'habilitar',
+): Promise<{ email: string; accion: string; clave_temporal?: string }> {
+  return request(`/dashboard/agencias/${encodeURIComponent(agencyId)}/acceso`, 'PUT', { email, accion });
+}
+
+export function getAgenciasReporte(desde?: string, hasta?: string): Promise<{ agencias: AgenciaFila[] }> {
+  const qs = new URLSearchParams();
+  if (desde) qs.set('desde', desde);
+  if (hasta) qs.set('hasta', hasta);
+  const cola = qs.toString();
+  return request(`/dashboard/agencias/reporte${cola ? `?${cola}` : ''}`);
 }

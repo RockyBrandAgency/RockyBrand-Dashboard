@@ -16,6 +16,7 @@ const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
   crm: { label: 'CRM', icon: '☎' },
   email_marketing: { label: 'Email Marketing', icon: '✉' },
   store: { label: 'Tienda', icon: '▤' },
+  agencias: { label: 'Agencias', icon: '⇄' },
 };
 // Sin 'pms' desde 2026-08-11: dejo de tener una entrada unica en
 // SERVICE_ENTRY_SCREEN (ahora es una seccion con dos accesos), asi que

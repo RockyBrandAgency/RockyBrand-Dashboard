@@ -29,6 +29,8 @@ export type Screen =
   | 'tienda-inventario'
   | 'tienda-ventas'
   | 'tienda-garantias'
+  | 'agencias-lista'
+  | 'agencias-reporte'
   | 'settings'
   | 'login';
 
@@ -109,6 +111,21 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: 'tienda-inventario', label: 'Inventario', shortLabel: 'Inventario', serviceKeys: ['store'] },
       { id: 'tienda-ventas', label: 'Ventas', shortLabel: 'Ventas', serviceKeys: ['store'] },
       { id: 'tienda-garantias', label: 'Garantías', shortLabel: 'Garantías', serviceKeys: ['store'] },
+    ],
+  },
+  // Agencias (2026-08-12). Portal B2B: agencias de viaje con tarifa
+  // negociada propia, usuario y clave, y un reporte de cuánto produce
+  // cada una. Sección propia y no un item dentro de PMS: el precio de
+  // agencia es un acuerdo comercial, no una función del calendario.
+  //
+  // serviceKeys 'agencias' con default FALSE en el backend: un lodge que
+  // no vende por agencias no ve esta sección.
+  {
+    label: 'Agencias',
+    icon: '🤝',
+    items: [
+      { id: 'agencias-lista', label: 'Agencias y tarifas', shortLabel: 'Agencias', serviceKeys: ['agencias'] },
+      { id: 'agencias-reporte', label: 'Producción', shortLabel: 'Producción', serviceKeys: ['agencias'] },
     ],
   },
   {
