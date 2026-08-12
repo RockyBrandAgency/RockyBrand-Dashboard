@@ -184,6 +184,33 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                   <div style={{ marginTop: 'var(--space-6)' }}>
                     <RoomGrid isDesktop={isDesktop} />
                   </div>
+
+                  {/* El calendario va ADEMAS de la grilla, no en su lugar
+                      (2026-08-12, pedido de Mato: "en el overview el
+                      calendario debe mostrar las fechas que están
+                      reservadas").
+
+                      Antes el calendario existia solo para los clientes
+                      SIN habitaciones: los que si las tienen veian la
+                      grilla, que responde "cómo está hoy cada pieza" pero
+                      no "qué días del mes están tomados". Son dos
+                      preguntas distintas y las dos se hacen al abrir el
+                      panel.
+
+                      No hace falta pedir datos nuevos: `loadReservas` ya
+                      corre siempre, justamente para no depender del orden
+                      en que llega `pmsRoomViews`. */}
+                  <div style={{ marginTop: 'var(--space-10)' }}>
+                    <SectionHead>Calendario de Reservas</SectionHead>
+                    <ReservationCalendar
+                      reservas={reservas}
+                      loading={reservasLoading}
+                      error={reservasError}
+                      onRetry={loadReservas}
+                      seasonStart={temporada?.inicio}
+                      seasonEnd={temporada?.fin}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div style={{ marginBottom: 'var(--space-10)' }}>
