@@ -567,9 +567,14 @@ export interface EmailCampaign {
   created_at: string;
   updated_at: string;
   sent_at: string;
+  scheduled_at?: string;
+  planificada_at?: string;
   segment?: EmailSegment;
   consent_type?: string;
   stats?: Record<string, number>;
+  // Solo cuando el cortacircuito frenó la campaña por tasa de rebote.
+  detenida_at?: string;
+  detenida_motivo?: string;
 }
 
 export interface EmailTemplate {
@@ -784,6 +789,9 @@ export interface CampaignRecipient {
   clicked_at?: string;
   clicked_links?: string[];
   bounced?: boolean;
+  // El backend ya lo devuelve; faltaba tiparlo. Una queja de spam no es lo
+  // mismo que un rebote y pesa mucho más en la reputación del dominio.
+  complained?: boolean;
 }
 
 export interface EmailCampaignDetalle {

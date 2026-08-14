@@ -130,11 +130,44 @@ export function tonoDe(s: Salud): 'ok' | 'alerta' | 'critico' | undefined {
   return s === 'sin-datos' ? undefined : s;
 }
 
+// El backend escribe todas sus fechas con `datetime.utcnow().isoformat()`, o
+// sea SIN zona: "2026-08-12T16:03:28.073686". `new Date()` interpreta un ISO
+// con hora y sin zona como hora LOCAL, así que en Chile (UTC-4) ese envío se
+// leía cuatro horas antes de cuando ocurrió. No fallaba, no avisaba: mostraba
+// una hora equivocada con total confianza. Acá se le agrega la Z que le falta.
+//
+// Una fecha SIN hora ("2026-08-14") es el caso contrario: el estándar la
+// interpreta como medianoche UTC, que en Chile cae el día anterior a las 20:00
+// y se muestra corrida un día. Por eso esa se parsea explícitamente como local.
+function parseFecha(iso: string): Date | null {
+  const soloFecha = /^\d{4}-\d{2}-\d{2}$/.exec(iso);
+  if (soloFecha) {
+    const [a, m, d] = iso.split('-').map(Number);
+    return new Date(a, m - 1, d);
+  }
+  const tieneZona = /(?:Z|[+-]\d{2}:?\d{2})$/.test(iso);
+  const d = new Date(tieneZona ? iso : `${iso}Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export function formatFecha(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  const d = parseFecha(iso);
+  if (!d) return iso;
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Con hora y minuto. En el detalle de una campaña el día no alcanza: todos los
+// destinatarios comparten el mismo, y lo que se quiere leer es cuánto tardó
+// cada persona en abrir o clickear.
+export function formatFechaHora(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = parseFecha(iso);
+  if (!d) return iso;
+  return d.toLocaleString('es-CL', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
 }
 
 // Mismas etiquetas que crmUtils.ts en el panel principal. Se repiten porque
@@ -159,5 +192,8 @@ export function estadoCampana(status: string): string {
     scheduled: 'Programada',
     failed: 'Falló',
     paused: 'Pausada',
+    // La frena el cortacircuito del motor de envío cuando la tasa de rebote
+    // pasa el umbral. No es "Falló": salió bien, se decidió no seguir.
+    detenida_por_rebotes: 'Detenida por rebotes',
   } as Record<string, string>)[status] || status;
 }
