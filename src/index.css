@@ -201,13 +201,20 @@ body,
 
 .crm-aud-layout{ display:grid; grid-template-columns:300px 1fr; gap:var(--space-7); align-items:start; }
 @media (max-width:900px){ .crm-aud-layout{ grid-template-columns:1fr; } }
-.crm-seg-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:var(--space-4) var(--space-5); font-size:13px; color:var(--text-sub); cursor:pointer; border-radius:var(--radius-sm); font-weight:500; }
+.crm-seg-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:var(--space-4) var(--space-5); font-size:11px; line-height:1; color:var(--text-sub); cursor:pointer; border-radius:var(--radius-sm); font-weight:500; }
 /* button.crm-seg-item: resetea el chrome nativo de <button> (borde, fondo,
    fuente, text-align, width) que .crm-seg-item de arriba no cubre - es un
    <button> real desde 2026-08-04 (antes era un <div onClick>, no
    alcanzable por teclado; hallazgo de auditoría). No usa all:unset:
-   pisaría el display:flex de la regla de arriba. */
-button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:none; font:inherit; text-align:left; }
+   pisaría el display:flex de la regla de arriba.
+
+   `font-family:inherit` y no `font:inherit`: el atajo `font` fija TAMBIÉN
+   font-size, line-height y font-weight, y esta regla es más específica que
+   la de arriba (0,1,1 contra 0,1,0). O sea que el `font-size` de
+   .crm-seg-item nunca se aplicó a estos botones: se veían al tamaño
+   heredado del body, no a los 13px que decía la hoja. Lo único que hace
+   falta resetear del <button> es la familia. */
+button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:none; font-family:inherit; text-align:left; }
 .crm-seg-item:hover{ background:var(--surface-2); }
 .crm-seg-item.active{ color:var(--primary); font-weight:600; background:color-mix(in srgb, var(--primary) 8%, transparent); }
 .crm-seg-count{ font-size:11px; font-weight:600; color:var(--text-sub); background:var(--surface-2); padding:2px 6px; border-radius:var(--radius-pill); }
