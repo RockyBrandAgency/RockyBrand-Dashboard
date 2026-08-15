@@ -577,10 +577,31 @@ export interface EmailCampaign {
   detenida_motivo?: string;
 }
 
+// Un texto editable de una plantilla. El molde (`html_source`) trae {{clave}}
+// donde va cada uno; ver 04-codigo/plantilla_campos.py.
+export interface EmailTemplateCampo {
+  clave: string;
+  etiqueta: string;
+  tipo: 'texto' | 'texto_largo' | 'url';
+  valor: string;
+  grupo?: string;
+  ayuda?: string;
+}
+
 export interface EmailTemplate {
   template_id: string;
   name: string;
+  // Asunto sugerido de la plantilla. La campaña puede pisarlo: el asunto que
+  // sale es el de la campaña, este es el punto de partida.
+  subject?: string;
   html_body?: string;
+  // Molde y campos: solo vienen en el detalle, nunca en el listado (pesan lo
+  // mismo que el html_body y la galería no los usa).
+  html_source?: string;
+  campos?: EmailTemplateCampo[];
+  // Derivado en el backend al listar: cuántos campos editables tiene.
+  campos_editables?: number;
+  tamano_bytes?: number;
   updated_at: string;
   tiene_unsubscribe: boolean;
 }

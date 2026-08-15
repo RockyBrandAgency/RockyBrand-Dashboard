@@ -67,6 +67,8 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   // en el panel principal es una ruta hija de campañas, y una pestaña extra
   // que solo tiene sentido con una campaña elegida sobra en la barra.
   const [detalleId, setDetalleId] = useState<string | null>(null);
+  // Plantilla con la que se llega a "Nueva campaña" desde la galería.
+  const [plantillaInicial, setPlantillaInicial] = useState<string | null>(null);
 
   const [contacts, setContacts] = useState<EmailContact[] | null>(null);
   const [contactsLoading, setContactsLoading] = useState(true);
@@ -103,6 +105,13 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
 
   const irANueva = (campaignId: string | null) => {
     setEditandoId(campaignId);
+    setPlantillaInicial(null);
+    setTab('nueva');
+  };
+
+  const irANuevaConPlantilla = (templateId: string) => {
+    setEditandoId(null);
+    setPlantillaInicial(templateId);
     setTab('nueva');
   };
 
@@ -136,8 +145,9 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
           {tab === 'nueva' && (
             <NuevaCampana
               campaignId={editandoId}
-              onGuardada={() => { setEditandoId(null); setTab('campanas'); }}
-              onCancelar={() => { setEditandoId(null); setTab('campanas'); }}
+              plantillaInicial={plantillaInicial}
+              onGuardada={() => { setEditandoId(null); setPlantillaInicial(null); setTab('campanas'); }}
+              onCancelar={() => { setEditandoId(null); setPlantillaInicial(null); setTab('campanas'); }}
             />
           )}
           {tab === 'audiencias' && (
@@ -150,7 +160,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
               onDelete={handleDeleteContact}
             />
           )}
-          {tab === 'templates' && <TemplatesEmail />}
+          {tab === 'templates' && <TemplatesEmail isDesktop={isDesktop} onUsarEnCampana={irANuevaConPlantilla} />}
           {tab === 'metricas' && <MetricasEmail />}
           {tab === 'automatizaciones' && <AutomatizacionesEmail />}
         </ErrorBoundary>

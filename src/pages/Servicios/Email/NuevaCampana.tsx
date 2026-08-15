@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import {
-  getEmailCampaign, saveEmailCampaign, getEmailTemplates, sendTestEmail,
+  getEmailCampaign, saveEmailCampaign, getEmailTemplates, getEmailTemplate, sendTestEmail,
   sendEmailNow, scheduleEmailCampaign, getEmailContacts, UnauthorizedError,
 } from '../../../api/dashboardApi';
 import type { EmailCampaign, EmailTemplate, EmailContact, EmailSegment } from '../../../types';
+import { htmlDeLaPlantilla } from '../../../lib/plantillaCampos';
 import { Card, Boton, Campo, Aviso } from './shared';
 import { SubjectField } from './SubjectField';
 import { ChevronDownIcon, SearchIcon } from '../../../components/icons/RockyIcons';
@@ -62,8 +63,10 @@ function SelectConChevron({ value, onChange, children }: { value: string; onChan
   );
 }
 
-export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
+export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCancelar }: {
   campaignId: string | null;
+  /** Plantilla con la que se llega desde la galería ("Enviar"). */
+  plantillaInicial?: string | null;
   onGuardada: () => void;
   onCancelar: () => void;
 }) {
@@ -76,6 +79,7 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
   const [avisoPrueba, setAvisoPrueba] = useState<string | null>(null);
   const [contactos, setContactos] = useState<EmailContact[]>([]);
   const [audiencia, setAudiencia] = useState('all');
+  const [cargandoPlantilla, setCargandoPlantilla] = useState(false);
   const [modoEnvio, setModoEnvio] = useState<'ahora' | 'programar'>('programar');
   const [fechaProgramada, setFechaProgramada] = useState('');
   const [horaProgramada, setHoraProgramada] = useState('');
@@ -109,7 +113,48 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
       .finally(() => setCargando(false));
   }, [campaignId, handleUnauthorized]);
 
+  // Elegir una plantilla trae SU CONTENIDO. Antes el select solo guardaba el
+  // template_id y dejaba el textarea vacío: la campaña salía con el id de la
+  // plantilla anotado y el cuerpo en blanco, o con lo que hubiera escrito
+  // antes. El HTML que de verdad se manda es este `html_body`, no la plantilla
+  // — send-email-campaign no lee la tabla de plantillas.
+  const aplicarPlantilla = async (templateId: string) => {
+    if (!templateId) { setCampana((c) => ({ ...c, template_id: '' })); return; }
+    setError(null);
+    setCargandoPlantilla(true);
+    try {
+      const { template } = await getEmailTemplate(templateId);
+      setCampana((c) => ({
+        ...c,
+        template_id: templateId,
+        html_body: htmlDeLaPlantilla(template),
+        // El asunto de la plantilla es una sugerencia: no pisa lo que ya
+        // haya escrito para esta campaña.
+        subject: c.subject?.trim() ? c.subject : (template.subject ?? ''),
+        name: c.name?.trim() ? c.name : template.name,
+      }));
+    } catch (e) {
+      if (e instanceof UnauthorizedError) return handleUnauthorized();
+      setError(e instanceof Error ? e.message : 'No se pudo cargar la plantilla.');
+    } finally {
+      setCargandoPlantilla(false);
+    }
+  };
+
+  // Llegada desde la galería de plantillas con el botón "Enviar".
+  const plantillaAplicada = useRef<string | null>(null);
+  useEffect(() => {
+    if (campaignId || !plantillaInicial) return;
+    if (plantillaAplicada.current === plantillaInicial) return;
+    plantillaAplicada.current = plantillaInicial;
+    void aplicarPlantilla(plantillaInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plantillaInicial, campaignId]);
+
   const programarPara = fechaProgramada && horaProgramada ? `${fechaProgramada}T${horaProgramada}` : '';
+  const sinEnlaceDeBaja = !!campana.html_body?.trim()
+    && !campana.html_body.includes('{{unsubscribe_link}}')
+    && !campana.html_body.includes('{{link_baja}}');
 
   async function ejecutar(accion: 'guardar' | 'programar' | 'enviar') {
     const alcance = opciones.find((o) => o.key === audiencia)?.cuantos ?? 0;
@@ -177,9 +222,11 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
 
         <Campo
           label="Plantilla"
-          hint={templates.length === 0 ? 'Todavía no hay plantillas guardadas. Puedes escribir el contenido directamente abajo.' : undefined}
+          hint={templates.length === 0
+            ? 'Todavía no hay plantillas guardadas. Puedes escribir el contenido directamente abajo.'
+            : cargandoPlantilla ? 'Cargando el contenido de la plantilla…' : 'Al elegirla se copia su contenido acá abajo. Editarlo no toca la plantilla.'}
         >
-          <SelectConChevron value={campana.template_id ?? ''} onChange={(v) => setCampana({ ...campana, template_id: v })}>
+          <SelectConChevron value={campana.template_id ?? ''} onChange={(v) => { void aplicarPlantilla(v); }}>
             <option value="">— Sin plantilla, contenido propio —</option>
             {templates.map((t) => <option key={t.template_id} value={t.template_id}>{t.name}</option>)}
           </SelectConChevron>
@@ -193,7 +240,20 @@ export function NuevaCampana({ campaignId, onGuardada, onCancelar }: {
           </SelectConChevron>
         </Campo>
 
-        <Campo label="Contenido (HTML)" hint="El enlace de baja se agrega automáticamente al enviar.">
+        {/* El motor NO agrega un enlace de baja: reemplaza el marcador
+            {{unsubscribe_link}} por el link firmado de cada contacto. Si el
+            marcador no está, el correo sale sin baja — y sin los encabezados
+            List-Unsubscribe que Gmail y Yahoo exigen a quien manda en volumen.
+            El aviso va acá, que es cuando todavía se puede arreglar. */}
+        {sinEnlaceDeBaja && (
+          <Aviso tono="alerta">
+            El contenido no tiene el marcador <code>{'{{unsubscribe_link}}'}</code>. El sistema no lo agrega
+            solo: si se envía así, el correo sale sin enlace de baja y sin los encabezados de
+            desuscripción de un clic.
+          </Aviso>
+        )}
+
+        <Campo label="Contenido (HTML)" hint="Donde va {{unsubscribe_link}} se pone el enlace de baja firmado de cada destinatario.">
           <textarea
             className="crm-input mono"
             style={{ minHeight: 200 }}
