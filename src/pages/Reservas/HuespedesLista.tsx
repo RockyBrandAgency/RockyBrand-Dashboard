@@ -5,6 +5,7 @@ import { SearchIcon, UsersIcon } from '../../components/icons/RockyIcons';
 import { getHuespedes, getReservasResumen, actualizarHuesped, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import { terminologiaPms } from '../../lib/terminologiaPms';
+import { telefonoDe, enlaceWhatsapp } from '../../lib/contactoHuesped';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
 
 const PAGE_SIZE = 20;
@@ -225,7 +226,7 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
                         {f.FullName}
                       </span>
                       <span style={isDesktop ? col(220, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
-                        {f.Contact.Email || f.Contact.WhatsApp || '—'}
+                        {f.Contact.Email || telefonoDe(f.Contact) || '—'}
                       </span>
                       <span style={isDesktop ? col(120, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
                         {f.OriginCountry || '—'}
@@ -382,7 +383,14 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
           </div>
           <div>
             <div style={fieldLabel}>WhatsApp</div>
-            <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 4 }}>{fila.Contact.WhatsApp || '—'}</div>
+            <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 4 }}>
+              {enlaceWhatsapp(fila.Contact) ? (
+                <a href={enlaceWhatsapp(fila.Contact)!} target="_blank" rel="noopener noreferrer"
+                   style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                  {telefonoDe(fila.Contact)}
+                </a>
+              ) : (telefonoDe(fila.Contact) || '—')}
+            </div>
           </div>
           <div>
             <div style={fieldLabel}>País de origen</div>

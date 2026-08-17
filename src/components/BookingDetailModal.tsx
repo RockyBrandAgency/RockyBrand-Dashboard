@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { actualizarReserva, cancelarReserva, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
+import { telefonoDe, enlaceWhatsapp } from '../lib/contactoHuesped';
 import type { ReservaResumenItem } from '../types';
 
 const STATUS_LABEL: Record<string, string> = { CONFIRMED: 'Confirmada', PENDING: 'Pendiente', CANCELLED: 'Cancelada' };
@@ -164,7 +165,14 @@ export function BookingDetailModal({
           </div>
           <div>
             <div style={fieldLabel}>WhatsApp</div>
-            <div style={fieldValue}>{contacto.WhatsApp || '—'}</div>
+            <div style={fieldValue}>
+              {enlaceWhatsapp(contacto) ? (
+                <a href={enlaceWhatsapp(contacto)!} target="_blank" rel="noopener noreferrer"
+                   style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                  {telefonoDe(contacto)}
+                </a>
+              ) : (telefonoDe(contacto) || '—')}
+            </div>
           </div>
           <div>
             <div style={fieldLabel}>País de origen</div>

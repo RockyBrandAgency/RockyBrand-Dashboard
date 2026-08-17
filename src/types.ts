@@ -194,7 +194,9 @@ export interface MeResponse {
 export interface HuespedItem {
   GuestID: string;
   FullName: string;
-  Contact: { Email?: string; WhatsApp?: string };
+  // `Phone` y no solo `WhatsApp`: el formulario de reservas de CFF escribe el
+  // teléfono bajo `Phone`. Leerlo con `telefonoDe()` de lib/contactoHuesped.
+  Contact: { Email?: string; WhatsApp?: string; Phone?: string };
   OriginCountry?: string | null;
   VIP_Tags: string[];
   DietaryRestrictions: string[];
@@ -247,7 +249,7 @@ export interface ReservaResumenItem {
   GuestName: string;
   // Vacío ({}) si el huésped no se encontró — nunca null. Agregado
   // 2026-08-06 (detalle al click, pedido explícito de Mato).
-  GuestContact?: { Email?: string; WhatsApp?: string };
+  GuestContact?: { Email?: string; WhatsApp?: string; Phone?: string };
   GuestOriginCountry?: string | null;
   PartyMembers?: number;
   BookingNotes?: string;
