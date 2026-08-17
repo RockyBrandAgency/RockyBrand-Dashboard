@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
-import { labelNav } from '../lib/terminologiaPms';
+import { labelNav, labelSeccion } from '../lib/terminologiaPms';
 import type { ServiceKey } from '../types';
 import { LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon, ShoppingBagIcon, CalendarRangeIcon } from './icons/RockyIcons';
 
@@ -163,7 +163,7 @@ export function Sidebar({
               }}
             >
               {(SECTION_ICON[section.label] ?? ((s: number) => <ChartColumnIcon size={s} />))(16)}
-              <span style={{ flex: 1, textAlign: 'left' }}>{section.label}</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>{labelSeccion(section, clientId)}</span>
               <span
                 style={{
                   display: 'inline-flex',

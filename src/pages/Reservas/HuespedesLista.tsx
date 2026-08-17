@@ -134,7 +134,7 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
             {t.navPersonas}
           </h1>
           <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
-            Todas las personas registradas en el PMS de {clientDisplayName ?? 'tu negocio'}.
+            Todas las personas registradas en el {t.navSeccion} de {clientDisplayName ?? 'tu negocio'}.
           </div>
         </div>
 

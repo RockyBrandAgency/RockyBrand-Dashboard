@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import type { ServiceKey } from '../types';
+import { labelSeccion } from '../lib/terminologiaPms';
 import { LayoutGridIcon, ChartColumnIcon, ShoppingBagIcon, CalendarIcon, CalendarRangeIcon, ImageIcon, MailIcon, SettingsIcon } from './icons/RockyIcons';
 import { ClientLogo } from './ClientLogo';
 import { Sidebar } from './Sidebar';
@@ -32,7 +33,7 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight, pmsRoomViews } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, pmsRoomViews, clientId } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
   const showOverview = isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
@@ -91,7 +92,7 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
               active={section.items.some((i) => i.id === screen)}
               onClick={() => setScreen(firstVisible.id)}
               visible
-              label={section.label}
+              label={labelSeccion(section, clientId)}
             >
               {(SECTION_ICON[section.label] ?? ((s: number) => <ChartColumnIcon size={s} />))(16)}
             </RailItem>
