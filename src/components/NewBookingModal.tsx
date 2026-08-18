@@ -127,13 +127,18 @@ export function NewBookingModal({
         padding: 16,
       }}
     >
+      {/* Mismo ancho minimo que las fichas de detalle (2026-08-18, pedido de
+          Mato): 900px, con min() para que en un celular se adapte en vez de
+          desbordar. Este modal se habia quedado en 560px cuando los otros dos
+          pasaron a 900 y se veia disparejo al lado de ellos. */}
       <div
         style={{
           background: 'var(--white)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-8)',
-          maxWidth: 560,
           width: '100%',
+          minWidth: 'min(900px, 100%)',
+          maxWidth: 960,
           maxHeight: '90vh',
           overflowY: 'auto',
           boxShadow: 'var(--shadow-card-hover)',
@@ -141,10 +146,26 @@ export function NewBookingModal({
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Nueva reserva</h2>
+          {/* Icon button de M3: 40x40 redondo, para que la capa de estado del
+              hover se recorte redonda y no como un cuadrado. */}
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            style={{ all: 'unset', cursor: 'pointer', fontSize: 22, color: 'var(--text-faint)', lineHeight: 1, padding: 4 }}
+            style={{
+              all: 'unset',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+              fontSize: 22,
+              color: 'var(--text-faint)',
+              lineHeight: 1,
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
             ×
           </button>
@@ -155,43 +176,32 @@ export function NewBookingModal({
 
         <div style={{ marginBottom: 'var(--space-5)' }}>
           <div style={fieldLabel}>{guestLabel}</div>
+          {/* Este par es literalmente el caso "active / inactive" de M3: el
+              elegido lleva el contenedor tonal y el label en color de marca,
+              el otro queda outlined. aria-pressed no es decorativo - es lo que
+              hace que un lector de pantalla diga cual de los dos esta puesto,
+              y ademas es el selector que pinta el estado en index.css. El
+              deshabilitado sale de :disabled, no de un opacity a mano. */}
           <div style={{ display: 'flex', gap: 8, marginTop: 6, marginBottom: 8 }}>
             <button
+              className={`crm-btn crm-btn-sm ${huespedNuevo ? 'crm-btn-ghost' : 'crm-btn-primary is-active'}`}
               onClick={() => setHuespedNuevo(false)}
               disabled={huespedes.length === 0}
-              style={{
-                all: 'unset',
-                cursor: huespedes.length ? 'pointer' : 'default',
-                opacity: huespedes.length ? 1 : 0.4,
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 13,
-                fontWeight: 600,
-                background: !huespedNuevo ? 'var(--primary)' : 'var(--surface-2)',
-                color: !huespedNuevo ? '#fff' : 'var(--text-sub)',
-              }}
+              aria-pressed={!huespedNuevo}
             >
               Ya registrado
             </button>
             <button
+              className={`crm-btn crm-btn-sm ${huespedNuevo ? 'crm-btn-primary is-active' : 'crm-btn-ghost'}`}
               onClick={() => setHuespedNuevo(true)}
-              style={{
-                all: 'unset',
-                cursor: 'pointer',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 13,
-                fontWeight: 600,
-                background: huespedNuevo ? 'var(--primary)' : 'var(--surface-2)',
-                color: huespedNuevo ? '#fff' : 'var(--text-sub)',
-              }}
+              aria-pressed={huespedNuevo}
             >
               Nuevo
             </button>
           </div>
 
           {huespedNuevo ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={fieldLabel}>Nombre completo</label>
                 <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} placeholder="Ej. Orlando Araneda" />
@@ -276,29 +286,17 @@ export function NewBookingModal({
         )}
         {error && <div style={{ fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 6 }}>{error}</div>}
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 'var(--space-6)' }}>
-          <button
-            onClick={() => void guardar()}
-            disabled={!puedeGuardar || guardando}
-            style={{
-              all: 'unset',
-              cursor: puedeGuardar && !guardando ? 'pointer' : 'default',
-              opacity: puedeGuardar ? 1 : 0.5,
-              background: 'var(--primary)',
-              color: '#fff',
-              borderRadius: 'var(--radius-sm)',
-              padding: '8px 16px',
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            {guardando ? 'Creando…' : 'Crear reserva'}
-          </button>
-          <button
-            onClick={onClose}
-            style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-sub)', fontSize: 13, fontWeight: 600, padding: '8px 16px' }}
-          >
+        {/* Pie de dialogo de M3: descarte primero, confirmacion al final y
+            contra el borde derecho. Los dos con .crm-btn, o sea el mismo alto
+            de 40px, asi que se alinean por construccion. El estado apagado del
+            boton sale de :disabled (contenedor 12% / label 38% de la spec), no
+            de un opacity inline que dejaba el texto blanco ilegible. */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 'var(--space-7)', paddingTop: 'var(--space-6)', borderTop: '1px solid var(--border-soft)', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <button className="crm-btn crm-btn-text" onClick={onClose}>
             Cancelar
+          </button>
+          <button className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={!puedeGuardar || guardando}>
+            {guardando ? 'Creando…' : 'Crear reserva'}
           </button>
         </div>
       </div>

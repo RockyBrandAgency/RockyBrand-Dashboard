@@ -166,26 +166,20 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCap}</div>}
+            {/* El CTA de la pantalla usa el mismo boton que el resto del
+                panel (2026-08-18): tenia estilo inline propio -8px 14px, 13px,
+                peso 700, radio chico- y quedaba mas bajo y mas cuadrado que
+                cualquier otro boton, sin alinearse con nada. .crm-btn le da
+                los 40px y la forma de M3. El icono va a 18px, que es la
+                medida que la spec fija para el icono de un boton. */}
             <button
+              className="crm-btn crm-btn-primary"
               onClick={() => {
                 setFechaNueva(undefined);
                 setNuevaAbierta(true);
               }}
-              style={{
-                all: 'unset',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                cursor: 'pointer',
-                background: 'var(--primary)',
-                color: '#fff',
-                borderRadius: 'var(--radius-sm)',
-                padding: '8px 14px',
-                fontSize: 13,
-                fontWeight: 700,
-              }}
             >
-              <PlusIcon size={13} color="#fff" />
+              <PlusIcon size={18} color="currentColor" />
               Nueva reserva
             </button>
           </div>

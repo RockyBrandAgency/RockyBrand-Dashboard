@@ -148,8 +148,9 @@ export function DiaItinerarioModal({
           background: 'var(--white)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-8)',
-          maxWidth: 560,
           width: '100%',
+          minWidth: 'min(900px, 100%)',
+          maxWidth: 960,
           maxHeight: '90vh',
           overflowY: 'auto',
           boxShadow: 'var(--shadow-card-hover)',
@@ -162,10 +163,26 @@ export function DiaItinerarioModal({
               {reserva.GuestName} · {reserva.RoomID}
             </div>
           </div>
+          {/* Icon button de M3: 40x40 redondo, para que la capa de estado del
+              hover se recorte redonda y no como un cuadrado. */}
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            style={{ all: 'unset', cursor: 'pointer', fontSize: 22, color: 'var(--text-faint)', lineHeight: 1, padding: 4 }}
+            style={{
+              all: 'unset',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+              fontSize: 22,
+              color: 'var(--text-faint)',
+              lineHeight: 1,
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
             ×
           </button>
@@ -287,30 +304,25 @@ export function DiaItinerarioModal({
             borderTop: '1px solid var(--border-soft)',
           }}
         >
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {/* Mismo pie de dialogo de M3 que las otras fichas: la destructiva
+              a la izquierda, las de avance a la derecha, y todas con .crm-btn
+              para que queden del mismo alto. "Vaciar el dia" era un boton
+              pelado con padding propio y rompia la linea. */}
+          {teniaAlgo ? (
+            <button className="crm-btn crm-btn-danger" onClick={() => void vaciar()} disabled={guardando || vaciando}>
+              {vaciando ? 'Vaciando…' : 'Vaciar el día'}
+            </button>
+          ) : (
+            <span />
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginLeft: 'auto' }}>
+            <button className="crm-btn crm-btn-text" onClick={onClose} disabled={guardando || vaciando}>
+              Cancelar
+            </button>
             <button className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando || vaciando}>
               {guardando ? 'Guardando…' : 'Guardar jornada'}
             </button>
-            <button className="crm-btn crm-btn-ghost" onClick={onClose} disabled={guardando || vaciando}>
-              Cancelar
-            </button>
           </div>
-          {teniaAlgo && (
-            <button
-              onClick={() => void vaciar()}
-              disabled={guardando || vaciando}
-              style={{
-                all: 'unset',
-                cursor: guardando || vaciando ? 'default' : 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--status-critico-dot)',
-                padding: '10px 4px',
-              }}
-            >
-              {vaciando ? 'Vaciando…' : 'Vaciar el día'}
-            </button>
-          )}
         </div>
 
         {dia.UpdatedAt && (
