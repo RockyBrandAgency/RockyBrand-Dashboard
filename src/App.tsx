@@ -13,6 +13,7 @@ import { ReservasResumen } from './pages/Reservas/ReservasResumen';
 import { HuespedesLista } from './pages/Reservas/HuespedesLista';
 import { Housekeeping } from './pages/Reservas/Housekeeping';
 import { PmsResumen } from './pages/Reservas/PmsResumen';
+import { Itinerarios } from './pages/Reservas/Itinerarios';
 import { RevisionContenido } from './pages/Contenido/RevisionContenido';
 import { EmailCampanas } from './pages/Servicios/EmailCampanas';
 import { MetricasResumen } from './pages/Metricas/MetricasResumen';
@@ -134,6 +135,7 @@ function AuthenticatedShell() {
             {screen === 'servicio-pms-resumen' && <PmsResumen isDesktop={isDesktop} />}
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
             {screen === 'servicio-pms-huespedes' && <HuespedesLista isDesktop={isDesktop} />}
+            {screen === 'servicio-pms-itinerarios' && <Itinerarios isDesktop={isDesktop} />}
             {screen === 'servicio-pms-housekeeping' && <Housekeeping isDesktop={isDesktop} />}
             {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}
             {screen === 'servicio-contenido-revision' && <RevisionContenido isDesktop={isDesktop} />}

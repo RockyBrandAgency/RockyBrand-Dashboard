@@ -23,6 +23,7 @@ export type Screen =
   | 'servicio-pms-resumen'
   | 'servicio-pms-reservas'
   | 'servicio-pms-huespedes'
+  | 'servicio-pms-itinerarios'
   | 'servicio-pms-housekeeping'
   | 'servicio-email-campanas'
   | 'servicio-contenido-revision'
@@ -101,6 +102,13 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: 'servicio-pms-resumen', label: 'Resumen', shortLabel: 'Resumen', serviceKeys: ['pms'] },
       { id: 'servicio-pms-reservas', label: 'Calendario de Reservas', shortLabel: 'Reservas', serviceKeys: ['pms'] },
       { id: 'servicio-pms-huespedes', label: 'Huéspedes', shortLabel: 'Huéspedes', serviceKeys: ['pms'] },
+      // Itinerarios (2026-08-17, pedido explícito de Mato): el plan y la
+      // bitácora de cada día de una expedición. Va DESPUÉS de personas y
+      // antes de Housekeeping: se llega desde una reserva, no desde el
+      // calendario. Sin `requiereHabitaciones` - un lodge con habitaciones
+      // también hace salidas guiadas, y quien no las haga simplemente no
+      // carga nada (la pantalla se explica sola con su estado vacío).
+      { id: 'servicio-pms-itinerarios', label: 'Itinerarios', shortLabel: 'Itinerarios', serviceKeys: ['pms'] },
       { id: 'servicio-pms-housekeeping', label: 'Housekeeping', shortLabel: 'Aseo', serviceKeys: ['pms'], requiereHabitaciones: true },
     ],
   },
