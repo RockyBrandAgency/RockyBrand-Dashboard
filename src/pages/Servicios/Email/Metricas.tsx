@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import gsap from 'gsap';
 import { AsyncState } from '../../../components/AsyncState';
 import { useAuth } from '../../../context/AuthContext';
 import { getEmailMetrics, getEmailInsights, getEmailContacts, UnauthorizedError } from '../../../api/dashboardApi';
@@ -8,7 +9,7 @@ import { Card, MiniDash, Vacio, Aviso, Tabla, formatTasa, formatFecha, saludRebo
 // El embudo: mismo componente que en el panel principal. Muestra la caída de
 // enviados → aperturas → clics en una sola mirada, que es lo que una tabla de
 // porcentajes no deja ver.
-function FilaEmbudo({ label, valor, max }: { label: string; valor: number; max: number }) {
+function FilaEmbudo({ label, valor, max, orden = 0 }: { label: string; valor: number; max: number; orden?: number }) {
   const pct = max ? (valor / max) * 100 : 0;
   const pctLabel = `${pct.toFixed(0)}%`;
   // Con la barra muy angosta el % no entra adentro (se corta) - en vez de
@@ -16,11 +17,41 @@ function FilaEmbudo({ label, valor, max }: { label: string; valor: number; max: 
   // 4.8% quedaba sin ningún número visible), se muestra afuera, a la
   // derecha de la barra, en texto oscuro.
   const cabeAdentro = pct >= 12;
+  const anchoFinal = `${Math.max(pct, 8)}%`;
+  const barraRef = useRef<HTMLDivElement>(null);
+
+  // La barra crece desde cero al aparecer (2026-08-18, pedido de Mato: usar
+  // GSAP para los gráficos de datos). El `orden` escalona las filas de arriba
+  // hacia abajo, que es la dirección en la que se lee un embudo: primero
+  // cuántos salieron, después cuántos abrieron, después cuántos clickearon.
+  //
+  // El tween se guarda y se mata en el cleanup, y el ancho final se deja
+  // puesto: sin eso, StrictMode (activo en este panel) monta dos veces y un
+  // desmontaje a mitad de animación dejaba la barra congelada a medio crecer
+  // - la misma trampa ya documentada en LineChart.tsx.
+  useEffect(() => {
+    const el = barraRef.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      gsap.set(el, { width: anchoFinal });
+      return;
+    }
+    const tween = gsap.fromTo(
+      el,
+      { width: '0%' },
+      { width: anchoFinal, duration: 0.85, delay: orden * 0.08, ease: 'power2.out' },
+    );
+    return () => {
+      tween.kill();
+      gsap.set(el, { width: anchoFinal });
+    };
+  }, [anchoFinal, orden]);
+
   return (
     <div className="crm-funnel-row">
       <span className="crm-funnel-label">{label}</span>
       <div className="crm-funnel-track">
-        <div className="crm-funnel-fill" style={{ width: `${Math.max(pct, 8)}%` }}>
+        <div ref={barraRef} className="crm-funnel-fill" style={{ width: anchoFinal }}>
           {cabeAdentro && <span className="crm-funnel-pct">{pctLabel}</span>}
         </div>
         {!cabeAdentro && <span className="crm-funnel-pct-outside">{pctLabel}</span>}
@@ -113,9 +144,9 @@ export function MetricasEmail() {
               <Vacio>Todavía no hay envíos que medir.</Vacio>
             ) : (
               <>
-                <FilaEmbudo label="Enviados" valor={datos.totales.enviados} max={datos.totales.enviados} />
-                <FilaEmbudo label="Aperturas" valor={datos.totales.aperturas} max={datos.totales.enviados} />
-                <FilaEmbudo label="Clics" valor={datos.totales.clics} max={datos.totales.enviados} />
+                <FilaEmbudo label="Enviados" valor={datos.totales.enviados} max={datos.totales.enviados} orden={0} />
+                <FilaEmbudo label="Aperturas" valor={datos.totales.aperturas} max={datos.totales.enviados} orden={1} />
+                <FilaEmbudo label="Clics" valor={datos.totales.clics} max={datos.totales.enviados} orden={2} />
               </>
             )}
           </Card>

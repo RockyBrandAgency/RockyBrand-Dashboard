@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState, useId } from 'react';
+import { useEffect, useMemo, useRef, useState, useId } from 'react';
+import gsap from 'gsap';
 import { scaleLinear, scaleTime } from 'd3-scale';
 import { line as d3line, area as d3area, curveMonotoneX } from 'd3-shape';
 import { extent, mean, bisector } from 'd3-array';
@@ -43,6 +44,9 @@ export function TrendChart({
 }: TrendChartProps) {
   const gradientId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const areaRef = useRef<SVGPathElement>(null);
+  const anotRef = useRef<SVGGElement>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const width = 640; // viewBox lógico - escala por CSS, no por JS
@@ -103,6 +107,64 @@ export function TrendChart({
   }, [points, previousPeriodPoints, innerW, innerH]);
 
   const bisectDate = useMemo(() => bisector<Date, Date>((d) => d).left, []);
+
+  // Entrada del gráfico con GSAP (2026-08-18, pedido de Mato: "utiliza GSAP
+  // o Remotion para los gráficos de los datos"). Remotion quedó descartado
+  // para esto en su momento y con él mismo (ver AnimatedStatBox.tsx): Remotion
+  // piensa en renderizar video, no en un widget que se redibuja solo cuando
+  // llegan datos nuevos.
+  //
+  // Reemplaza a la animación de @keyframes que tenía antes este archivo. No es
+  // cosmético: un @keyframes corre una sola vez al montar el nodo y no vuelve
+  // a dispararse cuando cambian los datos, así que al cambiar el rango de
+  // fechas la curva nueva aparecía de golpe. Con GSAP se re-anima con cada
+  // serie, y además se puede matar en el cleanup - que es lo que evita que un
+  // desmontaje a mitad de camino (o el doble montaje de StrictMode) deje el
+  // trazo cortado para siempre, la trampa ya documentada en LineChart.tsx.
+  //
+  // pathLength={1} en el <path> normaliza el largo del trazo a 1, así que el
+  // dash no depende del largo real de la curva y no hay que medirla.
+  useEffect(() => {
+    const path = pathRef.current;
+    if (!path || !pathD) return;
+    const area = areaRef.current;
+    const anotaciones = anotRef.current ? Array.from(anotRef.current.children) : [];
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const dejarEnFinal = () => {
+      gsap.set(path, { strokeDasharray: 'none', strokeDashoffset: 0 });
+      if (area) gsap.set(area, { opacity: 1 });
+      if (anotaciones.length) gsap.set(anotaciones, { opacity: 1 });
+    };
+
+    if (reducido) {
+      dejarEnFinal();
+      return;
+    }
+
+    const tweens: gsap.core.Tween[] = [];
+    gsap.set(path, { strokeDasharray: 1, strokeDashoffset: 1 });
+    tweens.push(gsap.to(path, { strokeDashoffset: 0, duration: 0.9, ease: 'power2.out' }));
+    if (area) {
+      tweens.push(gsap.fromTo(area, { opacity: 0 }, { opacity: 1, duration: 0.7, delay: 0.2, ease: 'power1.out' }));
+    }
+    if (anotaciones.length) {
+      // SOLO opacity, nunca scale ni transform. Esos <g> ya tienen un
+      // `transform={translate(...)}` que escribe React con la posición real
+      // del máximo y del mínimo; si GSAP también escribiera transform serían
+      // dos dueños de la misma propiedad y la etiqueta saltaría de lugar al
+      // llegar datos nuevos. Es el mismo bug que ya está documentado en
+      // index.css para las fichas de la pantalla del cerebro.
+      tweens.push(
+        gsap.fromTo(anotaciones, { opacity: 0 }, { opacity: 1, duration: 0.45, delay: 0.75, stagger: 0.1, ease: 'power2.out' }),
+      );
+    }
+
+    return () => {
+      tweens.forEach((t) => t.kill());
+      dejarEnFinal();
+    };
+  }, [pathD, areaD, prevPathD]);
 
   if (validPoints.length === 0) {
     return (
@@ -166,7 +228,7 @@ export function TrendChart({
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Línea de promedio, punteada y discreta */}
           {/* Área en degradado (fondo) */}
-          <path d={areaD} fill={`url(#${gradientId})`} />
+          <path ref={areaRef} d={areaD} fill={`url(#${gradientId})`} />
 
           {/* Línea de promedio, punteada y discreta - encima del área */}
           {avg !== null && yScale && (
@@ -178,10 +240,11 @@ export function TrendChart({
             <path d={prevPathD} fill="none" stroke="var(--text-muted)" strokeOpacity={0.3} strokeWidth={1.5} strokeDasharray="2,3" />
           )}
 
-          {/* Línea principal, con animación de dibujo */}
-          <path d={pathD} fill="none" stroke={color} strokeWidth={2.25} className="trend-chart-draw" pathLength={1} />
+          {/* Línea principal - el trazo se dibuja con GSAP (ver el useEffect) */}
+          <path ref={pathRef} d={pathD} fill="none" stroke={color} strokeWidth={2.25} pathLength={1} />
 
           {/* Anotaciones de máximo/mínimo */}
+          <g ref={anotRef}>
           {maxPoint && xScale && yScale && (
             <g transform={`translate(${xScale(new Date(`${maxPoint.fecha}T00:00:00`))},${yScale(maxPoint.valor)})`}>
               <circle r={3} fill={color} />
@@ -212,6 +275,7 @@ export function TrendChart({
               </text>
             </g>
           )}
+          </g>
 
           {/* Eje X - ticks reducidos en compact */}
           {xScale &&
@@ -265,19 +329,6 @@ export function TrendChart({
           </div>
         </div>
       )}
-
-      <style>{`
-        @media (prefers-reduced-motion: no-preference) {
-          .trend-chart-draw {
-            stroke-dasharray: 1;
-            stroke-dashoffset: 1;
-            animation: trend-chart-draw-in 900ms ease-out forwards;
-          }
-        }
-        @keyframes trend-chart-draw-in {
-          to { stroke-dashoffset: 0; }
-        }
-      `}</style>
     </div>
   );
 }
