@@ -262,9 +262,18 @@ body,
 
 /* "active" — el botón que representa el estado vigente (una pestaña de
    filtro elegida, un modo encendido). En M3 es el mismo contenedor tonal
-   pero con el label en el color primario y peso mayor, nunca una sombra. */
-.crm-btn.is-active,
-.crm-btn[aria-pressed="true"]{
+   pero con el label en el color primario y peso mayor, nunca una sombra.
+
+   Los :not() NO son decorativos. Esta regla va después de las variantes de
+   color, así que a igual especificidad le gana a todas — y un botón que YA
+   declara un color de estado propio (el verde de "Activo" en Tienda, el rojo
+   de una acción destructiva) perdía su color y se pintaba del tonal de marca
+   apenas se le ponía aria-pressed. Encontrado midiendo el DOM el 2026-08-18:
+   el botón de activar/desactivar producto salía verde-marca en vez del verde
+   de estado. Cuando el botón dice su color, ese color manda; "active" solo
+   pinta a los que no tienen uno. */
+.crm-btn.is-active:not(.crm-btn-success):not(.crm-btn-danger-filled):not(.crm-btn-danger),
+.crm-btn[aria-pressed="true"]:not(.crm-btn-success):not(.crm-btn-danger-filled):not(.crm-btn-danger){
   background:color-mix(in srgb, var(--primary) 16%, var(--white));
   color:var(--primary);
   border-color:transparent;
