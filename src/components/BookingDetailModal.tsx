@@ -202,13 +202,19 @@ export function BookingDetailModal({
         padding: 16,
       }}
     >
+      {/* Ancho mínimo 900px (2026-08-18, pedido explícito de Mato). El
+          `min(900px, 100%)` es la parte que evita que ese mínimo rompa la
+          pantalla en un celular: ahí el 100% del overlay es menor que 900 y
+          gana, así que la ficha se adapta en vez de desbordar y obligar a
+          scrollear de lado. */}
       <div
         style={{
           background: 'var(--white)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-8)',
-          maxWidth: 520,
           width: '100%',
+          minWidth: 'min(900px, 100%)',
+          maxWidth: 960,
           maxHeight: '90vh',
           overflowY: 'auto',
           boxShadow: 'var(--shadow-card-hover)',
@@ -221,16 +227,38 @@ export function BookingDetailModal({
               {STATUS_LABEL[reserva.Status] ?? reserva.Status}
             </span>
           </div>
+          {/* Icon button de M3: 40x40 y forma redonda. El redondeo no es
+              decorativo - la capa de estado del hover (buttonHoverGsap.ts) se
+              recorta con el border-radius del botón, y sin radio quedaba un
+              rectángulo duro alrededor de la ×. */}
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            style={{ all: 'unset', cursor: 'pointer', fontSize: 22, color: 'var(--text-faint)', lineHeight: 1, padding: 4 }}
+            style={{
+              all: 'unset',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+              fontSize: 22,
+              color: 'var(--text-faint)',
+              lineHeight: 1,
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
             ×
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+        {/* auto-fit y no '1fr 1fr': con la ficha en 900px, dos columnas
+            dejaban media pantalla en blanco y una lista larguísima de 8 filas.
+            Con minmax(200px,1fr) entran 4 columnas a ese ancho y vuelven a 2
+            (y a 1) cuando la ficha se angosta, sin un breakpoint a mano. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
           <div>
             <div style={fieldLabel}>Email</div>
             <div style={fieldValue}>{contacto.Email || '—'}</div>
@@ -345,24 +373,22 @@ export function BookingDetailModal({
                 </div>
               </div>
               {error && <div style={{ fontSize: 12, color: 'var(--status-critico-dot)', marginBottom: 10 }}>{error}</div>}
-              <div style={{ display: 'flex', gap: 8 }}>
+              {/* Mismas clases M3 que el resto: los dos botones quedan del
+                  mismo alto y alineados solos, sin padding a mano. */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => void guardarFechas()}
-                  disabled={guardando}
-                  style={{ all: 'unset', cursor: 'pointer', background: 'var(--primary)', color: '#fff', borderRadius: 'var(--radius-sm)', padding: '8px 16px', fontSize: 13, fontWeight: 700 }}
-                >
-                  {guardando ? 'Guardando…' : 'Guardar'}
-                </button>
-                <button
+                  className="crm-btn crm-btn-text"
                   onClick={() => {
                     setEditandoFechas(false);
                     setCheckIn(reserva.CheckIn);
                     setCheckOut(reserva.CheckOut);
                     setError('');
                   }}
-                  style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-sub)', fontSize: 13, fontWeight: 600, padding: '8px 16px' }}
                 >
                   Cancelar
+                </button>
+                <button className="crm-btn crm-btn-primary" onClick={() => void guardarFechas()} disabled={guardando}>
+                  {guardando ? 'Guardando…' : 'Guardar'}
                 </button>
               </div>
             </div>
@@ -392,67 +418,74 @@ export function BookingDetailModal({
           </div>
         )}
 
+        {/* Barra de acciones (2026-08-18, pedido de Mato: "los botones que
+            aparecerán abajo deben estar alineados"). Antes no lo estaban por
+            dos motivos que se arreglan acá: "Cancelar reserva" era un botón
+            pelado con padding propio (10px 4px) al lado de botones de otra
+            altura, y la casilla "No avisar al pescador" se metía EN la fila,
+            empujando de a un botón según su largo.
+
+            Ahora es la disposición de un diálogo de Material 3: la acción
+            destructiva a la izquierda, las de avance a la derecha, todas con
+            la misma clase .crm-btn -o sea el mismo alto de 40px- así que se
+            alinean por construcción y no por un padding calzado a ojo.
+
+            La casilla NO se fue a otra parte del modal: sigue pegada al botón
+            que modifica, justo encima y contra el mismo borde derecho. Es una
+            modificación de lo que ese botón va a hacer y hay que poder marcarla
+            sin buscarla. Va SIN marcar por defecto -el caso normal es una
+            reserva recién pagada, y ahí el correo corresponde-: el silencio es
+            siempre una decisión explícita de quien la está registrando. */}
         {!editandoFechas && (
           <div
             style={{
               borderTop: '1px solid var(--border-soft)',
               marginTop: 'var(--space-6)',
               paddingTop: 'var(--space-6)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 8,
-              alignItems: 'center',
-              justifyContent: 'space-between',
             }}
           >
+            {reserva.Status === 'PENDING' && (
+              <label
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 'var(--space-5)',
+                  fontSize: 13,
+                  color: 'var(--text-muted)',
+                  cursor: confirmando ? 'default' : 'pointer',
+                  userSelect: 'none',
+                }}
+                title="Marcala cuando estés registrando una reserva ya acordada y ya pagada por fuera: se confirma igual, pero al pescador no le llega el correo de confirmación ni la secuencia previa al viaje."
+              >
+                <input
+                  type="checkbox"
+                  checked={sinAviso}
+                  disabled={confirmando}
+                  onChange={(e) => setSinAviso(e.target.checked)}
+                  style={{ cursor: confirmando ? 'default' : 'pointer', margin: 0 }}
+                />
+                No avisar al pescador
+              </label>
+            )}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              {reserva.Status === 'PENDING' && (
-                <>
+              {reserva.Status !== 'CANCELLED' && (
+                <button className="crm-btn crm-btn-danger" onClick={() => void cancelar()} disabled={cancelando}>
+                  {cancelando ? 'Cancelando…' : 'Cancelar reserva'}
+                </button>
+              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
+                <button className="crm-btn crm-btn-ghost" onClick={() => setEditandoFechas(true)}>
+                  Modificar fechas
+                </button>
+                {reserva.Status === 'PENDING' && (
                   <button className="crm-btn crm-btn-primary" onClick={() => void confirmar()} disabled={confirmando}>
                     {confirmando ? 'Confirmando…' : 'Ya pagó · Confirmar reserva'}
                   </button>
-                  {/* Pegada al botón y no en otra parte del modal: es una
-                      modificación de lo que ese botón va a hacer, y hay que
-                      poder marcarla sin buscarla. Va SIN marcar por defecto
-                      -el caso normal es una reserva que se acaba de pagar y
-                      ahí el correo corresponde-; el silencio es siempre una
-                      decisión explícita de quien la está registrando. */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: 13,
-                      color: 'var(--text-muted)',
-                      cursor: confirmando ? 'default' : 'pointer',
-                      userSelect: 'none',
-                    }}
-                    title="Marcala cuando estés registrando una reserva ya acordada y ya pagada por fuera: se confirma igual, pero al pescador no le llega el correo de confirmación ni la secuencia previa al viaje."
-                  >
-                    <input
-                      type="checkbox"
-                      checked={sinAviso}
-                      disabled={confirmando}
-                      onChange={(e) => setSinAviso(e.target.checked)}
-                      style={{ cursor: confirmando ? 'default' : 'pointer', margin: 0 }}
-                    />
-                    No avisar al pescador
-                  </label>
-                </>
-              )}
-              <button className="crm-btn crm-btn-ghost" onClick={() => setEditandoFechas(true)}>
-                Modificar fechas
-              </button>
+                )}
+              </div>
             </div>
-            {reserva.Status !== 'CANCELLED' && (
-              <button
-                onClick={() => void cancelar()}
-                disabled={cancelando}
-                style={{ all: 'unset', cursor: cancelando ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--status-critico-dot)', padding: '10px 4px' }}
-              >
-                {cancelando ? 'Cancelando…' : 'Cancelar reserva'}
-              </button>
-            )}
           </div>
         )}
 

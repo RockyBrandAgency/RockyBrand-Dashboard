@@ -342,13 +342,17 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
         padding: 16,
       }}
     >
+      {/* Mismo ancho mínimo que la ficha de reserva (2026-08-18, pedido de
+          Mato: 900px). El min() con 100% es lo que deja que en un celular la
+          ficha se adapte en vez de desbordar. */}
       <div
         style={{
           background: 'var(--white)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-8)',
-          maxWidth: 520,
           width: '100%',
+          minWidth: 'min(900px, 100%)',
+          maxWidth: 960,
           maxHeight: '90vh',
           overflowY: 'auto',
           boxShadow: 'var(--shadow-card-hover)',
@@ -367,16 +371,34 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
               </div>
             )}
           </div>
+          {/* Icon button de M3: 40x40 redondo, para que la capa de estado
+              del hover se recorte redonda y no como un cuadrado. */}
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            style={{ all: 'unset', cursor: 'pointer', fontSize: 22, color: 'var(--text-faint)', lineHeight: 1, padding: 4 }}
+            style={{
+              all: 'unset',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+              fontSize: 22,
+              color: 'var(--text-faint)',
+              lineHeight: 1,
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
             ×
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
+        {/* auto-fit: a 900px de ancho entran los 4 campos en una fila, y en
+            pantalla angosta bajan a 2 y a 1 sin breakpoint a mano. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
           <div>
             <div style={fieldLabel}>Email</div>
             <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 4, wordBreak: 'break-all' }}>{fila.Contact.Email || '—'}</div>
@@ -442,12 +464,13 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
                 Resumen. Dejar el campo vacío borra la fecha.
               </div>
               {errorFechas && <div style={{ fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 8 }}>{errorFechas}</div>}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => void guardarFechas()} disabled={guardando}>
-                  {guardando ? 'Guardando…' : 'Guardar'}
-                </button>
+              {/* Alineados a la derecha y en el orden de un diálogo M3: la
+                  acción de descarte antes, la de confirmación al final y
+                  contra el borde. Los dos con la misma clase, así que quedan
+                  del mismo alto sin ajustar padding a mano. */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', justifyContent: 'flex-end' }}>
                 <button
-                  className="crm-btn crm-btn-ghost crm-btn-sm"
+                  className="crm-btn crm-btn-text crm-btn-sm"
                   onClick={() => {
                     setEditando(false);
                     setBirth(fila.BirthDate ?? '');
@@ -456,6 +479,9 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
                   }}
                 >
                   Cancelar
+                </button>
+                <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => void guardarFechas()} disabled={guardando}>
+                  {guardando ? 'Guardando…' : 'Guardar'}
                 </button>
               </div>
             </>
