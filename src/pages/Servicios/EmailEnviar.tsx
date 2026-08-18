@@ -182,17 +182,7 @@ export function EmailEnviar({
             }
             setConfirming(true);
           }}
-          style={{
-            all: 'unset',
-            padding: '10px 20px',
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#fff',
-            background: 'var(--primary)',
-            borderRadius: 8,
-            cursor: 'pointer',
-            boxSizing: 'border-box',
-          }}
+          className="crm-btn crm-btn-primary"
         >
           Enviar ahora
         </button>

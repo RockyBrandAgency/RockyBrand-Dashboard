@@ -149,26 +149,16 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
 
           {loginError && <div style={{ fontSize: 13, color: 'var(--status-critico-text)', textAlign: 'center' }}>{loginError}</div>}
 
+          {/* El unico boton que el cliente ve antes de entrar, asi que es el
+              primero que tiene que verse como el sistema. width:100% se
+              conserva -en un formulario de login el CTA ocupa el ancho de la
+              caja, es lo que hace tambien M3-; lo que sale es el estilo propio
+              de alto/radio/peso y el opacity a mano, que ahora es :disabled. */}
           <button
             type="submit"
+            className="crm-btn crm-btn-primary"
             disabled={isLoggingIn}
-            style={{
-              all: 'unset',
-              boxSizing: 'border-box',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              background: 'var(--primary)',
-              color: '#fff',
-              borderRadius: 'var(--radius-sm)',
-              padding: 'var(--space-5)',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: isLoggingIn ? 'default' : 'pointer',
-              opacity: isLoggingIn ? 0.7 : 1,
-              textAlign: 'center',
-            }}
+            style={{ width: '100%' }}
           >
             {isLoggingIn ? 'Entrando…' : 'Ingresar al Panel'}
           </button>

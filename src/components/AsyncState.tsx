@@ -87,19 +87,7 @@ export function AsyncState({
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>No se pudo cargar la información</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 320 }}>{error}</div>
         {onRetry && (
-          <button
-            onClick={onRetry}
-            style={{
-              all: 'unset',
-              background: 'var(--primary)',
-              color: '#fff',
-              borderRadius: 9,
-              padding: '10px 22px',
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
+          <button className="crm-btn crm-btn-primary" onClick={onRetry}>
             Reintentar
           </button>
         )}

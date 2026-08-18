@@ -57,20 +57,7 @@ export function EmptyStateIllustrated({
         <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.5 }}>{description}</div>
       </div>
       {cta && (
-        <button
-          onClick={cta.onClick}
-          style={{
-            all: 'unset',
-            boxSizing: 'border-box',
-            background: 'var(--primary)',
-            color: '#fff',
-            fontSize: 13,
-            fontWeight: 600,
-            padding: '10px 16px',
-            borderRadius: 'var(--radius-sm)',
-            cursor: 'pointer',
-          }}
-        >
+        <button className="crm-btn crm-btn-primary" onClick={cta.onClick}>
           {cta.label}
         </button>
       )}

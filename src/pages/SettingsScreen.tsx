@@ -115,24 +115,7 @@ function LogoCard() {
               e.target.value = '';
             }}
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            style={{
-              all: 'unset',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'var(--primary)',
-              color: '#fff',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 18px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: uploading ? 'default' : 'pointer',
-              opacity: uploading ? 0.6 : 1,
-            }}
-          >
+          <button className="crm-btn crm-btn-primary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
             {uploading ? 'Subiendo…' : saved ? '✓ Guardado' : 'Subir logo'}
           </button>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>PNG o JPG. Se ajusta automáticamente al tamaño del panel.</div>

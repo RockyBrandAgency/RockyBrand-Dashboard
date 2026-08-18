@@ -334,7 +334,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
                               <button
                                 onClick={() => void guardarCampo(p.stock)}
                                 disabled={busy}
-                                style={{ all: 'unset', background: 'var(--primary)', color: '#fff', borderRadius: 'var(--radius-sm)', padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                className="crm-btn crm-btn-primary crm-btn-sm"
                               >
                                 OK
                               </button>
@@ -366,7 +366,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
                               <button
                                 onClick={() => void guardarCampo(p.stock)}
                                 disabled={busy}
-                                style={{ all: 'unset', background: 'var(--primary)', color: '#fff', borderRadius: 'var(--radius-sm)', padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                className="crm-btn crm-btn-primary crm-btn-sm"
                               >
                                 OK
                               </button>

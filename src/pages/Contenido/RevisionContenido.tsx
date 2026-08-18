@@ -332,15 +332,15 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
 
       {!decidida && !rechazando && (
         <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-          <button onClick={aprobar} disabled={enviando} style={{
-            all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', borderRadius: 'var(--radius-sm)', padding: '8px 16px',
-            background: 'var(--primary)', color: '#fff', fontSize: 13, fontWeight: 600,
-            cursor: enviando ? 'wait' : 'pointer',
-          }}>{enviando ? 'Aprobando…' : 'Aprobar'}</button>
-          <button onClick={() => setRechazando(true)} disabled={enviando} style={{
-            all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', border: '1px solid var(--status-critico-dot)', borderRadius: 'var(--radius-sm)', padding: '8px 16px',
-            background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}>Rechazar</button>
+          {/* flex:1 se conserva: en esta tarjeta los dos botones se reparten el
+              ancho a proposito (aprobar y rechazar pesan igual). Lo que cambia
+              es que ahora son .crm-btn, con el alto y la forma de M3. */}
+          <button className="crm-btn crm-btn-primary" style={{ flex: 1 }} onClick={aprobar} disabled={enviando}>
+            {enviando ? 'Aprobando…' : 'Aprobar'}
+          </button>
+          <button className="crm-btn crm-btn-danger" style={{ flex: 1 }} onClick={() => setRechazando(true)} disabled={enviando}>
+            Rechazar
+          </button>
         </div>
       )}
 
