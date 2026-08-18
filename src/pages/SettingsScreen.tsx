@@ -255,19 +255,7 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--danger-hover)' }}>Sesión de Usuario</div>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>Se cerrará el acceso seguro en este dispositivo de forma inmediata.</div>
           </div>
-          <button
-            onClick={logout}
-            style={{
-              all: 'unset',
-              background: 'var(--danger-hover)',
-              color: '#fff',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 18px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
+          <button className="crm-btn crm-btn-danger-filled" onClick={logout}>
             Cerrar sesión
           </button>
         </div>

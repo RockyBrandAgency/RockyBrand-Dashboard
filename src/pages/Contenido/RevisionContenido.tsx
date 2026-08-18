@@ -121,11 +121,8 @@ function BotonCopiar({ texto }: { texto: string }) {
           setTimeout(() => setCopiado(false), 1800);
         } catch { /* sin portapapeles: el texto igual está a la vista */ }
       }}
-      style={{
-        border: '1px solid var(--border)', background: 'var(--surface)', borderRadius: 'var(--radius-sm)',
-        padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-        color: copiado ? 'var(--status-bien-text)' : 'inherit',
-      }}
+      className="crm-btn crm-btn-ghost crm-btn-sm"
+      style={copiado ? { color: 'var(--status-bien-text)' } : undefined}
     >{copiado ? '✓ Copiado' : 'Copiar texto'}</button>
   );
 }
@@ -373,19 +370,16 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
           />
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button
+              className="crm-btn crm-btn-danger-filled"
+              style={{ flex: 1 }}
               onClick={rechazar}
               disabled={!comentario.trim() || enviando}
-              style={{
-                all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', borderRadius: 'var(--radius-sm)', padding: '8px 16px',
-                background: comentario.trim() ? 'var(--status-critico-dot)' : 'var(--text-faint)',
-                color: '#fff', fontSize: 13, fontWeight: 600,
-                cursor: comentario.trim() ? 'pointer' : 'not-allowed',
-              }}
             >{enviando ? 'Enviando…' : 'Confirmar rechazo'}</button>
-            <button onClick={() => { setRechazando(false); setComentario(''); }} style={{
-              all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-              padding: '8px 16px', background: 'transparent', fontSize: 13, cursor: 'pointer',
-            }}>Cancelar</button>
+            <button
+              className="crm-btn crm-btn-ghost"
+              style={{ flex: 1 }}
+              onClick={() => { setRechazando(false); setComentario(''); }}
+            >Cancelar</button>
           </div>
         </div>
       )}

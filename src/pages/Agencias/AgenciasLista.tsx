@@ -77,27 +77,16 @@ function Boton({
   disabled?: boolean;
   tono?: 'fuerte' | 'suave' | 'peligro';
 }) {
-  const paleta = {
-    fuerte: { bg: 'var(--text)', fg: 'var(--white)' },
-    suave: { bg: 'var(--border)', fg: 'var(--text)' },
-    peligro: { bg: 'var(--status-critico-bg)', fg: 'var(--status-critico-dot)' },
-  }[tono];
+  // Los 3 tonos de esta pantalla mapean 1:1 a variantes de M3, asi que el
+  // <Boton> local deja de tener paleta propia y pasa a ser el boton del
+  // sistema. "fuerte" pasa de var(--text) (un negro fijo) al color de marca
+  // del cliente, que es lo que corresponde a una accion primaria.
+  const variante = { fuerte: 'crm-btn-primary', suave: 'crm-btn-ghost', peligro: 'crm-btn-danger' }[tono];
   return (
     <button
+      className={`crm-btn ${variante}`}
       onClick={onClick}
       disabled={disabled}
-      style={{
-        all: 'unset',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        padding: '9px 16px',
-        borderRadius: 'var(--radius-sm)',
-        fontSize: 13,
-        fontWeight: 600,
-        textAlign: 'center',
-        background: paleta.bg,
-        color: paleta.fg,
-      }}
     >
       {children}
     </button>

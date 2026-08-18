@@ -390,18 +390,10 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
 
                         <span style={isDesktop ? { flex: 1, textAlign: 'right' } : { marginTop: 4 }}>
                           <button
+                            className={`crm-btn crm-btn-sm ${p.activo ? 'crm-btn-success' : 'crm-btn-ghost'}`}
                             onClick={() => void toggleActivo(p)}
                             disabled={busy}
-                            style={{
-                              all: 'unset',
-                              cursor: busy ? 'wait' : 'pointer',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              padding: '4px 10px',
-                              borderRadius: 'var(--radius-sm)',
-                              background: p.activo ? 'var(--status-bien-bg)' : 'var(--status-neutro-bg)',
-                              color: p.activo ? 'var(--status-bien-dot)' : 'var(--text-muted)',
-                            }}
+                            aria-pressed={p.activo}
                           >
                             {p.activo ? 'Activo · Desactivar' : 'Inactivo · Reactivar'}
                           </button>

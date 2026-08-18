@@ -148,23 +148,7 @@ export function EmailEnviar({
           onChange={(e) => setTestEmail(e.target.value)}
           style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, boxSizing: 'border-box' }}
         />
-        <button
-          onClick={handleTest}
-          disabled={sendingTest}
-          style={{
-            all: 'unset',
-            padding: '9px 16px',
-            fontSize: 13,
-            fontWeight: 700,
-            color: 'var(--text)',
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            cursor: sendingTest ? 'default' : 'pointer',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-          }}
-        >
+        <button className="crm-btn crm-btn-ghost" onClick={handleTest} disabled={sendingTest} style={{ flexShrink: 0 }}>
           {sendingTest ? 'Enviando…' : 'Enviar prueba'}
         </button>
       </div>
@@ -193,35 +177,13 @@ export function EmailEnviar({
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Esta acción no se puede deshacer.</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={handleSendNow}
-              disabled={sending}
-              style={{
-                all: 'unset',
-                padding: '9px 18px',
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#fff',
-                background: sending ? 'var(--border)' : '#B3261E',
-                borderRadius: 8,
-                cursor: sending ? 'default' : 'pointer',
-                boxSizing: 'border-box',
-              }}
-            >
+            <button className="crm-btn crm-btn-danger-filled" onClick={handleSendNow} disabled={sending}>
               {sending ? 'Enviando…' : 'Sí, enviar'}
             </button>
             <button
+              className="crm-btn crm-btn-text"
               onClick={() => setConfirming(false)}
               disabled={sending}
-              style={{
-                all: 'unset',
-                padding: '9px 18px',
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                boxSizing: 'border-box',
-              }}
             >
               Cancelar
             </button>

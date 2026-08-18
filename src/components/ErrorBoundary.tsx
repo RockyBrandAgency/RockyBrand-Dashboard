@@ -55,13 +55,7 @@ export class ErrorBoundary extends Component<Props, State> {
             Es un problema de la pantalla, no de tus datos: nada se perdió ni se envió.
             Si vuelve a pasar, avísanos y lo revisamos.
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              all: 'unset', boxSizing: 'border-box', padding: '9px 16px', borderRadius: 8,
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', background: '#b42318', color: '#fff',
-            }}
-          >
+          <button className="crm-btn crm-btn-danger-filled" onClick={() => window.location.reload()}>
             Recargar
           </button>
         </div>

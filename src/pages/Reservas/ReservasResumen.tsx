@@ -376,34 +376,16 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
+                        className="crm-btn crm-btn-ghost crm-btn-sm"
                         onClick={() => setPage((p) => Math.max(0, p - 1))}
                         disabled={pageSafe === 0}
-                        style={{
-                          all: 'unset',
-                          padding: '6px 12px',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: pageSafe === 0 ? 'var(--text-faint)' : 'var(--text-sub)',
-                          cursor: pageSafe === 0 ? 'default' : 'pointer',
-                        }}
                       >
                         Anterior
                       </button>
                       <button
+                        className="crm-btn crm-btn-ghost crm-btn-sm"
                         onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
                         disabled={pageSafe >= pageCount - 1}
-                        style={{
-                          all: 'unset',
-                          padding: '6px 12px',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: pageSafe >= pageCount - 1 ? 'var(--text-faint)' : 'var(--text-sub)',
-                          cursor: pageSafe >= pageCount - 1 ? 'default' : 'pointer',
-                        }}
                       >
                         Siguiente
                       </button>

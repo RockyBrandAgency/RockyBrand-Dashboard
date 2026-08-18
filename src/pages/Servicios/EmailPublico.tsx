@@ -116,21 +116,7 @@ export function EmailPublico({
           />
         </div>
         {formError && <div style={{ fontSize: 12, color: '#B3261E', marginBottom: 10 }}>{formError}</div>}
-        <button
-          type="submit"
-          disabled={saving}
-          style={{
-            all: 'unset',
-            padding: '9px 18px',
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#fff',
-            background: saving ? 'var(--border)' : 'var(--primary)',
-            borderRadius: 8,
-            cursor: saving ? 'default' : 'pointer',
-            boxSizing: 'border-box',
-          }}
-        >
+        <button type="submit" className="crm-btn crm-btn-primary" disabled={saving}>
           {saving ? 'Guardando…' : 'Agregar'}
         </button>
       </form>
