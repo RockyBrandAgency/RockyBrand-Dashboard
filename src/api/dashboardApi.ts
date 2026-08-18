@@ -151,8 +151,20 @@ export function cancelarReserva(bookingId: string): Promise<{ BookingID: string;
 // una transición de estado con una condición sobre PENDING. Un 409 no es un
 // error del panel, es la respuesta correcta cuando alguien más ya la confirmó
 // (o el job la canceló) en el medio.
-export function confirmarReserva(bookingId: string): Promise<{ BookingID: string; Status: string; message: string }> {
-  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}/confirmar`, 'POST');
+// `sinAviso` es la casilla "No avisar al pescador" del modal (2026-08-18).
+// El aviso de confirmación no cuelga de este endpoint sino del Stream de
+// DynamoDB, así que la marca viaja hasta la escritura del CONFIRMED y desde
+// ahí la lee crm_worker. Por eso se manda en el body y no hay nada más que
+// hacer en el frontend.
+//
+// El default es avisar: sin el parámetro no se manda el campo.
+export function confirmarReserva(
+  bookingId: string,
+  sinAviso = false
+): Promise<{ BookingID: string; Status: string; SilentConfirm: boolean; message: string }> {
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}/confirmar`, 'POST', {
+    SilentConfirm: sinAviso,
+  });
 }
 
 // Lista real de huespedes/pescadores del cliente (pantalla propia del

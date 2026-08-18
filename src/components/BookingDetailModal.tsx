@@ -89,6 +89,8 @@ export function BookingDetailModal({
   const [error, setError] = useState('');
   const [cancelando, setCancelando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
+  // "No avisar al pescador" (2026-08-18). Ver confirmar() más abajo.
+  const [sinAviso, setSinAviso] = useState(false);
 
   const sc = STATUS_COLOR[reserva.Status];
   const contacto = reserva.GuestContact || {};
@@ -129,11 +131,25 @@ export function BookingDetailModal({
   // sobre PENDING, porque una pantalla abierta hace 20 minutos puede estar
   // mostrando un estado que ya cambió.
   async function confirmar() {
+    // El aviso al pescador NO sale de este botón: sale del Stream de
+    // DynamoDB al aparecer el CONFIRMED. Por eso la casilla no "cancela un
+    // envío" - marca la reserva, y crm_worker lee esa marca y no enrola.
+    // El diálogo dice explícitamente cuál de los dos casos es, porque
+    // después de apretar ya no hay vuelta atrás: el 2026-08-18 hubo que
+    // frenar un correo a mano borrando la fila de la cola.
+    const aviso = sinAviso
+      ? 'NO se le avisa: no recibe el correo de confirmación ni se le arma la ' +
+        'secuencia previa al viaje. Es lo correcto para una reserva ya acordada ' +
+        'y ya pagada por fuera, que solo estás registrando.'
+      : 'SE LE AVISA: le llega el correo "tu reserva está confirmada" y arranca ' +
+        'la secuencia previa al viaje. Si es una reserva vieja que ya tenía todo ' +
+        'arreglado, marcá "No avisar al pescador" antes de seguir.';
     if (
       !confirm(
         `¿Confirmar la reserva de ${reserva.GuestName}?\n\n` +
           'Queda como Confirmada y su pago como Pagado. Con eso se le bloquea la fecha ' +
           'y deja de correr el plazo que la cancela sola por falta de pago.\n\n' +
+          `${aviso}\n\n` +
           'Hacelo solo si la plata ya entró.'
       )
     )
@@ -141,7 +157,7 @@ export function BookingDetailModal({
     setConfirmando(true);
     setError('');
     try {
-      await confirmarReserva(reserva.BookingID);
+      await confirmarReserva(reserva.BookingID, sinAviso);
       onGuardado();
     } catch (e) {
       if (e instanceof UnauthorizedError) return handleUnauthorized();
@@ -391,9 +407,38 @@ export function BookingDetailModal({
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
               {reserva.Status === 'PENDING' && (
-                <button className="crm-btn crm-btn-primary" onClick={() => void confirmar()} disabled={confirmando}>
-                  {confirmando ? 'Confirmando…' : 'Ya pagó · Confirmar reserva'}
-                </button>
+                <>
+                  <button className="crm-btn crm-btn-primary" onClick={() => void confirmar()} disabled={confirmando}>
+                    {confirmando ? 'Confirmando…' : 'Ya pagó · Confirmar reserva'}
+                  </button>
+                  {/* Pegada al botón y no en otra parte del modal: es una
+                      modificación de lo que ese botón va a hacer, y hay que
+                      poder marcarla sin buscarla. Va SIN marcar por defecto
+                      -el caso normal es una reserva que se acaba de pagar y
+                      ahí el correo corresponde-; el silencio es siempre una
+                      decisión explícita de quien la está registrando. */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 13,
+                      color: 'var(--text-muted)',
+                      cursor: confirmando ? 'default' : 'pointer',
+                      userSelect: 'none',
+                    }}
+                    title="Marcala cuando estés registrando una reserva ya acordada y ya pagada por fuera: se confirma igual, pero al pescador no le llega el correo de confirmación ni la secuencia previa al viaje."
+                  >
+                    <input
+                      type="checkbox"
+                      checked={sinAviso}
+                      disabled={confirmando}
+                      onChange={(e) => setSinAviso(e.target.checked)}
+                      style={{ cursor: confirmando ? 'default' : 'pointer', margin: 0 }}
+                    />
+                    No avisar al pescador
+                  </label>
+                </>
               )}
               <button className="crm-btn crm-btn-ghost" onClick={() => setEditandoFechas(true)}>
                 Modificar fechas
