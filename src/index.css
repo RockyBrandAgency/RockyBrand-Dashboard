@@ -179,6 +179,29 @@ body,
 .crm-mini-value.alerta{ color:var(--status-atencion-dot); }
 .crm-mini-value.critico{ color:var(--status-critico-dot); }
 
+/* Una tarjeta del mini-dash que ADEMÁS es un botón (Resumen del Lodge:
+   "Reservas activas" despliega debajo el detalle de esas mismas reservas).
+   Se combina con .crm-mini-card, no la reemplaza.
+
+   Sin `all:unset` a propósito, aunque sea el reset que usa el resto del
+   panel: `all:unset` acá también borraría el fondo, el borde y el padding
+   que pone .crm-mini-card (misma especificidad, esta regla va después y le
+   gana) y la tarjeta quedaría en un botón pelado. Se resetea solo lo que el
+   <button> nativo aporta de más: su tipografía, su color y su alineado. */
+.crm-mini-card-btn{ font:inherit; color:inherit; text-align:left; width:100%; display:block; cursor:pointer; transition:box-shadow 0.12s, border-color 0.12s; }
+.crm-mini-card-btn:hover{ box-shadow:var(--shadow-card-hover); border-color:var(--border-strong); }
+.crm-mini-card-btn[aria-expanded="true"]{ border-color:var(--primary); }
+/* La invitación a abrir. Va con el color de marca porque es la única acción
+   de la tarjeta: sin ella el número se lee como una etiqueta y nadie
+   descubre que hay algo abajo. */
+.crm-mini-cta{ display:inline-flex; align-items:center; gap:6px; margin-top:var(--space-4); font-size:12px; font-weight:600; color:var(--primary); }
+.crm-mini-caret{ transition:transform 0.15s; }
+.crm-mini-card-btn[aria-expanded="true"] .crm-mini-caret{ transform:rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce){
+  .crm-mini-card-btn, .crm-mini-caret{ transition:none; }
+}
+
 /* padding 10px 16px, no 8px 16px - hallazgo de auditoría 2026-08-04: el
    CTA de toolbar real de Figma ("Nueva Campaña", nodo 4:2026) es
    py-[10px]. Los CTAs de formulario (Programar Envío/Guardar Borrador,

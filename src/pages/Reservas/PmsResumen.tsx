@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
-import { CalendarRangeIcon, UsersIcon } from '../../components/icons/RockyIcons';
+import { CalendarRangeIcon, ChevronDownIcon, UsersIcon } from '../../components/icons/RockyIcons';
 import { BookingDetailModal } from '../../components/BookingDetailModal';
 import { getReservasResumen, getHuespedes, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
@@ -60,6 +60,14 @@ export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<ReservaResumenItem | null>(null);
+  // El detalle de "Reservas activas" se despliega en esta misma pantalla y
+  // no navega a otra (2026-08-17, decisión de Mato). El motivo es que
+  // "activas" no existe como filtro en el Calendario: es un recorte que se
+  // deriva acá (todo lo que no está cancelado), así que mandarlo a otra
+  // pantalla obligaría a recalcular el mismo conjunto en dos lugares — y el
+  // día que uno de los dos cambie, el número de la tarjeta y la lista que
+  // abre dejarían de coincidir sin que nadie se entere.
+  const [activasAbiertas, setActivasAbiertas] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -102,6 +110,14 @@ export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
   // "Alojados ahora": llegó y todavía no se fue. El check-out no cuenta
   // como noche, por eso es CheckOut > hoy y no >=.
   const alojados = useMemo(() => activas.filter((r) => r.CheckIn <= hoyIso && r.CheckOut > hoyIso), [activas, hoyIso]);
+
+  // El mismo conjunto que cuenta la tarjeta, en el orden en que va a pasar:
+  // primero lo que está ocurriendo, después lo que viene, al final lo que ya
+  // terminó pero sigue dentro de la ventana que trae el backend.
+  const activasOrdenadas = useMemo(
+    () => [...activas].sort((a, b) => a.CheckIn.localeCompare(b.CheckIn)),
+    [activas]
+  );
 
   const personasSemana = llegan.reduce((n, r) => n + (r.PartyMembers ?? 1), 0);
   const pendientes = (reservas ?? []).filter((r) => r.Status === 'PENDING').length;
@@ -156,14 +172,26 @@ export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
           {reservas && reservas.length > 0 && (
             <>
               <div className="crm-mini-dash">
-                <div className="crm-mini-card">
+                <button
+                  type="button"
+                  className="crm-mini-card crm-mini-card-btn"
+                  aria-expanded={activasAbiertas}
+                  aria-controls="panel-reservas-activas"
+                  onClick={() => setActivasAbiertas((v) => !v)}
+                >
                   <div className="crm-mini-label">Reservas activas</div>
                   <div className="crm-mini-value">{activas.length}</div>
                   <div className="crm-mini-sub">
                     {pendientes} pendiente{pendientes === 1 ? '' : 's'}
                     {canceladas > 0 && ` · ${canceladas} cancelada${canceladas === 1 ? '' : 's'}`}
                   </div>
-                </div>
+                  <span className="crm-mini-cta">
+                    {activasAbiertas ? 'Ocultar el detalle' : 'Ver el detalle'}
+                    <span className="crm-mini-caret" style={{ display: 'inline-flex' }} aria-hidden="true">
+                      <ChevronDownIcon size={12} />
+                    </span>
+                  </span>
+                </button>
                 <div className="crm-mini-card">
                   <div className="crm-mini-label">Llegan esta semana</div>
                   <div className={`crm-mini-value ${llegan.length ? 'ok' : ''}`}>{llegan.length}</div>
@@ -180,6 +208,17 @@ export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
                   <div className="crm-mini-sub">Al día de hoy</div>
                 </div>
               </div>
+
+              {activasAbiertas && (
+                <DetalleActivas
+                  items={activasOrdenadas}
+                  hoyIso={hoyIso}
+                  isDesktop={isDesktop}
+                  etiquetaLugar={pmsRoomViews ? 'Habitación' : 'Programa'}
+                  onClick={setDetalle}
+                  estilo={card}
+                />
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: 'var(--space-7)', marginBottom: 'var(--space-7)' }}>
                 <ListaReservas
@@ -276,6 +315,109 @@ export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
             load();
           }}
         />
+      )}
+    </div>
+  );
+}
+
+// El detalle que abre la tarjeta "Reservas activas". Trabaja sobre la MISMA
+// lista que produce el número de la tarjeta: no vuelve a pedirle nada al
+// backend ni a filtrar por su cuenta, así que los dos no pueden discrepar.
+//
+// Va agrupado por momento y no por estado (confirmada/pendiente) porque la
+// pregunta que dispara el click es operativa —"¿qué tengo encima?"— y no
+// contable. El estado igual viaja en cada fila, en su chip de siempre.
+function DetalleActivas({
+  items,
+  hoyIso,
+  isDesktop,
+  etiquetaLugar,
+  onClick,
+  estilo,
+}: {
+  items: ReservaResumenItem[];
+  hoyIso: string;
+  isDesktop: boolean;
+  etiquetaLugar: string;
+  onClick: (r: ReservaResumenItem) => void;
+  estilo: React.CSSProperties;
+}) {
+  const enCurso = items.filter((r) => r.CheckIn <= hoyIso && r.CheckOut > hoyIso);
+  const porVenir = items.filter((r) => r.CheckIn > hoyIso);
+  // La ventana del backend arranca 14 días atrás, así que en esta lista
+  // siempre puede haber reservas ya terminadas. Se muestran igual —siguen
+  // sumando al número de la tarjeta, esconderlas dejaría una cuenta que no
+  // cuadra— pero al final y atenuadas.
+  const terminadas = items.filter((r) => r.CheckOut <= hoyIso);
+
+  const grupos: { titulo: string; ayuda: string; filas: ReservaResumenItem[]; atenuado?: boolean }[] = [
+    { titulo: 'En curso', ayuda: 'Ya llegaron y todavía no se van', filas: enCurso },
+    { titulo: 'Por venir', ayuda: 'Todavía no llegan', filas: porVenir },
+    { titulo: 'Ya terminaron', ayuda: 'Siguen en la ventana del panel', filas: terminadas, atenuado: true },
+  ].filter((g) => g.filas.length > 0);
+
+  return (
+    <div id="panel-reservas-activas" style={{ ...estilo, padding: 'var(--space-7)', marginBottom: 'var(--space-7)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+          Reservas activas <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-faint)' }}>({items.length})</span>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Todo lo que no está cancelado · abre cualquiera para ver su ficha</div>
+      </div>
+
+      {items.length === 0 ? (
+        <div style={{ marginTop: 'var(--space-6)', fontSize: 13, color: 'var(--text-muted)' }}>
+          No hay ninguna reserva activa en la ventana que muestra el panel.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-7)', marginTop: 'var(--space-7)' }}>
+          {grupos.map((g) => (
+            <div key={g.titulo}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-sub)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {g.titulo}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                  {g.filas.length} · {g.ayuda}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, opacity: g.atenuado ? 0.62 : 1 }}>
+                {g.filas.map((r) => {
+                  const sc = STATUS_COLOR[r.Status];
+                  return (
+                    <button
+                      key={r.BookingID}
+                      type="button"
+                      className="cal-fila"
+                      style={isDesktop ? undefined : { alignItems: 'flex-start', flexWrap: 'wrap' }}
+                      onClick={() => onClick(r)}
+                    >
+                      <span style={{ color: 'var(--text-sub)', minWidth: isDesktop ? 150 : undefined, whiteSpace: 'nowrap' }}>
+                        {fmtCorta(new Date(`${r.CheckIn}T00:00:00`))} → {fmtCorta(new Date(`${r.CheckOut}T00:00:00`))}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 140, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{r.GuestName}</span>
+                        <span style={{ color: 'var(--text-faint)' }} title={`${etiquetaLugar}: ${r.RoomID}`}>
+                          {' · '}
+                          {r.RoomID}
+                        </span>
+                      </span>
+                      <span style={{ color: 'var(--text-sub)', whiteSpace: 'nowrap' }}>
+                        {r.PartyMembers ?? 1} p.
+                      </span>
+                      <span style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', minWidth: isDesktop ? 110 : undefined, textAlign: 'right' }}>
+                        {r.Currency} {r.TotalAmount.toLocaleString('es-CL')}
+                      </span>
+                      <span style={chip(sc?.bg ?? 'var(--status-neutro-bg)', sc?.dot ?? 'var(--status-neutro-text)')}>
+                        {STATUS_LABEL[r.Status] ?? r.Status}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
