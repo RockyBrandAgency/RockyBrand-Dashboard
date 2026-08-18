@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { actualizarReserva, cancelarReserva, UnauthorizedError } from '../api/dashboardApi';
+import { actualizarReserva, cancelarReserva, confirmarReserva, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { telefonoDe, enlaceWhatsapp } from '../lib/contactoHuesped';
+import { OriginBadge } from './OriginBadge';
+import { fmtSelloUtc } from '../lib/selloUtc';
 import type { ReservaResumenItem } from '../types';
 
 const STATUS_LABEL: Record<string, string> = { CONFIRMED: 'Confirmada', PENDING: 'Pendiente', CANCELLED: 'Cancelada' };
@@ -9,6 +11,24 @@ const STATUS_COLOR: Record<string, { bg: string; dot: string }> = {
   CONFIRMED: { bg: 'var(--status-bien-bg)', dot: 'var(--status-bien-dot)' },
   PENDING: { bg: 'var(--status-atencion-bg)', dot: 'var(--status-atencion-dot)' },
   CANCELLED: { bg: 'var(--status-critico-bg)', dot: 'var(--status-critico-dot)' },
+};
+
+// Los 4 valores que declara pms_models.VALID_PAYMENT_STATUSES. El color no
+// se comparte con el del estado de la reserva a propósito: una reserva puede
+// estar Pendiente y su pago ya Pagado (pasa cuando entra la plata y todavía
+// no corrió la confirmación) - pintarlos iguales escondería justamente el
+// caso que hay que mirar.
+const PAGO_LABEL: Record<string, string> = {
+  PAID: 'Pagada',
+  PENDING: 'Sin pagar',
+  PARTIAL: 'Abono parcial',
+  REFUNDED: 'Devuelta',
+};
+const PAGO_COLOR: Record<string, { bg: string; fg: string }> = {
+  PAID: { bg: 'var(--status-bien-bg)', fg: 'var(--status-bien-dot)' },
+  PENDING: { bg: 'var(--status-atencion-bg)', fg: 'var(--status-atencion-dot)' },
+  PARTIAL: { bg: 'var(--status-info-bg)', fg: 'var(--status-info-text)' },
+  REFUNDED: { bg: 'var(--status-neutro-bg)', fg: 'var(--status-neutro-text)' },
 };
 
 function fmtDate(iso: string): string {
@@ -68,9 +88,12 @@ export function BookingDetailModal({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [cancelando, setCancelando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
 
   const sc = STATUS_COLOR[reserva.Status];
   const contacto = reserva.GuestContact || {};
+  const pago = reserva.PaymentStatus || 'PENDING';
+  const pagoColor = PAGO_COLOR[pago];
 
   async function guardarFechas() {
     if (!checkIn || !checkOut) {
@@ -92,6 +115,39 @@ export function BookingDetailModal({
       setError(e instanceof Error ? e.message : 'No se pudo guardar.');
     } finally {
       setGuardando(false);
+    }
+  }
+
+  // "Ya pagó" (2026-08-17, pedido explícito de Mato: "que aparezca el botón
+  // confirmar reserva en el caso que sea una reserva pendiente, solo aparece
+  // en ese caso"). Es el mismo salto PENDING -> CONFIRMED que hace el cobro
+  // de WeTravel, pero a mano: lo usa quien cobró por transferencia, o quien
+  // ya vio la plata y no quiere esperar al reconciliador.
+  //
+  // El botón NO se muestra si la reserva ya está confirmada o cancelada. Eso
+  // es la mitad de la barrera: la otra mitad es la condición del backend
+  // sobre PENDING, porque una pantalla abierta hace 20 minutos puede estar
+  // mostrando un estado que ya cambió.
+  async function confirmar() {
+    if (
+      !confirm(
+        `¿Confirmar la reserva de ${reserva.GuestName}?\n\n` +
+          'Queda como Confirmada y su pago como Pagado. Con eso se le bloquea la fecha ' +
+          'y deja de correr el plazo que la cancela sola por falta de pago.\n\n' +
+          'Hacelo solo si la plata ya entró.'
+      )
+    )
+      return;
+    setConfirmando(true);
+    setError('');
+    try {
+      await confirmarReserva(reserva.BookingID);
+      onGuardado();
+    } catch (e) {
+      if (e instanceof UnauthorizedError) return handleUnauthorized();
+      setError(e instanceof Error ? e.message : 'No se pudo confirmar la reserva.');
+    } finally {
+      setConfirmando(false);
     }
   }
 
@@ -192,6 +248,59 @@ export function BookingDetailModal({
               {reserva.Currency} {reserva.TotalAmount.toLocaleString('es-CL')}
             </div>
           </div>
+          {/* Estado del pago y origen: los dos venían en la respuesta del
+              backend desde siempre y no se mostraban en ninguna parte de la
+              ficha. El estado del pago es el que decide si corresponde
+              confirmar; el origen dice si la reserva entró por el formulario
+              del sitio o la cargó alguien a mano. */}
+          <div>
+            <div style={fieldLabel}>Estado del pago</div>
+            <div style={{ marginTop: 6 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: pagoColor?.bg ?? 'var(--status-neutro-bg)',
+                  color: pagoColor?.fg ?? 'var(--status-neutro-text)',
+                  display: 'inline-block',
+                }}
+              >
+                {PAGO_LABEL[pago] ?? pago}
+              </span>
+            </div>
+          </div>
+          <div>
+            <div style={fieldLabel}>Origen</div>
+            <div style={{ marginTop: 6 }}>
+              <OriginBadge source={reserva.Source} />
+            </div>
+          </div>
+        </div>
+
+        {/* Vuelo de llegada. El pescador lo manda por WhatsApp DESPUÉS de
+            pagar, contestando el correo de confirmación, así que casi siempre
+            está vacío y eso no es un error: se dice con todas sus letras en
+            vez de dejar un guión que se lee como "algo no cargó". El sello de
+            cuándo llegó el dato importa tanto como el número - un vuelo
+            informado hace tres semanas puede haber cambiado. */}
+        <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+          <div style={fieldLabel}>Vuelo de llegada</div>
+          {reserva.FlightNumber ? (
+            <div style={{ ...fieldValue, display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 }}>
+              <strong style={{ fontWeight: 700, letterSpacing: '0.02em' }}>{reserva.FlightNumber}</strong>
+              {reserva.FlightReportedAt && (
+                <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                  informado el {fmtSelloUtc(reserva.FlightReportedAt)}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div style={{ ...fieldValue, color: 'var(--text-muted)' }}>
+              Todavía no lo informa. Llega por WhatsApp cuando contesta el correo de confirmación.
+            </div>
+          )}
         </div>
 
         <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)' }}>
@@ -280,9 +389,16 @@ export function BookingDetailModal({
               justifyContent: 'space-between',
             }}
           >
-            <button className="crm-btn crm-btn-ghost" onClick={() => setEditandoFechas(true)}>
-              Modificar fechas
-            </button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              {reserva.Status === 'PENDING' && (
+                <button className="crm-btn crm-btn-primary" onClick={() => void confirmar()} disabled={confirmando}>
+                  {confirmando ? 'Confirmando…' : 'Ya pagó · Confirmar reserva'}
+                </button>
+              )}
+              <button className="crm-btn crm-btn-ghost" onClick={() => setEditandoFechas(true)}>
+                Modificar fechas
+              </button>
+            </div>
             {reserva.Status !== 'CANCELLED' && (
               <button
                 onClick={() => void cancelar()}
@@ -301,6 +417,34 @@ export function BookingDetailModal({
         {!editandoFechas && error && (
           <div style={{ fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 10 }}>{error}</div>
         )}
+
+        {/* Los dos identificadores, al pie y en tipografía de máquina. Son lo
+            que permite cruzar esta reserva con un cobro de WeTravel, con un
+            correo o con un log cuando algo no calza: sin ellos, "la reserva de
+            Daniel" no es un dato con el que se pueda buscar en ningún lado.
+            Van al final y atenuados porque no son para leer, son para copiar. */}
+        <div
+          style={{
+            borderTop: '1px solid var(--border-soft)',
+            marginTop: 'var(--space-6)',
+            paddingTop: 'var(--space-5)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'var(--space-6)',
+            fontSize: 11,
+            color: 'var(--text-faint)',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          }}
+        >
+          <span>
+            Reserva <span style={{ userSelect: 'all', color: 'var(--text-muted)' }}>{reserva.BookingID}</span>
+          </span>
+          {reserva.GuestID && (
+            <span>
+              Ficha <span style={{ userSelect: 'all', color: 'var(--text-muted)' }}>{reserva.GuestID}</span>
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
