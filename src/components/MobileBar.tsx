@@ -44,11 +44,16 @@ export function MobileBar({
 }) {
   const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews } = useAuth();
 
+  // clientServices null = /dashboard/me todavia no contesto. Mismo criterio
+  // que Sidebar.tsx (2026-08-18): mientras no se sabe que contrato este
+  // cliente NO se dibuja ningun acceso, en vez de dibujarlos todos y sacar
+  // los que sobran unos segundos despues. Desde la segunda carga de la
+  // pestaña esto ni se nota: el perfil viene recordado (api/perfilCache.ts).
   const bottomItems: { id: Screen; icon: ReactNode; label: string }[] = [];
-  if (isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews)) {
+  if (clientServices !== null && isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews)) {
     bottomItems.push({ id: OVERVIEW.id, icon: <HomeIcon size={18} />, label: OVERVIEW.shortLabel });
   }
-  for (const section of NAV_SECTIONS) {
+  for (const section of clientServices === null ? [] : NAV_SECTIONS) {
     for (const item of section.items) {
       if (isNavLeafVisible(item, clientServices, pmsRoomViews)) {
         bottomItems.push({ id: item.id, icon: <ChartColumnIcon size={18} />, label: labelNav(item, clientId, true) });

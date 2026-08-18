@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import { labelNav, labelSeccion } from '../lib/terminologiaPms';
+import { startSkeletonPulse } from '../lib/skeletonGsap';
 import type { ServiceKey } from '../types';
-import { LayoutGridIcon, ChartColumnIcon, ChevronDownIcon, SettingsIcon, ShoppingBagIcon, CalendarRangeIcon } from './icons/RockyIcons';
+import { LayoutGridIcon, ChartColumnIcon, SettingsIcon, ShoppingBagIcon, CalendarRangeIcon } from './icons/RockyIcons';
 
 // Icono por seccion de NAV_SECTIONS (screens.ts) - por label porque
 // NavSection.icon hoy es un emoji sin uso real en el desktop/tablet (solo
@@ -56,22 +57,21 @@ export function Sidebar({
   onLogout: () => void;
 }) {
   const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews } = useAuth();
+  // clientServices null = /dashboard/me todavia no contesto. Antes se
+  // dibujaba el menu COMPLETO en ese hueco (isNavLeafVisible devuelve true
+  // sin datos) y al llegar la respuesta desaparecian las secciones que este
+  // cliente no tiene: es exactamente el "carga el panel con otras funciones y
+  // a los segundos muestra las que corresponden" que reporto Mato el
+  // 2026-08-18. Mostrar de mas y despues retractarse es peor que no mostrar
+  // todavia: el cliente alcanza a leer -y a hacer click en- menus que no son
+  // suyos. Mientras no se sabe, va un esqueleto.
+  const cargando = clientServices === null;
   const showOverview = isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter((item) => isNavLeafVisible(item, clientServices, pmsRoomViews)),
   })).filter((section) => section.items.length > 0);
   const contractedServices = clientServices ? SERVICE_ORDER.filter((key) => clientServices[key]) : [];
-
-  // Estado de apertura POR SECCION - antes era un solo booleano compartido,
-  // inofensivo mientras hubo una sola seccion (Metricas). Al sumar Tienda
-  // (2026-08-05) abrir una abria/resaltaba las dos a la vez. El inicializador
-  // lazy corre una sola vez al montar, pero como isNavLeafVisible() muestra todo
-  // mientras clientServices == null (carga), visibleSections ya trae todas
-  // las secciones reales en ese primer render - ninguna queda sin entrada.
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(visibleSections.map((s) => [s.label, s.items.some((i) => i.id === screen)]))
-  );
 
   return (
     <aside
@@ -113,7 +113,9 @@ export function Sidebar({
       </div>
 
       <nav style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-        {showOverview && (
+        {cargando && <NavSkeleton />}
+
+        {!cargando && showOverview && (
           <button
             onClick={() => setScreen(OVERVIEW.id)}
             aria-current={screen === OVERVIEW.id ? 'page' : undefined}
@@ -139,74 +141,66 @@ export function Sidebar({
           </button>
         )}
 
-        {visibleSections.map((section) => {
-          const open = openSections[section.label] ?? false;
-          const sectionActive = section.items.some((i) => i.id === screen);
-          return (
-          <div key={section.label}>
-            <button
-              onClick={() => setOpenSections((prev) => ({ ...prev, [section.label]: !open }))}
-              aria-expanded={open}
+        {/* Secciones SIEMPRE desplegadas (2026-08-18, pedido explícito de
+            Mato: "en el panel sidebar izquierdo quiero que aparezca todo
+            desplegado, es decir, Lodge como titulo y todos sus enlaces hacia
+            abajo"). El encabezado deja de ser un botón que abre y cierra y
+            pasa a ser lo que dice el pedido: un título. Con eso se va también
+            el estado openSections y su chevron - no queda un control que no
+            controla nada.
+
+            "Lodge" es lo que Chile Fly Fishing ve donde otro cliente lee
+            "PMS": el texto visible lo resuelve labelSeccion() por cliente,
+            section.label sigue siendo la identidad interna (ícono y key). */}
+        {!cargando && visibleSections.map((section) => (
+          <div key={section.label} style={{ marginTop: 'var(--space-3)' }}>
+            <div
               style={{
-                all: 'unset',
-                boxSizing: 'border-box',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 'var(--space-4)',
-                width: '100%',
-                padding: 'var(--space-4) var(--space-5)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-                color: sectionActive ? 'var(--primary)' : 'var(--text-sub)',
-                fontSize: 14,
-                fontWeight: sectionActive ? 600 : 500,
+                padding: '0 var(--space-5) var(--space-2)',
+                color: 'var(--text-faint)',
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
               }}
             >
-              {(SECTION_ICON[section.label] ?? ((s: number) => <ChartColumnIcon size={s} />))(16)}
+              {(SECTION_ICON[section.label] ?? ((s: number) => <ChartColumnIcon size={s} />))(14)}
               <span style={{ flex: 1, textAlign: 'left' }}>{labelSeccion(section, clientId)}</span>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  transform: open ? 'rotate(180deg)' : 'none',
-                  transition: 'transform 0.2s ease',
-                }}
-              >
-                <ChevronDownIcon size={12} color="var(--text-faint)" />
-              </span>
-            </button>
-            {open && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', paddingLeft: 'var(--space-8)', marginTop: 'var(--space-1)' }}>
-                {section.items.map((item) => {
-                  const active = screen === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setScreen(item.id)}
-                      aria-current={active ? 'page' : undefined}
-                      style={{
-                        all: 'unset',
-                        boxSizing: 'border-box',
-                        display: 'flex',
-                        alignItems: 'center',
-                        width: '100%',
-                        padding: 'var(--space-2) var(--space-5)',
-                        borderRadius: 'var(--radius-sm)',
-                        background: active ? activeTint : 'transparent',
-                        color: active ? 'var(--primary)' : 'var(--text-sub)',
-                        fontSize: 13,
-                        fontWeight: active ? 600 : 500,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {labelNav(item, clientId)}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              {section.items.map((item) => {
+                const active = screen === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setScreen(item.id)}
+                    aria-current={active ? 'page' : undefined}
+                    style={{
+                      all: 'unset',
+                      boxSizing: 'border-box',
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      padding: 'var(--space-3) var(--space-5)',
+                      paddingLeft: 'var(--space-8)',
+                      borderRadius: 'var(--radius-sm)',
+                      background: active ? activeTint : 'transparent',
+                      color: active ? 'var(--primary)' : 'var(--text-sub)',
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {labelNav(item, clientId)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          );
-        })}
+        ))}
 
         {contractedServices.length > 0 && (
           <div style={{ marginTop: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -354,5 +348,47 @@ export function Sidebar({
         </button>
       </div>
     </aside>
+  );
+}
+
+// Silueta del menú mientras /dashboard/me no contesta. Tiene la forma real
+// del sidebar ya armado (un acceso suelto arriba, dos secciones con sus
+// enlaces) para que al llegar la respuesta el contenido ocupe el mismo lugar
+// y no salte. Deliberadamente NO dice ningún nombre de sección: mientras no
+// se sabe qué contrató este cliente, cualquier texto sería una afirmación
+// sobre él que todavía no está respaldada por nada.
+//
+// Mismo pulso GSAP que el resto de los esqueletos del panel
+// (lib/skeletonGsap.ts, spec 44 de Figma) - respeta prefers-reduced-motion.
+function NavSkeleton() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    return startSkeletonPulse(Array.from(el.querySelectorAll<HTMLElement>('[data-skeleton-bar]')));
+  }, []);
+
+  const barra = (width: string, height: number, sangria = 0) => (
+    <div data-skeleton-bar style={{ padding: `0 var(--space-5)`, paddingLeft: sangria ? 'var(--space-8)' : 'var(--space-5)' }}>
+      <div style={{ width, height, borderRadius: 6, background: 'var(--surface-2)' }} />
+    </div>
+  );
+
+  return (
+    <div ref={ref} aria-hidden style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {barra('55%', 14)}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+        {barra('38%', 10)}
+        {barra('62%', 12, 1)}
+        {barra('72%', 12, 1)}
+        {barra('50%', 12, 1)}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
+        {barra('30%', 10)}
+        {barra('58%', 12, 1)}
+        {barra('66%', 12, 1)}
+      </div>
+    </div>
   );
 }

@@ -36,13 +36,19 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
   const { clientDisplayName, clientServices, clientLogoSrcLight, pmsRoomViews, clientId } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
-  const showOverview = isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
+  // clientServices null = /dashboard/me todavia no contesto. Mismo criterio
+  // que Sidebar.tsx (2026-08-18): mientras no se sabe que contrato este
+  // cliente NO se dibuja ningun acceso, en vez de dibujarlos todos y sacar
+  // los que sobran unos segundos despues. Desde la segunda carga de la
+  // pestaña esto ni se nota: el perfil viene recordado (api/perfilCache.ts).
+  const cargando = clientServices === null;
+  const showOverview = !cargando && isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
   // Una entrada por SECCION (antes asumia que NAV_SECTIONS[0] era siempre
   // Metricas - real hasta que Tienda se sumo como primera seccion 2026-08-05
   // y quedo mostrando/ocultando el rail de Metricas segun el servicio de
   // Tienda). Cada seccion navega a su primer item visible, mismo criterio
   // que "entrar por la primera pantalla" que ya usa el resto del panel.
-  const railSections = NAV_SECTIONS.map((section) => {
+  const railSections = (cargando ? [] : NAV_SECTIONS).map((section) => {
     const firstVisible = section.items.find((i) => isNavLeafVisible(i, clientServices, pmsRoomViews));
     return firstVisible ? { section, firstVisible } : null;
   }).filter((s) => s !== null);
