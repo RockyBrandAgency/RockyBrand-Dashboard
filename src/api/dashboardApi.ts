@@ -11,6 +11,9 @@ import type {
   HuespedesResponse,
   HousekeepingResponse,
   RoomState,
+  ItinerariosResponse,
+  ItinerarioDia,
+  DiaItinerarioPayload,
   MetricsReportResponse,
   EmailContact,
   EmailSegment,
@@ -138,6 +141,20 @@ export function cancelarReserva(bookingId: string): Promise<{ BookingID: string;
   return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'DELETE');
 }
 
+// "Ya pagó": PENDING -> CONFIRMED a mano, desde el detalle de la reserva
+// (2026-08-17, pedido explícito de Mato). Es el mismo salto que hace el cobro
+// de WeTravel y por eso NO manda ningún estado: el backend reusa
+// wetravel_confirmacion.confirmar(), que escribe Status y gsi1sk juntos. El
+// cliente no puede elegir a qué estado va - solo pide que se confirme.
+//
+// Ruta propia y no un PUT sobre la reserva: PUT edita campos, esto dispara
+// una transición de estado con una condición sobre PENDING. Un 409 no es un
+// error del panel, es la respuesta correcta cuando alguien más ya la confirmó
+// (o el job la canceló) en el medio.
+export function confirmarReserva(bookingId: string): Promise<{ BookingID: string; Status: string; message: string }> {
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}/confirmar`, 'POST');
+}
+
 // Lista real de huespedes/pescadores del cliente (pantalla propia del
 // PMS, 2026-08-11). Sale del mismo GSI1 que ya usa el panel de staff -
 // ver listar_huespedes() en crm_dashboard_api_lambda.py.
@@ -171,6 +188,28 @@ export function actualizarHuesped(
 
 export function crearHuesped(payload: NuevoHuespedPayload): Promise<{ GuestID: string; message: string }> {
   return request('/dashboard/huespedes', 'POST', payload);
+}
+
+// Itinerarios (2026-08-17, pedido explícito de Mato). Una sola llamada trae
+// TODAS las expediciones de la ventana del panel con sus días ya derivados
+// por el backend: la pantalla no calcula qué días existen ni cuántas truchas
+// suman - los dos números vienen calculados de un solo lado.
+export function getItinerarios(bookingId?: string): Promise<ItinerariosResponse> {
+  return request(`/dashboard/itinerarios${bookingId ? `?booking_id=${encodeURIComponent(bookingId)}` : ''}`);
+}
+
+// Reemplazo COMPLETO del día, no un merge parcial: el formulario manda los
+// seis campos siempre, así que borrar un dato (vaciar una hora que se cargó
+// mal) se guarda como cualquier otro cambio.
+export function guardarDiaItinerario(payload: DiaItinerarioPayload): Promise<{ BookingID: string; dia: ItinerarioDia; message: string }> {
+  return request('/dashboard/itinerarios', 'PUT', payload);
+}
+
+// "Vaciar", no "borrar": el backend reescribe el día en blanco y conserva el
+// rastro de que ahí hubo algo. Un día vacío y uno inexistente se ven igual en
+// pantalla, así que un borrado real no aportaría nada visible.
+export function vaciarDiaItinerario(bookingId: string, fecha: string): Promise<{ BookingID: string; message: string }> {
+  return request('/dashboard/itinerarios', 'DELETE', { BookingID: bookingId, Fecha: fecha });
 }
 
 export function getMetricsReport(days = 30): Promise<MetricsReportResponse> {

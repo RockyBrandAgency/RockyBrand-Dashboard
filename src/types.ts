@@ -269,6 +269,68 @@ export interface ReservasResumenResponse {
   reservas: ReservaResumenItem[];
 }
 
+// Itinerarios (2026-08-17, pedido explícito de Mato): el plan y la bitácora
+// de cada día de una expedición. Un solo registro por día sirve para las dos
+// cosas — se anota antes (guía, agua, salida) y se completa después (regreso,
+// truchas, notas). Ver el docstring de 04-codigo/pms_itinerario.py.
+export type TipoDeAgua = '' | 'rio' | 'lago' | 'laguna';
+
+export interface ItinerarioDia {
+  Fecha: string;
+  Guia: string;
+  Agua: { Tipo: TipoDeAgua; Nombre: string };
+  HoraSalida: string;
+  HoraRegreso: string;
+  // null = todavía no se contó. CERO es un dato real (un día sin pique) y por
+  // eso no colapsa con "sin registrar": son dos cosas distintas y la pantalla
+  // las muestra distinto.
+  TruchasPescadas: number | null;
+  Notas: string;
+  UpdatedAt: string;
+  UpdatedBy: string;
+}
+
+export interface ItinerarioResumen {
+  dias_totales: number;
+  dias_cargados: number;
+  dias_con_conteo: number;
+  truchas: number;
+  guias: string[];
+  aguas: string[];
+}
+
+// Los días los DERIVA el backend a partir de las fechas de la reserva y
+// vienen completos, tengan o no algo cargado - la pantalla no calcula cuáles
+// existen (si lo hiciera, un cambio de criterio dejaría al formulario
+// ofreciendo un día que el backend después rechaza).
+export interface ItinerarioReserva {
+  BookingID: string;
+  GuestName: string;
+  RoomID: string;
+  CheckIn: string;
+  CheckOut: string;
+  Status: string;
+  PartyMembers?: number;
+  dias: ItinerarioDia[];
+  resumen: ItinerarioResumen;
+}
+
+export interface ItinerariosResponse {
+  client_id: string;
+  itinerarios: ItinerarioReserva[];
+}
+
+export interface DiaItinerarioPayload {
+  BookingID: string;
+  Fecha: string;
+  Guia: string;
+  Agua: { Tipo: TipoDeAgua; Nombre: string };
+  HoraSalida: string;
+  HoraRegreso: string;
+  TruchasPescadas: number | null;
+  Notas: string;
+}
+
 // Reserva manual (llamada/mail/walk-in) - 2026-08-06, pedido explícito de
 // Mato, para todos los clientes. GuestID debe ser de un huésped ya
 // existente (ver NuevaHuespedPayload si es nuevo).
