@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTokenClaims, LoginError } from '../api/cognitoAuth';
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
+import { leerPerfilCacheado, guardarPerfilCacheado, borrarPerfilCacheado } from '../api/perfilCache';
 import { applyClientTheme, applyClientTitle, CLIENT_BRANDING } from '../branding';
-import type { ClientServices } from '../types';
+import type { ClientServices, MeResponse } from '../types';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -62,19 +63,37 @@ function readUserEmail(): string {
   return typeof claims.email === 'string' ? claims.email : '';
 }
 
+// Perfil de la carga anterior de esta misma pestaña, si lo hay (ver
+// api/perfilCache.ts). Es lo que evita que recargar la página deje el panel
+// esperando a /dashboard/me con un menú que todavía no es de nadie.
+function perfilInicial(): MeResponse | null {
+  const session = getStoredSession();
+  return session ? leerPerfilCacheado(session.idToken) : null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getStoredSession());
   const [userEmail, setUserEmail] = useState(readUserEmail);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
-  const [clientDisplaySubtitle, setClientDisplaySubtitle] = useState('');
-  const [clientServices, setClientServices] = useState<ClientServices | null>(null);
-  const [clientLogoSrcLight, setClientLogoSrcLight] = useState<string | null>(null);
-  const [clientLogoSrcDark, setClientLogoSrcDark] = useState<string | null>(null);
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [pmsRoomViews, setPmsRoomViews] = useState(true);
+  // Los inicializadores lazy corren UNA vez, antes del primer render: si hay
+  // perfil recordado, el primer pixel que se pinta ya es el del cliente
+  // correcto. Si no lo hay (primera carga de la pestaña), todo arranca en
+  // null igual que siempre y las pantallas muestran su esqueleto.
+  const [clientDisplayName, setClientDisplayName] = useState<string | null>(() => perfilInicial()?.display_name ?? null);
+  const [clientDisplaySubtitle, setClientDisplaySubtitle] = useState(() => perfilInicial()?.display_subtitle ?? '');
+  const [clientServices, setClientServices] = useState<ClientServices | null>(() => perfilInicial()?.services ?? null);
+  const [clientLogoSrcLight, setClientLogoSrcLight] = useState<string | null>(() => {
+    const me = perfilInicial();
+    return me ? me.logo_data_url ?? CLIENT_BRANDING[me.client_id]?.logoSrcLight ?? null : null;
+  });
+  const [clientLogoSrcDark, setClientLogoSrcDark] = useState<string | null>(() => {
+    const me = perfilInicial();
+    return me ? me.logo_data_url ?? CLIENT_BRANDING[me.client_id]?.logoSrcDark ?? null : null;
+  });
+  const [clientId, setClientId] = useState<string | null>(() => perfilInicial()?.client_id ?? null);
+  const [pmsRoomViews, setPmsRoomViews] = useState(() => perfilInicial()?.pms_room_views ?? true);
 
   const setUploadedLogo = useCallback((src: string) => {
     setClientLogoSrcLight(src);
@@ -83,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isAuthenticated) {
+      borrarPerfilCacheado();
       setClientDisplayName(null);
       setClientDisplaySubtitle('');
       setClientServices(null);
@@ -91,10 +111,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setClientId(null);
       return;
     }
+    // El theme y el título del cliente recordado se aplican YA, sin esperar la
+    // respuesta: si no, la primera carga pinta el panel con la paleta neutra
+    // de RockyBrand y recién después toma el color del cliente. Es el mismo
+    // salto de identidad que el del menú, en color.
+    const recordado = perfilInicial();
+    if (recordado) {
+      applyClientTheme(recordado.client_id);
+      applyClientTitle(recordado.client_id);
+    }
     let cancelled = false;
     getMe()
       .then((me) => {
         if (cancelled) return;
+        const sesion = getStoredSession();
+        if (sesion) guardarPerfilCacheado(sesion.idToken, me);
         setClientDisplayName(me.display_name);
         setClientDisplaySubtitle(me.display_subtitle);
         setClientServices(me.services);
@@ -115,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         if (e instanceof UnauthorizedError) {
           clearStoredSession();
+          borrarPerfilCacheado();
           setIsAuthenticated(false);
           setUserEmail('');
           setSessionExpiredMessage('Tu sesión expiró, inicia sesión de nuevo.');
@@ -148,12 +180,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearStoredSession();
+    borrarPerfilCacheado();
     setIsAuthenticated(false);
     setUserEmail('');
   }, []);
 
   const handleUnauthorized = useCallback(() => {
     clearStoredSession();
+    borrarPerfilCacheado();
     setIsAuthenticated(false);
     setUserEmail('');
     setSessionExpiredMessage('Tu sesión expiró, inicia sesión de nuevo.');

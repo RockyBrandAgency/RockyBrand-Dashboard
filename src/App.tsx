@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { initButtonHoverGsap } from './lib/buttonHoverGsap';
 import { useBreakpoint } from './hooks/useBreakpoint';
+import { SkeletonRows } from './components/Skeleton';
 import { Sidebar } from './components/Sidebar';
 import { SidebarRail } from './components/SidebarRail';
 import { MobileBar } from './components/MobileBar';
@@ -120,7 +121,22 @@ function AuthenticatedShell() {
       )}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {noServiceAvailable && screen !== 'settings' ? (
+        {/* Mientras /dashboard/me no contesta no se sabe qué contrató este
+            cliente, y 'overview' es solo el default de arranque. Dibujar esa
+            pantalla igual era la otra mitad de lo que reportó Mato el
+            2026-08-18 ("carga el panel con otras funciones y a los segundos
+            muestra las que corresponden a chile fly fishing"): se pintaba el
+            Overview de un lodge con habitaciones, se disparaban sus llamadas,
+            y al llegar la respuesta el useEffect de acá arriba saltaba a otra
+            pantalla. Ahora ese hueco es un esqueleto, y desde la segunda carga
+            de la pestaña ni siquiera aparece: el perfil viene recordado
+            (api/perfilCache.ts) y clientServices ya no es null en el primer
+            render. */}
+        {clientServices === null ? (
+          <div style={{ padding: isDesktop ? 'var(--space-9)' : 'var(--space-6)' }}>
+            <SkeletonRows rows={3} />
+          </div>
+        ) : noServiceAvailable && screen !== 'settings' ? (
           <ServiceUnavailableScreen isDesktop={isDesktop} />
         ) : (
           <>
@@ -198,7 +214,18 @@ function Root() {
   // dibujarse el cerebro: sin salto, y sin afirmar nada del cliente todavía.
   // Para quien no la ve nunca, esa espera es una pantalla negra gratis.
   if (!isAuthenticated) return <LoginScreen sessionExpiredMessage={sessionExpiredMessage} />;
-  if (!introSeen && !servicesLoaded && !sinIntro) return <div className="brain-screen" />;
+  // La espera oscura sobre la que después se dibuja el cerebro. Lleva un
+  // punto que respira: sin él, en el primer ingreso de la pestaña -el único
+  // caso en que esto se ve, porque desde el segundo el perfil viene recordado
+  // (api/perfilCache.ts)- la pantalla negra y quieta se lee como "se colgó",
+  // que fue textual lo que reportó Mato el 2026-08-18.
+  if (!introSeen && !servicesLoaded && !sinIntro) {
+    return (
+      <div className="brain-screen">
+        <div className="brain-espera" role="status" aria-label="Cargando" />
+      </div>
+    );
+  }
   if (!introSeen && canShowIntro && accent) {
     return (
       <BrainIntro
