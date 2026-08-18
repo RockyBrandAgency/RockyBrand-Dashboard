@@ -160,7 +160,9 @@ body,
 
 .crm-tabbar{ position:relative; display:flex; gap:8px; margin:0 0 24px; border-bottom:1px solid var(--border); flex-wrap:wrap; overflow-x:auto; }
 .crm-tab{ all:unset; padding:8px 16px 12px; font-size:13px; color:var(--text-sub); cursor:pointer; border-bottom:2px solid transparent; font-weight:500; white-space:nowrap; box-sizing:border-box; }
-.crm-tab:hover{ background:var(--surface-2); border-radius:var(--radius-sm) var(--radius-sm) 0 0; }
+/* Sin :hover de fondo acá: lo pone la state layer de M3 (buttonHoverGsap.ts)
+   igual que en el resto de los botones del panel. Dos dueños del mismo gesto
+   daban un hover del doble de fuerza en las pestañas. */
 .crm-tab.active{ color:var(--primary); font-weight:600; }
 
 .crm-card{ background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:var(--space-6); box-shadow:var(--shadow-card); }
@@ -188,8 +190,13 @@ body,
    que pone .crm-mini-card (misma especificidad, esta regla va después y le
    gana) y la tarjeta quedaría en un botón pelado. Se resetea solo lo que el
    <button> nativo aporta de más: su tipografía, su color y su alineado. */
-.crm-mini-card-btn{ font:inherit; color:inherit; text-align:left; width:100%; display:block; cursor:pointer; transition:box-shadow 0.12s, border-color 0.12s; }
-.crm-mini-card-btn:hover{ box-shadow:var(--shadow-card-hover); border-color:var(--border-strong); }
+/* 2026-08-18 (pedido de Mato: "los hover de los componentes deben ser sin
+   sombras, déjalos de manera mas elegante"): la sombra creciente al pasar el
+   cursor se reemplaza por lo que M3 usa para una superficie clickeable — el
+   borde toma el color de marca y la superficie se tiñe apenas. Sin
+   levantamiento y sin profundidad falsa. */
+.crm-mini-card-btn{ font:inherit; color:inherit; text-align:left; width:100%; display:block; cursor:pointer; transition:border-color 0.15s ease, background-color 0.15s ease; }
+.crm-mini-card-btn:hover{ border-color:color-mix(in srgb, var(--primary) 45%, var(--border)); background:color-mix(in srgb, var(--primary) 3%, var(--white)); }
 .crm-mini-card-btn[aria-expanded="true"]{ border-color:var(--primary); }
 /* La invitación a abrir. Va con el color de marca porque es la única acción
    de la tarjeta: sin ella el número se lee como una etiqueta y nadie
@@ -202,20 +209,89 @@ body,
   .crm-mini-card-btn, .crm-mini-caret{ transition:none; }
 }
 
-/* padding 10px 16px, no 8px 16px - hallazgo de auditoría 2026-08-04: el
-   CTA de toolbar real de Figma ("Nueva Campaña", nodo 4:2026) es
-   py-[10px]. Los CTAs de formulario (Programar Envío/Guardar Borrador,
-   py-[12px] px-[24px]) son más grandes todavía - pendiente, necesita un
-   tamaño de botón aparte, no se resuelve solo con esto. */
-.crm-btn{ all:unset; box-sizing:border-box; font-size:13px; font-weight:600; border-radius:var(--radius-sm); cursor:pointer; padding:10px 16px; border:1px solid transparent; display:inline-flex; align-items:center; gap:8px; text-align:center; transition:background 0.12s, border-color 0.12s; }
+/* ==========================================================================
+   Botones — Material Design 3
+   ==========================================================================
+   Pedido explícito de Mato (2026-08-18): "quiero que los botones sean como
+   los que están en material design https://m3.material.io/components/all-buttons,
+   tanto las variaciones active, inactive, cancelar, success, todos. Los hover
+   de los componentes deben ser sin sombras, déjalos de manera mas elegante".
+
+   Medidas tomadas de la spec real de M3 (Common buttons), no inventadas:
+   - alto 40px, forma "full" (radio = mitad del alto, 20px)
+   - label-large: 14px / peso 500 / letter-spacing 0.1px
+   - padding 24px a cada lado; con ícono adelante, 16px del lado del ícono
+   - ícono 18px, separación 8px
+   - deshabilitado ("inactive"): contenedor = on-surface al 12%,
+     label = on-surface al 38%. NO es un opacity global sobre todo el botón.
+
+   Las 5 variantes de M3 mapeadas a las clases que este panel ya usaba, para
+   que el cambio alcance a los ~60 botones del codebase sin tocar 40 archivos:
+     crm-btn-primary  -> Filled       (la acción principal)
+     crm-btn-tonal    -> Filled tonal (secundaria con peso)
+     crm-btn-ghost    -> Outlined     (secundaria)
+     crm-btn-text     -> Text         (terciaria / de bajo compromiso)
+     crm-btn-danger   -> Text/Filled en color de error ("cancelar")
+     crm-btn-success  -> Filled en verde de estado ("success")
+
+   El HOVER no vive acá: lo pone buttonHoverGsap.ts con la state layer de M3
+   (8% del color del label, animada con GSAP) para TODOS los <button> del
+   panel a la vez, sin sombra y sin desplazamiento. Un :hover de CSS acá
+   además nunca alcanzaría a los botones con style={{all:'unset'}} inline, y
+   duplicaría la capa en los que sí. Un solo dueño del hover. */
+.crm-btn{
+  all:unset; box-sizing:border-box; position:relative;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:40px; padding:0 24px;
+  font-size:14px; font-weight:500; letter-spacing:0.1px; line-height:20px;
+  border-radius:var(--radius-pill); border:1px solid transparent;
+  cursor:pointer; text-align:center; white-space:nowrap;
+  transition:background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+/* Con ícono adelante el padding de ese lado baja a 16px (spec M3). */
+.crm-btn > svg:first-child{ margin-left:-8px; }
+.crm-btn > svg:last-child:not(:first-child){ margin-right:-8px; }
+
 .crm-btn-primary{ background:var(--primary); color:#fff; }
-.crm-btn-primary:hover{ background:var(--primary-hov); }
-.crm-btn-ghost{ background:var(--white); color:var(--text-sub); border-color:var(--border-strong); }
-.crm-btn-ghost:hover{ background:var(--surface-2); color:var(--text); }
-.crm-btn-danger{ background:var(--status-critico-bg); color:var(--status-critico-dot); }
-.crm-btn-danger:hover{ background:var(--danger); color:#fff; }
-.crm-btn-sm{ padding:4px 8px; font-size:11px; border-radius:var(--radius-xs); }
-.crm-btn:disabled{ opacity:0.4; cursor:default; }
+.crm-btn-tonal{ background:color-mix(in srgb, var(--primary) 14%, var(--white)); color:var(--primary); }
+.crm-btn-ghost{ background:transparent; color:var(--primary); border-color:var(--border-strong); }
+.crm-btn-text{ background:transparent; color:var(--primary); padding:0 12px; }
+.crm-btn-success{ background:var(--status-bien-dot); color:#fff; }
+.crm-btn-danger{ background:transparent; color:var(--danger); }
+.crm-btn-danger-filled{ background:var(--danger); color:#fff; }
+
+/* "active" — el botón que representa el estado vigente (una pestaña de
+   filtro elegida, un modo encendido). En M3 es el mismo contenedor tonal
+   pero con el label en el color primario y peso mayor, nunca una sombra. */
+.crm-btn.is-active,
+.crm-btn[aria-pressed="true"]{
+  background:color-mix(in srgb, var(--primary) 16%, var(--white));
+  color:var(--primary);
+  border-color:transparent;
+  font-weight:600;
+}
+
+/* "inactive" — spec M3 de estado deshabilitado. El contenedor y el label
+   bajan por separado (12% / 38% de on-surface); un opacity global sobre el
+   botón entero deja el texto ilegible sobre fondos claros. */
+.crm-btn:disabled{
+  cursor:default;
+  background:color-mix(in srgb, var(--text) 12%, transparent);
+  color:color-mix(in srgb, var(--text) 38%, transparent);
+  border-color:transparent;
+}
+.crm-btn-ghost:disabled,
+.crm-btn-text:disabled,
+.crm-btn-danger:disabled{
+  background:transparent;
+  color:color-mix(in srgb, var(--text) 38%, transparent);
+}
+.crm-btn-ghost:disabled{ border-color:color-mix(in srgb, var(--text) 12%, transparent); }
+
+/* Tamaño chico (M3 Expressive "small"): 32px de alto, radio 16px. Se sigue
+   llamando crm-btn-sm porque ya está puesto en 19 lugares del panel. */
+.crm-btn-sm{ min-height:32px; padding:0 16px; font-size:13px; border-radius:16px; }
+.crm-btn-sm.crm-btn-text{ padding:0 12px; }
 
 .crm-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-7); flex-wrap:wrap; margin-bottom:var(--space-6); }
 .crm-search-wrap{ display:flex; align-items:center; gap:10px; flex:1; min-width:220px; max-width:320px; box-sizing:border-box; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--white); }
@@ -238,7 +314,7 @@ body,
    heredado del body, no a los 13px que decía la hoja. Lo único que hace
    falta resetear del <button> es la familia. */
 button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:none; font-family:inherit; text-align:left; }
-.crm-seg-item:hover{ background:var(--surface-2); }
+/* Igual que .crm-tab: el hover es la state layer global. */
 .crm-seg-item.active{ color:var(--primary); font-weight:600; background:color-mix(in srgb, var(--primary) 8%, transparent); }
 .crm-seg-count{ font-size:11px; font-weight:600; color:var(--text-sub); background:var(--surface-2); padding:2px 6px; border-radius:var(--radius-pill); }
 .crm-seg-item.active .crm-seg-count{ color:#fff; background:var(--primary); }
@@ -332,6 +408,30 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   /* En pantalla angosta el equipo pasa a una columna y 7 fichas completas no
      entran en un viewport: la pantalla scrollea en vez de recortarlas. */
   overflow-y: auto;
+}
+
+/* Punto que respira mientras se espera a /dashboard/me en el primer ingreso
+   de la pestaña. Es lo único que se ve sobre .brain-screen en ese rato. */
+.brain-espera {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: rgba(150, 180, 214, 0.9);
+  box-shadow: 0 0 18px rgba(120, 160, 210, 0.5);
+  animation: brain-espera-pulso 1.4s ease-in-out infinite;
+}
+
+@keyframes brain-espera-pulso {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brain-espera { animation: none; opacity: 0.7; }
 }
 
 .brain-stage {
@@ -531,8 +631,11 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
    clickeables: sin él, la celda se lee como una etiqueta de color y nadie
    descubre la acción. El anillo de foco lo pone la regla global
    :focus-visible, no hace falta repetirlo acá. */
-.cal-dia { transition: box-shadow 0.12s, transform 0.12s; }
-.cal-dia:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
+/* 2026-08-18: antes levantaba la celda 1px y le crecía la sombra. Mato pidió
+   hover sin sombras: queda el tinte de marca y el borde, que son la misma
+   señal de "esto se puede tocar" sin simular profundidad. */
+.cal-dia { transition: border-color 0.15s ease, background-color 0.15s ease; }
+.cal-dia:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
 
 /* Todo el reset vive acá y no en un style inline: `all:unset` inline le gana
    a cualquier regla de esta hoja (misma trampa ya documentada arriba en
@@ -550,9 +653,8 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   margin: 0 -6px;
   transition: background 0.12s;
 }
-.cal-fila:hover { background: var(--surface-2); }
+/* El hover lo pone la state layer global (es un <button> real). */
 
 @media (prefers-reduced-motion: reduce) {
   .cal-dia { transition: none; }
-  .cal-dia:hover { transform: none; }
 }
