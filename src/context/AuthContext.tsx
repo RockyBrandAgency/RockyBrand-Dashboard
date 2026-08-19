@@ -3,7 +3,7 @@ import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTo
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
 import { leerPerfilCacheado, guardarPerfilCacheado, borrarPerfilCacheado } from '../api/perfilCache';
 import { applyClientTheme, applyClientTitle, CLIENT_BRANDING } from '../branding';
-import type { ClientServices, MeResponse } from '../types';
+import type { ClientFeatures, ClientServices, MeResponse } from '../types';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -49,6 +49,12 @@ interface AuthContextValue {
   // mostrarle "Ocupación de Habitaciones". true mientras carga (mismo
   // criterio "nunca esconder por un falso negativo" que clientServices).
   pmsRoomViews: boolean;
+  // Sub-opciones dentro de cada servicio contratado (qué pantallas del PMS
+  // y qué pestañas de Email Marketing ve este cliente), tal como las dejó
+  // el panel de staff. null mientras carga Y también cuando la Lambda
+  // desplegada es anterior a que existieran: los dos casos significan "no
+  // sé", y no saber nunca esconde una pantalla.
+  features: ClientFeatures | null;
   // SettingsScreen la llama después de subir un logo nuevo, para que el
   // Sidebar/MobileBar lo reflejen sin esperar a un remount de toda la app.
   setUploadedLogo: (src: string) => void;
@@ -94,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [clientId, setClientId] = useState<string | null>(() => perfilInicial()?.client_id ?? null);
   const [pmsRoomViews, setPmsRoomViews] = useState(() => perfilInicial()?.pms_room_views ?? true);
+  const [features, setFeatures] = useState<ClientFeatures | null>(() => perfilInicial()?.features ?? null);
 
   const setUploadedLogo = useCallback((src: string) => {
     setClientLogoSrcLight(src);
@@ -106,6 +113,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setClientDisplayName(null);
       setClientDisplaySubtitle('');
       setClientServices(null);
+      // También `features`: son la configuración de ESE cliente. Dejarlas
+      // puestas al desloguear las arrastraría a la sesión siguiente.
+      setFeatures(null);
       setClientLogoSrcLight(null);
       setClientLogoSrcDark(null);
       setClientId(null);
@@ -133,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientLogoSrcDark(me.logo_data_url ?? CLIENT_BRANDING[me.client_id]?.logoSrcDark ?? null);
         setClientId(me.client_id);
         setPmsRoomViews(me.pms_room_views);
+        setFeatures(me.features ?? null);
         // Solo SETEA acá, nunca resetea (ver la rama !isAuthenticated de
         // arriba) - si reseteara en cada mount, pisaría el theme que
         // LoginScreen ya aplicó por subdominio antes del login (efectos
@@ -211,6 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clientLogoSrcDark,
         clientId,
         pmsRoomViews,
+        features,
         setUploadedLogo,
       }}
     >

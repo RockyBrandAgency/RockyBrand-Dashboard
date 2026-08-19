@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type NavGate, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import { labelNav } from '../lib/terminologiaPms';
 import { HomeIcon, ChartColumnIcon, BellIcon } from './icons/RockyIcons';
@@ -42,7 +42,8 @@ export function MobileBar({
   screen: Screen;
   setScreen: (s: Screen) => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews, features } = useAuth();
+  const gate: NavGate = { services: clientServices, pmsRoomViews, features };
 
   // clientServices null = /dashboard/me todavia no contesto. Mismo criterio
   // que Sidebar.tsx (2026-08-18): mientras no se sabe que contrato este
@@ -50,12 +51,12 @@ export function MobileBar({
   // los que sobran unos segundos despues. Desde la segunda carga de la
   // pestaña esto ni se nota: el perfil viene recordado (api/perfilCache.ts).
   const bottomItems: { id: Screen; icon: ReactNode; label: string }[] = [];
-  if (clientServices !== null && isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews)) {
+  if (clientServices !== null && isNavLeafVisible(OVERVIEW, gate)) {
     bottomItems.push({ id: OVERVIEW.id, icon: <HomeIcon size={18} />, label: OVERVIEW.shortLabel });
   }
   for (const section of clientServices === null ? [] : NAV_SECTIONS) {
     for (const item of section.items) {
-      if (isNavLeafVisible(item, clientServices, pmsRoomViews)) {
+      if (isNavLeafVisible(item, gate)) {
         bottomItems.push({ id: item.id, icon: <ChartColumnIcon size={18} />, label: labelNav(item, clientId, true) });
       }
     }

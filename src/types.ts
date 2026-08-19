@@ -185,7 +185,30 @@ export interface MeResponse {
   // viejo antes de este campo) - preserva el comportamiento de hoy
   // (mostrar habitaciones) hasta que se apague a proposito.
   pms_room_views: boolean;
+  // Sub-opciones dentro de cada servicio: qué pantallas del PMS y qué
+  // pestañas de Email Marketing tiene habilitadas este cliente
+  // (2026-08-19). Se administran desde el panel de staff y el registro de
+  // claves y defaults vive en 04-codigo/client_features.py.
+  //
+  // Opcional a propósito: si la Lambda desplegada es anterior, llega
+  // undefined y el frontend muestra TODO, que es el comportamiento de
+  // siempre. Nunca esconder una pantalla por un dato que no llegó — es el
+  // mismo criterio que ya usa `clientServices === null`.
+  features?: ClientFeatures;
 }
+
+// Claves de las sub-opciones. Espejo de 04-codigo/client_features.py: si
+// allá se agrega una, agregarla acá o el gate no la mira.
+export type PmsFeatureKey =
+  | 'pms_resumen' | 'pms_reservas' | 'pms_huespedes' | 'pms_itinerarios'
+  | 'pms_housekeeping' | 'pms_monthly_view' | 'pms_room_views';
+
+export type EmailFeatureKey =
+  | 'email_resumen' | 'email_pendientes' | 'email_campanas' | 'email_nueva_campana'
+  | 'email_audiencias' | 'email_templates' | 'email_metricas' | 'email_automatizaciones';
+
+export type FeatureKey = PmsFeatureKey | EmailFeatureKey;
+export type ClientFeatures = Record<FeatureKey, boolean>;
 
 // Huesped/pescador del PMS (GET /dashboard/huespedes, 2026-08-11 —
 // "Huespedes (para alto castillo), Pescadores para ChileFlyFishing").

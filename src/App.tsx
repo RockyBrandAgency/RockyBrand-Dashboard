@@ -30,7 +30,7 @@ import { AgenciasLista } from './pages/Agencias/AgenciasLista';
 import { AgenciasReporte } from './pages/Agencias/AgenciasReporte';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type Screen } from './screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type NavGate, type Screen } from './screens';
 import { CLIENT_ACCENT_ON_DARK, CLIENTES_SIN_INTRO, clientIdFromHostname } from './branding';
 import { agentsForClient } from './agents';
 import type { ClientServices } from './types';
@@ -49,25 +49,25 @@ function isServiceEntryVisible(screen: Screen, clientServices: ClientServices | 
 // ya no es visible para este cliente, hay que moverse a la primera que sí
 // lo sea, nunca dejarlo parado en una pantalla rota/vacía sin salida en
 // el sidebar.
-function isScreenVisible(screen: Screen, clientServices: ClientServices | null, pmsRoomViews: boolean): boolean {
+function isScreenVisible(screen: Screen, gate: NavGate): boolean {
   if (screen === 'settings') return true;
-  if (screen === 'overview' || screen === 'llegadas-detalle') return isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
+  if (screen === 'overview' || screen === 'llegadas-detalle') return isNavLeafVisible(OVERVIEW, gate);
   for (const section of NAV_SECTIONS) {
     const item = section.items.find((i) => i.id === screen);
-    if (item) return isNavLeafVisible(item, clientServices, pmsRoomViews);
+    if (item) return isNavLeafVisible(item, gate);
   }
-  if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas' || screen === 'servicio-contenido-revision') return isServiceEntryVisible(screen, clientServices);
+  if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas' || screen === 'servicio-contenido-revision') return isServiceEntryVisible(screen, gate.services);
   return true;
 }
 
-function firstVisibleScreen(clientServices: ClientServices | null, pmsRoomViews: boolean): Screen | null {
-  if (isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews)) return OVERVIEW.id;
+function firstVisibleScreen(gate: NavGate): Screen | null {
+  if (isNavLeafVisible(OVERVIEW, gate)) return OVERVIEW.id;
   for (const section of NAV_SECTIONS) {
-    const item = section.items.find((i) => isNavLeafVisible(i, clientServices, pmsRoomViews));
+    const item = section.items.find((i) => isNavLeafVisible(i, gate));
     if (item) return item.id;
   }
-  if (isServiceEntryVisible('servicio-pms-reservas', clientServices)) return 'servicio-pms-reservas';
-  if (isServiceEntryVisible('servicio-email-campanas', clientServices)) return 'servicio-email-campanas';
+  if (isServiceEntryVisible('servicio-pms-reservas', gate.services)) return 'servicio-pms-reservas';
+  if (isServiceEntryVisible('servicio-email-campanas', gate.services)) return 'servicio-email-campanas';
   return null;
 }
 
@@ -80,10 +80,11 @@ function AuthenticatedShell() {
   // tablet de Figma. Lo único que cambia en tablet es el nav (rail
   // angosto en vez del Sidebar completo), no el contenido.
   const isDesktop = breakpoint !== 'mobile';
-  const { userEmail, logout, clientServices, pmsRoomViews } = useAuth();
+  const { userEmail, logout, clientServices, pmsRoomViews, features } = useAuth();
+  const gate: NavGate = { services: clientServices, pmsRoomViews, features };
   const anyNavVisible =
-    isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews) ||
-    NAV_SECTIONS.some((section) => section.items.some((item) => isNavLeafVisible(item, clientServices, pmsRoomViews))) ||
+    isNavLeafVisible(OVERVIEW, gate) ||
+    NAV_SECTIONS.some((section) => section.items.some((item) => isNavLeafVisible(item, gate))) ||
     isServiceEntryVisible('servicio-pms-reservas', clientServices) ||
     isServiceEntryVisible('servicio-email-campanas', clientServices);
   // clientServices ya cargó y este cliente no tiene ningún servicio de los
@@ -94,10 +95,14 @@ function AuthenticatedShell() {
 
   useEffect(() => {
     if (clientServices === null) return;
-    if (isScreenVisible(screen, clientServices, pmsRoomViews)) return;
-    const fallback = firstVisibleScreen(clientServices, pmsRoomViews);
+    if (isScreenVisible(screen, { services: clientServices, pmsRoomViews, features })) return;
+    const fallback = firstVisibleScreen({ services: clientServices, pmsRoomViews, features });
     if (fallback) setScreen(fallback);
-  }, [clientServices, pmsRoomViews, screen]);
+    // `features` entra a las dependencias: si el cliente está parado en una
+    // pantalla que el panel de staff acaba de apagar, este efecto lo saca
+    // apenas llega el perfil nuevo, en vez de dejarlo en una pantalla sin
+    // acceso en el menú.
+  }, [clientServices, pmsRoomViews, features, screen]);
 
   return (
     <div style={{ display: 'flex', flexDirection: breakpoint === 'mobile' ? 'column' : 'row', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>

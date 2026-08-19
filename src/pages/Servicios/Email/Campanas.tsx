@@ -14,9 +14,13 @@ import { EmptyStateIllustrated } from '../../../components/EmptyStateIllustrated
 // están atadas a ese contenido, y editarla convertiría el historial en una
 // mentira. El backend lo rechaza igual — acá simplemente no se ofrece el
 // botón, para no invitar a un error que después no se puede deshacer.
+// `onNueva` opcional: si el cliente no tiene habilitada la pestaña "Nueva
+// campaña" (se administra desde el panel de staff), tampoco puede llegar a
+// ella desde acá. Un botón que no lleva a ninguna parte es peor que no
+// tenerlo.
 export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
-  onEditar: (campaignId: string) => void;
-  onNueva: () => void;
+  onEditar?: (campaignId: string) => void;
+  onNueva?: () => void;
   onVerDetalle: (campaignId: string) => void;
 }) {
   const { handleUnauthorized } = useAuth();
@@ -79,9 +83,11 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
             onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
           />
         </div>
-        <Boton tipo="primary" onClick={onNueva}>
-          <PlusIcon size={12} color="#fff" /> Nueva Campaña
-        </Boton>
+        {onNueva && (
+          <Boton tipo="primary" onClick={onNueva}>
+            <PlusIcon size={12} color="#fff" /> Nueva Campaña
+          </Boton>
+        )}
       </div>
 
       <div className="crm-card">
@@ -131,7 +137,7 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
                 <td className="num">{tasa(s.rebotes)}</td>
                 <td onClick={(e) => e.stopPropagation()}>
                   <div className="crm-row-actions">
-                    {c.status === 'draft' && <Boton sm onClick={() => onEditar(c.campaign_id)}>Retomar</Boton>}
+                    {c.status === 'draft' && onEditar && <Boton sm onClick={() => onEditar(c.campaign_id)}>Retomar</Boton>}
                     {c.status === 'draft' && <Boton sm tipo="danger" onClick={() => borrar(c)}>Eliminar</Boton>}
                   </div>
                 </td>
@@ -144,7 +150,7 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
             icon={<MailIcon size={36} />}
             title="No hay campañas todavía"
             description="Crea tu primera campaña de email para llegar directamente a tus huéspedes."
-            cta={{ label: 'Crear primera campaña', onClick: onNueva }}
+            cta={onNueva ? { label: 'Crear primera campaña', onClick: onNueva } : undefined}
           />
         )}
         {!lista.length && busqueda && (

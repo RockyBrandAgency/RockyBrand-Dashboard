@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   getEmailContacts,
@@ -18,7 +18,7 @@ import { AudienciasEmail } from './Email/Audiencias';
 import { TemplatesEmail } from './Email/Templates';
 import { MetricasEmail } from './Email/Metricas';
 import { AutomatizacionesEmail } from './Email/Automatizaciones';
-import type { EmailContact } from '../../types';
+import type { EmailContact, EmailFeatureKey } from '../../types';
 
 // Plataforma de Email Marketing dentro del panel propio del cliente.
 //
@@ -34,15 +34,19 @@ import type { EmailContact } from '../../types';
 //    estas pantallas no mandan client_id a ninguna parte.
 type Tab = 'resumen' | 'pendientes' | 'campanas' | 'nueva' | 'audiencias' | 'templates' | 'metricas' | 'automatizaciones';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'resumen', label: 'Resumen' },
-  { id: 'pendientes', label: 'Pendientes' },
-  { id: 'campanas', label: 'Campañas' },
-  { id: 'nueva', label: 'Nueva campaña' },
-  { id: 'audiencias', label: 'Audiencias' },
-  { id: 'templates', label: 'Templates' },
-  { id: 'metricas', label: 'Métricas' },
-  { id: 'automatizaciones', label: 'Automatizaciones' },
+// `featureKey`: qué bandera de client-config enciende esta pestaña. Se
+// administran una por una desde el panel de staff (2026-08-19) - hay
+// clientes a los que le entregamos el canal completo y otros a los que solo
+// les mostramos las métricas de lo que enviamos por ellos.
+const TABS: { id: Tab; label: string; featureKey: EmailFeatureKey }[] = [
+  { id: 'resumen', label: 'Resumen', featureKey: 'email_resumen' },
+  { id: 'pendientes', label: 'Pendientes', featureKey: 'email_pendientes' },
+  { id: 'campanas', label: 'Campañas', featureKey: 'email_campanas' },
+  { id: 'nueva', label: 'Nueva campaña', featureKey: 'email_nueva_campana' },
+  { id: 'audiencias', label: 'Audiencias', featureKey: 'email_audiencias' },
+  { id: 'templates', label: 'Templates', featureKey: 'email_templates' },
+  { id: 'metricas', label: 'Métricas', featureKey: 'email_metricas' },
+  { id: 'automatizaciones', label: 'Automatizaciones', featureKey: 'email_automatizaciones' },
 ];
 
 // Título de cada pestaña, tal cual el archivo real de Figma (frames 11-18)
@@ -59,9 +63,16 @@ const TAB_TITLES: Record<Tab, string> = {
 };
 
 export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized } = useAuth();
+  const { handleUnauthorized, features } = useAuth();
   const contextLabel = useClientContextLabel();
   const [tab, setTab] = useState<Tab>('resumen');
+  // `features` null = todavía no sé (cargando, o backend anterior a las
+  // banderas): se ven TODAS. Nunca esconder por un dato que no llegó, el
+  // mismo criterio que el sidebar.
+  // useMemo para que la identidad del array no cambie en cada render: es
+  // dependencia del efecto que corrige la pestaña activa.
+  const visibleTabs = useMemo(() => TABS.filter((t) => !features || features[t.featureKey]), [features]);
+  const puedeCrearCampana = !features || features.email_nueva_campana;
   const [editandoId, setEditandoId] = useState<string | null>(null);
   // El detalle vive DENTRO de la pestaña Campañas, no como pestaña propia:
   // en el panel principal es una ruta hija de campañas, y una pestaña extra
@@ -92,6 +103,18 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   useEffect(() => {
     loadContacts();
   }, [loadContacts]);
+
+  // Si la pestaña abierta dejó de estar habilitada (o si 'resumen', que es
+  // el default, está apagada para este cliente), saltar a la primera que sí
+  // lo esté. Sin esto el cliente vería la barra sin esa pestaña pero con su
+  // contenido debajo.
+  useEffect(() => {
+    if (!visibleTabs.length) return;
+    if (visibleTabs.some((t) => t.id === tab)) return;
+    setTab(visibleTabs[0].id);
+    setDetalleId(null);
+    setEditandoId(null);
+  }, [visibleTabs, tab]);
 
   const handleAddContact = async (email: string, name: string, tags: string[]) => {
     await upsertEmailContact(email, name, tags);
@@ -128,20 +151,32 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
           {contextLabel && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{contextLabel}</div>}
         </div>
 
+        {!visibleTabs.length && (
+          <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-sub)', fontSize: 14 }}>
+            Este cliente tiene Email Marketing contratado pero ninguna de sus
+            pestañas habilitada. Se administran desde el panel de RockyBrand.
+          </div>
+        )}
+
         <TabsWithIndicator
-          tabs={TABS}
+          tabs={visibleTabs}
           active={tab}
           onChange={(id) => { setTab(id); setDetalleId(null); if (id !== 'nueva') setEditandoId(null); }}
         />
 
         {/* Cada sección va envuelta por separado: si una revienta al dibujar,
             se cae ESA y no las otras siete. La pestaña sigue navegable. */}
+        {!!visibleTabs.length && (
         <ErrorBoundary nombre={`la sección ${TABS.find((t) => t.id === tab)?.label ?? ''}`} key={tab}>
           {tab === 'resumen' && <ResumenEmail />}
           {tab === 'pendientes' && <PendientesEmail />}
           {tab === 'campanas' && (detalleId
             ? <CampanaDetalle campaignId={detalleId} onVolver={() => setDetalleId(null)} />
-            : <CampanasEmail onEditar={irANueva} onNueva={() => irANueva(null)} onVerDetalle={setDetalleId} />)}
+            : <CampanasEmail
+                onEditar={puedeCrearCampana ? irANueva : undefined}
+                onNueva={puedeCrearCampana ? () => irANueva(null) : undefined}
+                onVerDetalle={setDetalleId}
+              />)}
           {tab === 'nueva' && (
             <NuevaCampana
               campaignId={editandoId}
@@ -160,10 +195,16 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
               onDelete={handleDeleteContact}
             />
           )}
-          {tab === 'templates' && <TemplatesEmail isDesktop={isDesktop} onUsarEnCampana={irANuevaConPlantilla} />}
+          {tab === 'templates' && (
+            <TemplatesEmail
+              isDesktop={isDesktop}
+              onUsarEnCampana={puedeCrearCampana ? irANuevaConPlantilla : undefined}
+            />
+          )}
           {tab === 'metricas' && <MetricasEmail />}
           {tab === 'automatizaciones' && <AutomatizacionesEmail />}
         </ErrorBoundary>
+        )}
       </div>
     </div>
   );

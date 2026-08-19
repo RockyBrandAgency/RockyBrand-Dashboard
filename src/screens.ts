@@ -1,4 +1,4 @@
-import type { ClientServices, ServiceKey } from './types';
+import type { ClientFeatures, ClientServices, FeatureKey, ServiceKey } from './types';
 
 // Estructura de navegación 2026-08-01, pedido explícito de Mato (2 rondas
 // de mensajes, sintetizadas acá):
@@ -50,6 +50,21 @@ export interface NavLeaf {
   // guiados y no alojamiento (Chile Fly Fishing) no tiene habitaciones
   // que limpiar. Mismo gate que ya usa /dashboard/disponibilidad.
   requiereHabitaciones?: boolean;
+  // Sub-opción que enciende o apaga ESTA pantalla, administrada cliente por
+  // cliente desde el panel de staff (2026-08-19). Distinta de serviceKeys:
+  // serviceKeys pregunta "¿contrató el servicio?", esto pregunta "¿de ese
+  // servicio, le dejamos esta pantalla?".
+  featureKey?: FeatureKey;
+}
+
+// Todo lo que decide si un item del menú se ve, en un solo objeto. Antes
+// eran parámetros sueltos y ya iban tres; el cuarto (features) habría hecho
+// que agregar una condición nueva significara tocar las 11 llamadas y
+// acertarle al orden posicional en cada una.
+export interface NavGate {
+  services: ClientServices | null;
+  pmsRoomViews: boolean;
+  features: ClientFeatures | null;
 }
 
 // Visible si CUALQUIERA de los servicios del item está contratado.
@@ -61,12 +76,14 @@ export interface NavLeaf {
 // se centralizó acá al sumar requiereHabitaciones, para que una condición
 // nueva no haya que acordarse de replicarla en los 4 lados.
 export function isNavLeafVisible(
-  item: { serviceKeys: ServiceKey[]; requiereHabitaciones?: boolean },
-  clientServices: ClientServices | null,
-  pmsRoomViews = true,
+  item: { serviceKeys: ServiceKey[]; requiereHabitaciones?: boolean; featureKey?: FeatureKey },
+  gate: NavGate,
 ): boolean {
-  if (item.requiereHabitaciones && !pmsRoomViews) return false;
-  return !clientServices || item.serviceKeys.some((key) => clientServices[key]);
+  if (item.requiereHabitaciones && !gate.pmsRoomViews) return false;
+  // `features` null = todavía no sé (cargando, o Lambda anterior a que
+  // existieran). No saber NUNCA esconde: mismo criterio que clientServices.
+  if (item.featureKey && gate.features && !gate.features[item.featureKey]) return false;
+  return !gate.services || item.serviceKeys.some((key) => gate.services![key]);
 }
 
 export const OVERVIEW: NavLeaf = {
@@ -117,17 +134,17 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'PMS',
     icon: '🛎️',
     items: [
-      { id: 'servicio-pms-resumen', label: 'Resumen', shortLabel: 'Resumen', serviceKeys: ['pms'] },
-      { id: 'servicio-pms-reservas', label: 'Calendario de Reservas', shortLabel: 'Reservas', serviceKeys: ['pms'] },
-      { id: 'servicio-pms-huespedes', label: 'Huéspedes', shortLabel: 'Huéspedes', serviceKeys: ['pms'] },
+      { id: 'servicio-pms-resumen', label: 'Resumen', shortLabel: 'Resumen', serviceKeys: ['pms'], featureKey: 'pms_resumen'},
+      { id: 'servicio-pms-reservas', label: 'Calendario de Reservas', shortLabel: 'Reservas', serviceKeys: ['pms'], featureKey: 'pms_reservas'},
+      { id: 'servicio-pms-huespedes', label: 'Huéspedes', shortLabel: 'Huéspedes', serviceKeys: ['pms'], featureKey: 'pms_huespedes'},
       // Itinerarios (2026-08-17, pedido explícito de Mato): el plan y la
       // bitácora de cada día de una expedición. Va DESPUÉS de personas y
       // antes de Housekeeping: se llega desde una reserva, no desde el
       // calendario. Sin `requiereHabitaciones` - un lodge con habitaciones
       // también hace salidas guiadas, y quien no las haga simplemente no
       // carga nada (la pantalla se explica sola con su estado vacío).
-      { id: 'servicio-pms-itinerarios', label: 'Itinerarios', shortLabel: 'Itinerarios', serviceKeys: ['pms'] },
-      { id: 'servicio-pms-housekeeping', label: 'Housekeeping', shortLabel: 'Aseo', serviceKeys: ['pms'], requiereHabitaciones: true },
+      { id: 'servicio-pms-itinerarios', label: 'Itinerarios', shortLabel: 'Itinerarios', serviceKeys: ['pms'], featureKey: 'pms_itinerarios'},
+      { id: 'servicio-pms-housekeeping', label: 'Housekeeping', shortLabel: 'Aseo', serviceKeys: ['pms'], requiereHabitaciones: true, featureKey: 'pms_housekeeping'},
     ],
   },
   {

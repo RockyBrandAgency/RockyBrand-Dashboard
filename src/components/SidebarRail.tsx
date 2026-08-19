@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type NavGate, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import type { ServiceKey } from '../types';
 import { labelSeccion } from '../lib/terminologiaPms';
@@ -33,7 +33,8 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight, pmsRoomViews, clientId } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, pmsRoomViews, clientId, features } = useAuth();
+  const gate: NavGate = { services: clientServices, pmsRoomViews, features };
   const [expanded, setExpanded] = useState(false);
 
   // clientServices null = /dashboard/me todavia no contesto. Mismo criterio
@@ -42,14 +43,14 @@ export function SidebarRail({ screen, setScreen, userEmail, onLogout }: {
   // los que sobran unos segundos despues. Desde la segunda carga de la
   // pestaña esto ni se nota: el perfil viene recordado (api/perfilCache.ts).
   const cargando = clientServices === null;
-  const showOverview = !cargando && isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
+  const showOverview = !cargando && isNavLeafVisible(OVERVIEW, gate);
   // Una entrada por SECCION (antes asumia que NAV_SECTIONS[0] era siempre
   // Metricas - real hasta que Tienda se sumo como primera seccion 2026-08-05
   // y quedo mostrando/ocultando el rail de Metricas segun el servicio de
   // Tienda). Cada seccion navega a su primer item visible, mismo criterio
   // que "entrar por la primera pantalla" que ya usa el resto del panel.
   const railSections = (cargando ? [] : NAV_SECTIONS).map((section) => {
-    const firstVisible = section.items.find((i) => isNavLeafVisible(i, clientServices, pmsRoomViews));
+    const firstVisible = section.items.find((i) => isNavLeafVisible(i, gate));
     return firstVisible ? { section, firstVisible } : null;
   }).filter((s) => s !== null);
   const serviceEntries = (Object.keys(SERVICE_ENTRY_SCREEN) as ServiceKey[]).filter(

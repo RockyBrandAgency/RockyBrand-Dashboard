@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type Screen } from '../screens';
+import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type NavGate, type Screen } from '../screens';
 import { useAuth } from '../context/AuthContext';
 import { labelNav, labelSeccion } from '../lib/terminologiaPms';
 import { startSkeletonPulse } from '../lib/skeletonGsap';
@@ -56,7 +56,8 @@ export function Sidebar({
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews, features } = useAuth();
+  const gate: NavGate = { services: clientServices, pmsRoomViews, features };
   // clientServices null = /dashboard/me todavia no contesto. Antes se
   // dibujaba el menu COMPLETO en ese hueco (isNavLeafVisible devuelve true
   // sin datos) y al llegar la respuesta desaparecian las secciones que este
@@ -66,10 +67,10 @@ export function Sidebar({
   // todavia: el cliente alcanza a leer -y a hacer click en- menus que no son
   // suyos. Mientras no se sabe, va un esqueleto.
   const cargando = clientServices === null;
-  const showOverview = isNavLeafVisible(OVERVIEW, clientServices, pmsRoomViews);
+  const showOverview = isNavLeafVisible(OVERVIEW, gate);
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => isNavLeafVisible(item, clientServices, pmsRoomViews)),
+    items: section.items.filter((item) => isNavLeafVisible(item, gate)),
   })).filter((section) => section.items.length > 0);
   const contractedServices = clientServices ? SERVICE_ORDER.filter((key) => clientServices[key]) : [];
 
