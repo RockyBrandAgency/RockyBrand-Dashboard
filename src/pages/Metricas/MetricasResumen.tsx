@@ -10,6 +10,7 @@ import { FacebookIcon, InstagramIcon, YoutubeIcon, TiktokIcon, GoogleIcon } from
 import type { DateRangeDays } from '../../components/DateRangeControl';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useClientContextLabel } from '../../hooks/useClientContextLabel';
+import { METRICS_SERVICE_KEYS } from '../../screens';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { SemaforoResponse } from '../../types';
 import type { Screen } from '../../screens';
@@ -91,7 +92,11 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
   const [days, setDays] = useState<DateRangeDays>(30);
 
   const showEmail = !clientServices || clientServices.email_marketing;
-  const showAgentsChannels = !clientServices || clientServices.agents;
+  // Mismo gate que el sidebar (METRICS_SERVICE_KEYS en screens.ts) y que
+  // /dashboard/metrics-report en el backend: email_marketing O agents.
+  // Antes pedía solo 'agents' y escondía canales/sitio a un cliente que sí
+  // los tiene conectados - ver el comentario de METRICS_SERVICE_KEYS.
+  const showAgentsChannels = !clientServices || METRICS_SERVICE_KEYS.some((k) => clientServices[k]);
 
   const load = useCallback(() => {
     if (!showEmail) {

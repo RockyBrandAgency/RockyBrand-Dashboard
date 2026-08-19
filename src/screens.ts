@@ -76,6 +76,24 @@ export const OVERVIEW: NavLeaf = {
   serviceKeys: ['pms'],
 };
 
+// Gate de TODAS las pantallas de Métricas (resumen y canales), en un solo
+// lugar para que el sidebar y el bloque de canales de MetricasResumen no
+// se separen nunca.
+//
+// Es EXACTAMENTE el gate que el backend ya aplica a /dashboard/metrics-report
+// (crm_dashboard_api_lambda.py, "Ni Email Marketing ni Agentes de IA..."):
+// email_marketing O agents. Hasta el 2026-08-19 los 5 canales individuales
+// pedían solo 'agents', más estricto que el endpoint que los alimenta, con
+// una consecuencia real: Alto Castillo quedó con services.agents=false al
+// cerrarse el 17-ago-2026 pero con las métricas de RRSS/SEO/sitio vivas a
+// propósito (las credenciales de Meta y Search Console siguen en SSM), y aún
+// así el panel se las escondía. 'agents' no puede prenderse para destrabarlo:
+// ese mismo flag es el freno de costo de los 7 Lambdas de agentes.
+//
+// Un cliente sin la fuente de datos de un canal no ve un número inventado:
+// la página muestra "—" o "No Conectado", que es la respuesta honesta.
+export const METRICS_SERVICE_KEYS: ServiceKey[] = ['email_marketing', 'agents'];
+
 export interface NavSection {
   label: string;
   icon: string;
@@ -140,17 +158,16 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Métricas',
     icon: '📊',
     items: [
-      // "Resumen" combina Email Marketing + lo que gestionan los Agentes
-      // de IA (redes/SEO) - visible con cualquiera de los 2. Los canales
-      // individuales son todos del lado de Agentes de IA (son ellos
-      // quienes gestionan redes/SEO), TikTok incluido aunque hoy sea un
-      // stub honesto (sin fuente de datos conectada todavía).
-      { id: 'metricas-resumen', label: 'Resumen', shortLabel: 'Métricas', serviceKeys: ['email_marketing', 'agents'] },
-      { id: 'metricas-facebook', label: 'Facebook', shortLabel: 'Facebook', serviceKeys: ['agents'] },
-      { id: 'metricas-instagram', label: 'Instagram', shortLabel: 'Instagram', serviceKeys: ['agents'] },
-      { id: 'metricas-youtube', label: 'Youtube', shortLabel: 'Youtube', serviceKeys: ['agents'] },
-      { id: 'metricas-seo', label: 'SEO', shortLabel: 'SEO', serviceKeys: ['agents'] },
-      { id: 'metricas-tiktok', label: 'TikTok', shortLabel: 'TikTok', serviceKeys: ['agents'] },
+      // Todas las páginas de Métricas usan METRICS_SERVICE_KEYS: el mismo
+      // criterio "OR" que el backend ya aplica en /dashboard/metrics-report.
+      // Los canales individuales pedían solo 'agents' hasta el 2026-08-19 -
+      // ver el comentario de METRICS_SERVICE_KEYS por qué dejó de ser cierto.
+      { id: 'metricas-resumen', label: 'Resumen', shortLabel: 'Métricas', serviceKeys: METRICS_SERVICE_KEYS },
+      { id: 'metricas-facebook', label: 'Facebook', shortLabel: 'Facebook', serviceKeys: METRICS_SERVICE_KEYS },
+      { id: 'metricas-instagram', label: 'Instagram', shortLabel: 'Instagram', serviceKeys: METRICS_SERVICE_KEYS },
+      { id: 'metricas-youtube', label: 'Youtube', shortLabel: 'Youtube', serviceKeys: METRICS_SERVICE_KEYS },
+      { id: 'metricas-seo', label: 'SEO', shortLabel: 'SEO', serviceKeys: METRICS_SERVICE_KEYS },
+      { id: 'metricas-tiktok', label: 'TikTok', shortLabel: 'TikTok', serviceKeys: METRICS_SERVICE_KEYS },
     ],
   },
 ];
