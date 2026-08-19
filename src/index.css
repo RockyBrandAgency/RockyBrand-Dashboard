@@ -337,6 +337,18 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
 .crm-table .num{ text-align:right; font-variant-numeric:tabular-nums; }
 .crm-cell-name{ font-weight:600; font-size:14px; }
 .crm-cell-sub{ font-size:11px; color:var(--text-faint); margin-top:4px; }
+/* Una fecha no se parte en varias lineas. Sin esto la tabla reparte el ancho
+   segun el contenido: con 94 destinatarios de correos largos, la columna
+   Contacto se lleva el ancho y "19 ago 2026, 09:24 a. m." cae en CUATRO
+   lineas, mientras la misma pantalla con 12 correos cortos la muestra en una.
+   La UI no puede verse distinta por cliente: lo unico que cambia son los
+   datos. Si aun con nowrap no cabe, .crm-table-wrap ya scrollea horizontal -
+   preferible a apretar las columnas hasta partirlas. */
+.crm-table td.crm-cell-fecha{ white-space:nowrap; }
+/* Un solo enlace se muestra entero (la URL); si es larga, se corta con
+   puntos suspensivos en vez de estirar la tabla. La lista completa sigue en
+   el title. */
+.crm-table td.crm-cell-enlace{ max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .crm-row-actions{ display:inline-flex; gap:8px; white-space:nowrap; justify-content:flex-end; width:100%; }
 
 /* radius-sm (6px), no radius-xs (4px); color "-dot" (más saturado), no

@@ -137,12 +137,12 @@ export function CampanaDetalle({ campaignId, onVolver }: { campaignId: string; o
               .map((r) => (
                 <tr key={r.contact_email}>
                   <td className="crm-cell-name">{r.contact_email || '—'}</td>
-                  <td className="crm-cell-sub">{formatFechaHora(r.sent_at)}</td>
-                  <td className="crm-cell-sub">{r.opened ? formatFechaHora(r.opened_at) : '—'}</td>
-                  <td className="crm-cell-sub">{r.clicked ? formatFechaHora(r.clicked_at) : '—'}</td>
+                  <td className="crm-cell-sub crm-cell-fecha">{formatFechaHora(r.sent_at)}</td>
+                  <td className="crm-cell-sub crm-cell-fecha">{r.opened ? formatFechaHora(r.opened_at) : '—'}</td>
+                  <td className="crm-cell-sub crm-cell-fecha">{r.clicked ? formatFechaHora(r.clicked_at) : '—'}</td>
                   {/* Con 3+ enlaces, unirlos con coma revienta el ancho de la
                       tabla. Se muestra el conteo y la lista va en el title. */}
-                  <td className="crm-cell-sub" title={r.clicked_links?.join('\n')}>
+                  <td className="crm-cell-sub crm-cell-enlace" title={r.clicked_links?.join('\n')}>
                     {!r.clicked_links?.length
                       ? '—'
                       : r.clicked_links.length === 1
@@ -152,7 +152,7 @@ export function CampanaDetalle({ campaignId, onVolver }: { campaignId: string; o
                   {/* Una queja de spam y un rebote no son lo mismo y no pueden
                       leerse igual: la queja es lo único que Gmail castiga de
                       verdad. */}
-                  <td className="crm-cell-sub">
+                  <td className="crm-cell-sub crm-cell-fecha">
                     {r.complained ? 'Marcó spam' : r.bounced ? 'Rebotó' : 'Entregado'}
                   </td>
                 </tr>
