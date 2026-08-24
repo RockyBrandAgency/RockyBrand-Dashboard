@@ -15,6 +15,7 @@ import type {
   ItinerarioDia,
   DiaItinerarioPayload,
   MetricsReportResponse,
+  EmailConsulta,
   EmailContact,
   EmailSegment,
   EmailResumen,
@@ -232,6 +233,10 @@ export function getMetricsReport(days = 30): Promise<MetricsReportResponse> {
 // cliente (2026-08-01, pedido explícito de Mato) - pantallas nuevas,
 // mismo mecanismo de aislamiento (client_id siempre del JWT en el
 // backend), nunca acceso a la herramienta de staff.
+export function getEmailConsultas(): Promise<{ consultas: EmailConsulta[]; dias: number; truncado: boolean }> {
+  return request('/dashboard/email/consultas');
+}
+
 export function getEmailContacts(): Promise<{ client_id: string; contacts: EmailContact[] }> {
   return request('/dashboard/email/contacts');
 }

@@ -203,9 +203,26 @@ export type PmsFeatureKey =
   | 'pms_resumen' | 'pms_reservas' | 'pms_huespedes' | 'pms_itinerarios'
   | 'pms_housekeeping' | 'pms_monthly_view' | 'pms_room_views';
 
+export interface EmailConsulta {
+  fecha: string;
+  email: string | null;
+  name: string | null;
+  phone: string | null;
+  country: string | null;
+  message: string | null;
+  program: string | null;
+  anglers: number | null;
+  approx_dates: string | null;
+  dietary: string | null;
+  source: string | null;
+  atribucion: string | null;
+  detail_ilegible: boolean;
+}
+
 export type EmailFeatureKey =
   | 'email_resumen' | 'email_pendientes' | 'email_campanas' | 'email_nueva_campana'
-  | 'email_audiencias' | 'email_templates' | 'email_metricas' | 'email_automatizaciones';
+  | 'email_audiencias' | 'email_templates' | 'email_metricas' | 'email_automatizaciones'
+  | 'email_consultas';
 
 export type FeatureKey = PmsFeatureKey | EmailFeatureKey;
 export type ClientFeatures = Record<FeatureKey, boolean>;

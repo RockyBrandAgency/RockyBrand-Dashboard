@@ -8,6 +8,7 @@ import {
 } from '../../api/dashboardApi';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { TabsWithIndicator } from '../../components/TabsWithIndicator';
+import { ConsultasEmail } from './Email/Consultas';
 import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { ResumenEmail } from './Email/Resumen';
 import { PendientesEmail } from './Email/Pendientes';
@@ -32,7 +33,7 @@ import type { EmailContact, EmailFeatureKey } from '../../types';
 //  - El alcance: acá el client_id sale SIEMPRE del JWT. El panel principal
 //    tiene un selector de cliente; este no puede tenerlo ni podría, porque
 //    estas pantallas no mandan client_id a ninguna parte.
-type Tab = 'resumen' | 'pendientes' | 'campanas' | 'nueva' | 'audiencias' | 'templates' | 'metricas' | 'automatizaciones';
+type Tab = 'resumen' | 'consultas' | 'pendientes' | 'campanas' | 'nueva' | 'audiencias' | 'templates' | 'metricas' | 'automatizaciones';
 
 // `featureKey`: qué bandera de client-config enciende esta pestaña. Se
 // administran una por una desde el panel de staff (2026-08-19) - hay
@@ -40,6 +41,7 @@ type Tab = 'resumen' | 'pendientes' | 'campanas' | 'nueva' | 'audiencias' | 'tem
 // les mostramos las métricas de lo que enviamos por ellos.
 const TABS: { id: Tab; label: string; featureKey: EmailFeatureKey }[] = [
   { id: 'resumen', label: 'Resumen', featureKey: 'email_resumen' },
+  { id: 'consultas', label: 'Consultas', featureKey: 'email_consultas' },
   { id: 'pendientes', label: 'Pendientes', featureKey: 'email_pendientes' },
   { id: 'campanas', label: 'Campañas', featureKey: 'email_campanas' },
   { id: 'nueva', label: 'Nueva campaña', featureKey: 'email_nueva_campana' },
@@ -53,6 +55,7 @@ const TABS: { id: Tab; label: string; featureKey: EmailFeatureKey }[] = [
 // — no todas comparten el mismo título genérico.
 const TAB_TITLES: Record<Tab, string> = {
   resumen: 'Resumen General',
+  consultas: 'Consultas del Formulario de Contacto',
   pendientes: 'Pendientes de Revisión',
   campanas: 'Campañas Enviadas y Programadas',
   nueva: 'Diseño de Nueva Campaña',
@@ -169,6 +172,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
         {!!visibleTabs.length && (
         <ErrorBoundary nombre={`la sección ${TABS.find((t) => t.id === tab)?.label ?? ''}`} key={tab}>
           {tab === 'resumen' && <ResumenEmail />}
+          {tab === 'consultas' && <ConsultasEmail />}
           {tab === 'pendientes' && <PendientesEmail />}
           {tab === 'campanas' && (detalleId
             ? <CampanaDetalle campaignId={detalleId} onVolver={() => setDetalleId(null)} />
