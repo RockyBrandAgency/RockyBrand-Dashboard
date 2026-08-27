@@ -85,12 +85,56 @@ export function ResumenEmail() {
           {/* Rebotes y quejas van arriba de todo: la cuenta de envío es
               compartida entre todos los clientes, así que una lista sucia de
               uno le arruina la entrega a los demás. */}
-          {saludRebotes(datos.bounce_rate, datos.umbrales) === 'critico' && (
-            <Aviso tono="critico">
-              <strong>Rebotes en {formatTasa(datos.bounce_rate)}.</strong> Sobre {datos.umbrales.rebotes_critico}% el
-              proveedor puede suspender el envío. Casi siempre viene de una base importada con direcciones viejas o mal escritas.
-            </Aviso>
-          )}
+          {/* El aviso se decide con la VENTANA RECIENTE, no con el histórico.
+              El histórico es un promedio de por vida: no baja nunca, solo se
+              diluye, así que un error ya corregido lo deja gritando durante
+              meses. Y el proveedor tampoco mira eso — SES calcula reputación
+              sobre el envío reciente.
+
+              Caso real que motivó el cambio (Alto Castillo, 27-ago-2026): 37
+              rebotes de una base importada el 12-ago dejaron el histórico en
+              5,2%, y el aviso "el proveedor puede suspender el envío" llevaba
+              dos semanas encendido mientras las campañas siguientes rebotaban
+              0 de 186 y la cuenta figuraba HEALTHY en SES. La alerta era
+              aritméticamente cierta y operativamente falsa. */}
+          {(() => {
+            const hayVentana = datos.envios_suficientes_ventana && datos.bounce_rate_reciente != null;
+            const tasaQueManda = hayVentana ? (datos.bounce_rate_reciente as number) : datos.bounce_rate;
+            const critico = saludRebotes(tasaQueManda, datos.umbrales) === 'critico';
+            const historicoCritico = saludRebotes(datos.bounce_rate, datos.umbrales) === 'critico';
+
+            if (critico) {
+              return (
+                <Aviso tono="critico">
+                  <strong>Rebotes en {formatTasa(tasaQueManda)}</strong>
+                  {hayVentana ? ` en los últimos ${datos.enviados_recientes.toLocaleString('es-CL')} envíos` : ''}. Sobre{' '}
+                  {datos.umbrales.rebotes_critico}% el proveedor puede suspender el envío. Casi siempre viene de una base
+                  importada con direcciones viejas o mal escritas.
+                </Aviso>
+              );
+            }
+            // El histórico sigue arriba del umbral pero los envíos recientes
+            // están limpios: eso NO es una alerta, es una nota al pie. Se
+            // dice igual, para que el número histórico no sorprenda a nadie
+            // cuando lo vea más abajo en la pantalla.
+            if (historicoCritico && hayVentana) {
+              return (
+                <Aviso tono="info">
+                  <strong>
+                    Los últimos {datos.enviados_recientes.toLocaleString('es-CL')} envíos vienen limpios:{' '}
+                    {formatTasa(tasaQueManda)} de rebotes
+                  </strong>{' '}
+                  ({datos.campanas_recientes} campañas
+                  {datos.ventana_desde ? `, desde el ${formatFecha(datos.ventana_desde)}` : ''}). El histórico de la
+                  cuenta sigue en{' '}
+                  {formatTasa(datos.bounce_rate)} por una base importada anterior — es un promedio de por vida, baja
+                  solo a medida que se acumulan envíos limpios. Las direcciones que rebotaron ya están suprimidas y no
+                  vuelven a recibir.
+                </Aviso>
+              );
+            }
+            return null;
+          })()}
           {['alerta', 'critico'].includes(saludQuejas(datos.complaint_rate, datos.umbrales)) && (
             <Aviso tono={saludQuejas(datos.complaint_rate, datos.umbrales) === 'critico' ? 'critico' : 'alerta'}>
               <strong>Quejas de spam en {formatTasa(datos.complaint_rate)}.</strong> El límite sano es{' '}
