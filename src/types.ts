@@ -454,11 +454,30 @@ export interface InstagramPost {
   engagement_rate_sobre_seguidores_pct: number | null;
 }
 
+export interface SocialDailyPoint {
+  fecha: string;
+  seguidores: number;
+  cambio_neto: number;
+}
+
 export interface SocialMetrics {
   snapshots: SocialSnapshotPoint[];
   seguidores_actuales: number | null;
-  cambio_neto_periodo: number;
-  cambio_neto_7d: number;
+  // `| null` y no `number` a secas: el backend ya no fabrica un 0 cuando no
+  // tiene dato del período. Un 0 en "seguidores netos" afirma "no ganaste a
+  // nadie"; null dice "no tengo el dato", que es lo que pasaba de verdad
+  // mientras el agente estuvo apagado. Se muestran distinto a propósito.
+  cambio_neto_periodo: number | null;
+  cambio_neto_7d: number | null;
+  // Cuántos días de la ventana trae de verdad la serie de Meta. Meta nunca
+  // devuelve el día en curso, así que 6 de 7 es lo normal.
+  dias_cubiertos_7d: number | null;
+  dias_cubiertos_periodo: number | null;
+  // Frescura del snapshot que alimenta TODA esta sección.
+  dato_al: string | null;
+  dias_de_atraso: number | null;
+  // Un punto por DÍA real de Meta (no uno por corrida del agente).
+  serie_diaria: SocialDailyPoint[];
   engagement_promedio_pct: number | null;
   publicaciones: InstagramPost[];
   // 4 campos nuevos (2026-08-01) - confirmados en vivo contra la API real
@@ -651,6 +670,20 @@ export interface EmailUmbrales {
 }
 
 export interface EmailResumen {
+  // Ventana móvil de rebotes/quejas: es la que decide el aviso, porque es la
+  // que mira el proveedor. El histórico (`bounce_rate`) queda de contexto.
+  ventana_reciente_envios: number;
+  ventana_desde: string | null;
+  campanas_recientes: number;
+  enviados_recientes: number;
+  envios_suficientes_ventana: boolean;
+  // null -no 0- cuando no hay envíos suficientes en la ventana: sin volumen
+  // no hay tasa, y un 0% inventado se lee como "todo perfecto".
+  bounce_rate_reciente: number | null;
+  complaint_rate_reciente: number | null;
+  rebotes_recientes: number;
+  quejas_recientes: number;
+
   audiencia: EmailAudiencia;
   campanas_enviadas: number;
   open_rate: number | null;

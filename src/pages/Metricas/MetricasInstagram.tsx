@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { TrendChart } from '../../components/TrendChart';
+import { DailyBarsChart } from '../../components/DailyBarsChart';
+import { SelloFrescura } from '../../components/SelloFrescura';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { MetricNotAvailable } from '../../components/MetricNotAvailable';
@@ -32,8 +34,13 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
 function num(v: number | null | undefined): string {
   return v == null ? '—' : v.toLocaleString('es-CL');
 }
-function signedNum(v: number): string {
-  return (v > 0 ? '+' : '') + v.toLocaleString('es-CL');
+// Mismo criterio que `num`: null/undefined es "no tengo el dato", no es cero.
+// Antes esto recibia `number` a secas y el backend mandaba un 0 fabricado
+// cuando el snapshot no cubria el periodo - la tarjeta decia "0 seguidores
+// netos" con la cuenta ganando ~20 por dia. El bug no estaba en el signo,
+// estaba en que un 0 y un "sin dato" se veian identicos.
+function signedNum(v: number | null | undefined): string {
+  return v == null ? '\u2014' : (v > 0 ? '+' : '') + v.toLocaleString('es-CL');
 }
 
 // Miniatura real de Meta (media_url/thumbnail_url) - son URLs FIRMADAS
@@ -219,10 +226,13 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
       ['Seguidores actuales', ig.seguidores_actuales],
       ['Cambio neto (período)', ig.cambio_neto_periodo],
       ['Cambio neto 7 días', ig.cambio_neto_7d],
+      ['Dato al', ig.dato_al],
       [],
-      ['Seguidores en el tiempo'],
-      ['Fecha', 'Seguidores'],
-      ...ig.snapshots.map((s) => [s.fecha, s.seguidores]),
+      // La serie DIARIA de Meta, no los snapshots del agente: es la que se
+      // grafica y la que el cliente puede cruzar con su propio calendario.
+      ['Seguidores día a día'],
+      ['Fecha', 'Seguidores', 'Cambio neto'],
+      ...ig.serie_diaria.map((d) => [d.fecha, d.seguidores, d.cambio_neto]),
       [],
       ['Publicaciones ordenadas por guardados'],
       ['Fecha', 'Formato', 'Alcance', 'Guardados', 'Compartidos', 'Comentarios', 'Permalink'],
@@ -250,6 +260,8 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
         <AsyncState loading={loading} error={error} onRetry={reload}>
           {ig && (
             <>
+              <SelloFrescura fecha={ig.dato_al} diasDeAtraso={ig.dias_de_atraso} />
+
               <div style={{ ...kpiGrid, marginBottom: 28 }}>
                 <KpiCard label="Seguidores actuales" value={num(ig.seguidores_actuales)} />
                 <KpiCard label="Alcance en no-seguidores" value={ig.alcance_no_seguidores_pct != null ? `${ig.alcance_no_seguidores_pct}%` : '—'} sub="últimos 30 días" />
@@ -261,22 +273,60 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
                 <KpiCard label="Compartidos" value={num(ig.compartidos_totales)} />
                 <KpiCard label="Clics al enlace del perfil" value={num(ig.clics_enlace_perfil_30d)} sub="últimos 30 días" />
                 <MetricNotAvailable label="Mensajes iniciados" reason="Meta no otorga este permiso a la app hoy." />
-                <KpiCard label="Seguidores netos" value={signedNum(ig.cambio_neto_periodo)} sub={`7 días: ${signedNum(ig.cambio_neto_7d)}`} />
+                <KpiCard
+                  label="Seguidores netos"
+                  value={signedNum(ig.cambio_neto_periodo)}
+                  sub={
+                    ig.cambio_neto_7d == null
+                      ? 'sin dato de los últimos 7 días'
+                      : `7 días: ${signedNum(ig.cambio_neto_7d)}${
+                          ig.dias_cubiertos_7d != null && ig.dias_cubiertos_7d < 7
+                            ? ` (${ig.dias_cubiertos_7d} de 7 días)`
+                            : ''
+                        }`
+                  }
+                />
               </div>
 
               {ig.insight_post && <InsightBanner post={ig.insight_post} />}
 
               <RetencionCard posts={ig.publicaciones} />
 
+              {/* Dos gráficos y no uno, porque son dos preguntas distintas:
+                  "¿cuántos seguidores tengo?" (la curva) y "¿qué día los
+                  gané?" (las barras). La curva de totales sube siempre en una
+                  cuenta que crece, así que sola no distingue una semana buena
+                  de una mala.
+
+                  Los dos leen `serie_diaria`: un punto por DÍA real de Meta.
+                  Antes leían `ig.snapshots`, que es un punto por CORRIDA del
+                  agente — con el agente semanal eran 3 puntos en 30 días, y
+                  ESA era la razón real de que el gráfico se viera pobre. */}
               <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Seguidores en el tiempo</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>Seguidores actuales: {num(ig.seguidores_actuales)}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+                  Seguidores actuales: {num(ig.seguidores_actuales)}
+                  {ig.serie_diaria.length > 0 && ` · ${ig.serie_diaria.length} días medidos`}
+                </div>
                 <TrendChart
-                  points={ig.snapshots.map((s) => ({ fecha: s.fecha, valor: s.seguidores }))}
+                  points={ig.serie_diaria.map((d) => ({ fecha: d.fecha, valor: d.seguidores }))}
                   color="#E1306C"
                   formatDate={formatDateShort}
                   compact={!isDesktop}
                   unitLabel="seguidores"
+                />
+              </div>
+
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', marginBottom: 'var(--space-6)', boxShadow: 'var(--shadow-card)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Seguidores nuevos, día a día</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 14 }}>
+                  Cuántos ganó o perdió la cuenta cada día. Verde arriba del cero es un día que sumó; naranjo abajo, uno que restó.
+                </div>
+                <DailyBarsChart
+                  bars={ig.serie_diaria.map((d) => ({ fecha: d.fecha, valor: d.cambio_neto, acumulado: d.seguidores }))}
+                  compact={!isDesktop}
+                  unitLabel="seguidores"
+                  formatDate={formatDateShort}
                 />
               </div>
 
