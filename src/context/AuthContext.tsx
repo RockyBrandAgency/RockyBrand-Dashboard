@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTokenClaims, LoginError } from '../api/cognitoAuth';
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
 import { leerPerfilCacheado, guardarPerfilCacheado, borrarPerfilCacheado } from '../api/perfilCache';
-import { applyClientTheme, applyClientTitle, CLIENT_BRANDING } from '../branding';
+import { applyClientTheme, applyClientTitle, CLIENT_BRANDING, clientIdFromHostname } from '../branding';
 import type { ClientFeatures, ClientServices, MeResponse } from '../types';
 
 interface AuthContextValue {
@@ -66,6 +66,42 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * El client_id que dice el ID token, o null si no hay sesión.
+ *
+ * Se lee para UNA sola cosa: comprobar que quien entra a
+ * {cliente}.panel.rockybrand.cl sea de ESE cliente. No autoriza nada — el
+ * aislamiento de datos lo sigue haciendo el backend con el claim del JWT en
+ * cada request, y el authorizer de API Gateway lo valida de verdad.
+ */
+function clientIdDeLaSesion(): string | null {
+  const session = getStoredSession();
+  if (!session) return null;
+  const claim = decodeIdTokenClaims(session.idToken)['custom:client_id'];
+  return typeof claim === 'string' && claim ? claim : null;
+}
+
+/**
+ * Quién NO puede quedarse en este subdominio: el usuario de otro cliente.
+ *
+ * Hasta el 2026-09-08, entrar a karibu-safari-africa.panel.rockybrand.cl con
+ * la cuenta de Alto Castillo abría el panel de Alto Castillo entero —su
+ * marca, sus métricas, sus campañas— bajo la URL de Karibu. Los datos eran
+ * los correctos para ese token (el backend nunca se equivocó), pero la
+ * pantalla afirmaba algo falso: que ese era el panel de Karibu. Quien mira no
+ * tiene forma de saber cuál de las dos cosas creer.
+ *
+ * En localhost o en la URL por defecto de Amplify no hay subdominio que
+ * comparar: `clientIdFromHostname` devuelve null y esto no bloquea nada.
+ */
+function clienteEquivocado(): string | null {
+  const delHost = clientIdFromHostname(window.location.hostname);
+  if (!delHost) return null;
+  const deLaSesion = clientIdDeLaSesion();
+  if (!deLaSesion || deLaSesion === delHost) return null;
+  return deLaSesion;
+}
+
 function readUserEmail(): string {
   const session = getStoredSession();
   if (!session) return '';
@@ -81,10 +117,35 @@ function perfilInicial(): MeResponse | null {
   return session ? leerPerfilCacheado(session.idToken) : null;
 }
 
+// Se evalúa al cargar el módulo, ANTES de que el estado inicial de
+// `isAuthenticated` borre la sesión ajena: después ya no habría qué leer para
+// poder explicarle a la persona qué pasó.
+const clienteEquivocadoRecordado = clienteEquivocado();
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getStoredSession());
+  // Una sesión de otro cliente puede venir ya abierta en esta pestaña
+  // (sessionStorage) y entonces nunca pasa por login. Se descarta ACÁ, en el
+  // estado inicial, para que el panel no llegue a montarse con ella.
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const ajeno = clienteEquivocado();
+    if (ajeno) {
+      clearStoredSession();
+      borrarPerfilCacheado();
+      return false;
+    }
+    return !!getStoredSession();
+  });
   const [userEmail, setUserEmail] = useState(readUserEmail);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  // Se muestra en el login cuando la sesión que había era de otro cliente:
+  // sin esto, la pantalla vuelve al formulario sin decir por qué y parece
+  // que la sesión se cayó sola.
+  const [loginError, setLoginError] = useState<string | null>(() => {
+    const ajeno = clienteEquivocadoRecordado;
+    return ajeno
+      ? `Cerramos la sesión de ${ajeno}: este es el panel de otro cliente. ` +
+        `Entra en ${ajeno}.panel.rockybrand.cl, o inicia sesión con la cuenta de este panel.`
+      : null;
+  });
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   // Los inicializadores lazy corren UNA vez, antes del primer render: si hay
@@ -185,6 +246,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionExpiredMessage(null);
     try {
       await cognitoLogin(email, password);
+      // La sesión existe y es válida, pero puede no ser de ESTE panel. Se
+      // descarta antes de dar por iniciada la sesión: así nadie llega a ver
+      // un panel que no le corresponde ni siquiera un instante.
+      const ajeno = clienteEquivocado();
+      if (ajeno) {
+        clearStoredSession();
+        borrarPerfilCacheado();
+        setLoginError(
+          `Esa cuenta es de otro cliente. Entra en ${ajeno}.panel.rockybrand.cl, ` +
+          'o inicia sesión con la cuenta de este panel.',
+        );
+        return;
+      }
       setIsAuthenticated(true);
       setUserEmail(readUserEmail());
     } catch (e) {
