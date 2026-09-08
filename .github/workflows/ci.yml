@@ -1,0 +1,40 @@
+name: Panel del cliente
+
+# Sin filtro de rama a proposito, y con `push` ademas de `pull_request`: este
+# proyecto no usa Pull Requests -se pushea directo, con varias sesiones en
+# paralelo-, asi que un workflow que solo escuche PRs no correria nunca. Es el
+# mismo criterio que ya usa infra.yml en el repo del backend.
+on:
+  push:
+  pull_request:
+
+jobs:
+  verificar:
+    name: Tipos, lint y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # `build` corre `tsc -b` antes de Vite: si los tipos no cierran, falla
+      # aca y no en el navegador de un cliente.
+      - name: Compilar
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      # Hasta el 2026-09-08 este repositorio no tenia UNA sola prueba, y es el
+      # que ve el cliente. El bug que las motivo -el panel de un cliente
+      # abriendose con la cuenta de otro- lo encontro Mato en una captura de
+      # pantalla, no una prueba. La primera corrida de branding.test.ts
+      # encontro ademas que `x.panel.rockybrand.cl.evil.com` se leia como el
+      # subdominio del cliente 'x'.
+      - name: Pruebas
+        run: npm test

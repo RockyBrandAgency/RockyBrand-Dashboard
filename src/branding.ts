@@ -200,10 +200,23 @@ export const CLIENT_LOCATION: Record<string, ClientLocation> = {
 // AI_Agency/infra/rockybrand_infra/dashboard_stack.py). En localhost o en
 // la URL default de Amplify (sin subdominio propio) no hay forma de saber
 // - se devuelve null a propósito, nunca se adivina un cliente.
+const PANEL_SUFFIX = '.panel.rockybrand.cl';
+
 export function clientIdFromHostname(hostname: string): string | null {
-  const parts = hostname.split('.');
-  if (parts.length >= 4 && parts[1] === 'panel' && parts[2] === 'rockybrand') {
-    return parts[0];
-  }
-  return null;
+  // Se compara el FINAL del host, no las posiciones 1 y 2. La versión
+  // anterior miraba `parts[1] === 'panel' && parts[2] === 'rockybrand'` y por
+  // eso `x.panel.rockybrand.cl.evil.com` devolvía 'x': un dominio ajeno podía
+  // hacerse pasar por el subdominio de un cliente. Lo encontró la primera
+  // corrida de branding.test.ts, no una lectura del código.
+  //
+  // Un host es case-insensitive: sin `toLowerCase`, un Host en mayúsculas
+  // devolvería null y la comprobación se apagaría sola sin que nadie lo note.
+  const host = hostname.toLowerCase();
+  if (!host.endsWith(PANEL_SUFFIX)) return null;
+
+  const prefijo = host.slice(0, -PANEL_SUFFIX.length);
+  // Un solo nivel, y con el mismo formato de client_id que valida el backend
+  // (minúsculas, números y guiones — tenant.validate_client_id).
+  if (!prefijo || prefijo.includes('.')) return null;
+  return /^[a-z0-9-]+$/.test(prefijo) ? prefijo : null;
 }
