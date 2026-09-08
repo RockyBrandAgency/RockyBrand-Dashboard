@@ -51,8 +51,8 @@ interface FilaHuesped extends HuespedItem {
 // reservas dentro de esa ventana", y por eso la columna dice "en la
 // ventana del panel" y no un total histórico que no estaríamos midiendo.
 export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized, clientId, clientDisplayName } = useAuth();
-  const t = terminologiaPms(clientId);
+  const { handleUnauthorized, clientId, clientDisplayName, clientTerminologia } = useAuth();
+  const t = terminologiaPms(clientId, clientTerminologia);
   const [huespedes, setHuespedes] = useState<HuespedItem[] | null>(null);
   const [reservas, setReservas] = useState<ReservaResumenItem[]>([]);
   const [loading, setLoading] = useState(true);

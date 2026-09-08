@@ -185,6 +185,13 @@ export interface MeResponse {
   // viejo antes de este campo) - preserva el comportamiento de hoy
   // (mostrar habitaciones) hasta que se apague a proposito.
   pms_room_views: boolean;
+  // Cómo llama este cliente a las personas de su PMS: huésped, viajero,
+  // pescador. Sale de rockybrand-client-config (campo `terminologia`), no
+  // del código: hasta el 2026-09-08 un cliente nuevo solo podía dejar de
+  // decir "Huéspedes" agregándole un bloque a terminologiaPms.ts y
+  // desplegando el panel. null cuando el cliente no la declaró — se usa la
+  // genérica, nunca una inventada.
+  terminologia?: { singular: string | null; plural: string | null } | null;
   // Sub-opciones dentro de cada servicio: qué pantallas del PMS y qué
   // pestañas de Email Marketing tiene habilitadas este cliente
   // (2026-08-19). Se administran desde el panel de staff y el registro de

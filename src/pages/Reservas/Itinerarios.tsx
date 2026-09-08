@@ -65,8 +65,8 @@ const vacio = <span style={{ color: 'var(--text-faint)' }}>—</span>;
 // sale hoy y a qué río?" se contesta agrupando por fecha. Los mismos datos,
 // leídos por los dos ejes que se usan de verdad.
 export function Itinerarios({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized, clientId } = useAuth();
-  const t = terminologiaPms(clientId);
+  const { handleUnauthorized, clientId, clientTerminologia } = useAuth();
+  const t = terminologiaPms(clientId, clientTerminologia);
   const [itinerarios, setItinerarios] = useState<ItinerarioReserva[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

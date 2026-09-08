@@ -42,7 +42,7 @@ export function MobileBar({
   screen: Screen;
   setScreen: (s: Screen) => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews, features } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews, features, clientTerminologia } = useAuth();
   const gate: NavGate = { services: clientServices, pmsRoomViews, features };
 
   // clientServices null = /dashboard/me todavia no contesto. Mismo criterio
@@ -57,7 +57,7 @@ export function MobileBar({
   for (const section of clientServices === null ? [] : NAV_SECTIONS) {
     for (const item of section.items) {
       if (isNavLeafVisible(item, gate)) {
-        bottomItems.push({ id: item.id, icon: <ChartColumnIcon size={18} />, label: labelNav(item, clientId, true) });
+        bottomItems.push({ id: item.id, icon: <ChartColumnIcon size={18} />, label: labelNav(item, clientId, true, clientTerminologia) });
       }
     }
   }

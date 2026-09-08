@@ -111,7 +111,13 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="carolina@altocastillo.cl"
+              /* Genérico a propósito. Era el correo real de la dueña de Alto
+                 Castillo y lo veía CUALQUIER cliente: el login es la misma
+                 app para todos los subdominios, así que el panel de Karibu
+                 mostraba el correo de una clienta de otra marca como
+                 ejemplo. Encontrado el 2026-09-08 mirando la pantalla, no el
+                 código. */
+              placeholder="tu@correo.cl"
               style={inputStyle}
             />
           </label>

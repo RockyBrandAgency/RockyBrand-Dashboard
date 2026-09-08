@@ -56,7 +56,7 @@ export function Sidebar({
   userEmail: string;
   onLogout: () => void;
 }) {
-  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews, features } = useAuth();
+  const { clientDisplayName, clientServices, clientLogoSrcLight, clientId, pmsRoomViews, features, clientTerminologia } = useAuth();
   const gate: NavGate = { services: clientServices, pmsRoomViews, features };
   // clientServices null = /dashboard/me todavia no contesto. Antes se
   // dibujaba el menu COMPLETO en ese hueco (isNavLeafVisible devuelve true
@@ -195,7 +195,7 @@ export function Sidebar({
                       cursor: 'pointer',
                     }}
                   >
-                    {labelNav(item, clientId)}
+                    {labelNav(item, clientId, false, clientTerminologia)}
                   </button>
                 );
               })}

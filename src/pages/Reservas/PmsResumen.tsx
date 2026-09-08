@@ -53,8 +53,8 @@ const chip = (bg: string, fg: string): React.CSSProperties => ({
 // pretenden ser un histórico: las reservas vienen con el lookahead que
 // cada cliente tiene configurado (get_pms_lookahead_days).
 export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized, clientId, clientDisplayName, pmsRoomViews } = useAuth();
-  const t = terminologiaPms(clientId);
+  const { handleUnauthorized, clientId, clientDisplayName, pmsRoomViews, clientTerminologia } = useAuth();
+  const t = terminologiaPms(clientId, clientTerminologia);
   const [reservas, setReservas] = useState<ReservaResumenItem[] | null>(null);
   const [huespedes, setHuespedes] = useState<HuespedItem[]>([]);
   const [loading, setLoading] = useState(true);

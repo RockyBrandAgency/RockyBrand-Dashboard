@@ -64,7 +64,7 @@ function monthLabel(key: string): string {
 }
 
 export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized, clientDisplayName, clientId, pmsRoomViews } = useAuth();
+  const { handleUnauthorized, clientDisplayName, clientId, pmsRoomViews, clientTerminologia } = useAuth();
   const [reservas, setReservas] = useState<ReservaResumenItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   // La regla vive en un solo lugar (lib/terminologiaPms.ts) para que la
   // tabla, los modales y el menú no puedan quedar diciendo cosas
   // distintas.
-  const t = terminologiaPms(clientId);
+  const t = terminologiaPms(clientId, clientTerminologia);
   const guestLabel = t.columnaPersona;
   const mostrarNoches = t.mostrarNoches;
 

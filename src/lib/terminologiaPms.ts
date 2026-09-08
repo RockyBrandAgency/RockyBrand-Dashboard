@@ -55,15 +55,43 @@ const GENERICO: TerminologiaPms = {
   navSeccion: 'PMS',
 };
 
-export function terminologiaPms(clientId: string | null): TerminologiaPms {
-  return clientId === CFF_CLIENT_ID ? CFF : GENERICO;
+/**
+ * Chile Fly Fishing conserva su bloque literal y NO sale de client-config a
+ * propósito: usa DOS palabras distintas —la columna dice "Angler" y el menú
+ * "Pescadores"— y eso no cabe en el par singular/plural del registro. El
+ * resto de los clientes sí sale de ahí, así que dar de alta uno que hable de
+ * viajeros o de pasajeros es editar un dato, nunca este archivo.
+ *
+ * `terminologia` ausente (cliente que no la declaró, o Lambda anterior a
+ * 2026-09-08) cae a la genérica: el comportamiento de siempre.
+ */
+export function terminologiaPms(
+  clientId: string | null,
+  terminologia?: { singular: string | null; plural: string | null } | null,
+): TerminologiaPms {
+  if (clientId === CFF_CLIENT_ID) return CFF;
+  const plural = terminologia?.plural?.trim();
+  const singular = terminologia?.singular?.trim();
+  if (!plural || !singular) return GENERICO;
+  const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  return {
+    ...GENERICO,
+    columnaPersona: capitalizar(singular),
+    navPersonas: capitalizar(plural),
+    personasMinuscula: plural.toLowerCase(),
+  };
 }
 
 // El label de navegación de la pantalla de personas cambia por cliente;
 // el resto de los items usa el suyo tal cual. Vive acá y no en screens.ts
 // porque screens.ts es una tabla estática sin acceso al cliente logueado.
-export function labelNav(item: NavLeaf, clientId: string | null, corto = false): string {
-  if (item.id === 'servicio-pms-huespedes') return terminologiaPms(clientId).navPersonas;
+export function labelNav(
+  item: NavLeaf,
+  clientId: string | null,
+  corto = false,
+  terminologia?: { singular: string | null; plural: string | null } | null,
+): string {
+  if (item.id === 'servicio-pms-huespedes') return terminologiaPms(clientId, terminologia).navPersonas;
   return corto ? item.shortLabel : item.label;
 }
 
