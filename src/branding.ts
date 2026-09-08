@@ -24,6 +24,16 @@ export const CLIENT_BRANDING: Record<string, { logoSrcDark: string; logoSrcLight
     logoSrcLight: '/logo-chile-fly-fishing.png',
     logoAlt: 'Chile Fly Fishing',
   },
+  // El sello oficial de Karibu (mismo SVG que usa su sitio,
+  // karibu-web/public/assets/logo-karibu.svg). Trae su propio fondo carbon
+  // #1c1b18 - es un sello, no un lettering suelto -, asi que funciona igual
+  // sobre el sidebar oscuro y sobre el login blanco: mismo archivo para las 2
+  // claves, mismo caso que Chile Fly Fishing.
+  'karibu-safari-africa': {
+    logoSrcDark: '/logo-karibu-safari-africa.svg',
+    logoSrcLight: '/logo-karibu-safari-africa.svg',
+    logoAlt: 'Karibu Safari Africa',
+  },
 };
 
 // Regla permanente (2026-08-01, pedido explícito de Mato): todo panel de
@@ -59,6 +69,15 @@ export interface ClientTheme {
 export const CLIENT_THEME: Record<string, ClientTheme> = {
   'alto-castillo': { primary: '#425327', primaryHover: '#344219', sage: '#bcc2b3', sageMid: '#a8b09a' },
   'chile-fly-fishing': { primary: '#202020', primaryHover: '#333333', sage: '#c2bcb3', sageMid: '#b0a79a' },
+  // karibu-safari-africa: hex reales de su sitio publicado
+  // (karibu-web/src/app/globals.css) y de su sello oficial, nunca derivados
+  // a ojo. `primary` es el carbon #1c1b18 con que esta pintado el propio SVG
+  // del logo - mismo criterio que Chile Fly Fishing, cuyo sidebar usa el
+  // Charcoal de su guideline. `sage`/`sageMid` son Ash Grey #9e9a94 y
+  // #8f8b85, los dos grises que su CSS ya reserva para texto y rotulos sobre
+  // fondo oscuro: aca no hubo que derivar nada, la paleta los declara.
+  // Savanna Gold #c89b57 queda para el acento (ver CLIENT_ACCENT_ON_DARK).
+  'karibu-safari-africa': { primary: '#1c1b18', primaryHover: '#2e2c28', sage: '#9e9a94', sageMid: '#8f8b85' },
 };
 
 // Color de acento sobre FONDO OSCURO, para la pantalla del cerebro de marca
@@ -85,6 +104,11 @@ export const CLIENT_THEME: Record<string, ClientTheme> = {
 export const CLIENT_ACCENT_ON_DARK: Record<string, string> = {
   'alto-castillo': '#bcc2b3',
   'chile-fly-fishing': '#006dc6',
+  // Savanna Gold, `--color-amber` de su propio globals.css. Es el unico color
+  // vivido de la paleta de Karibu y el que su sitio ya usa para acentos sobre
+  // el fondo #101010 - exactamente esta situacion. El carbon del sello seria
+  // invisible sobre negro, igual que le pasa al Charcoal de CFF.
+  'karibu-safari-africa': '#c89b57',
 };
 
 // Clientes que entran DERECHO al panel: el login los deja en Overview, sin la
@@ -100,7 +124,15 @@ export const CLIENT_ACCENT_ON_DARK: Record<string, string> = {
 // alto-castillo sale por decisión de Mato el 2026-08-12: Carolina y Adrián
 // prueban el circuito completo y la bienvenida les mete una pantalla que no
 // pidieron entre el login y lo que vienen a ver.
-export const CLIENTES_SIN_INTRO: ReadonlySet<string> = new Set(['alto-castillo']);
+//
+// karibu-safari-africa entra el 2026-09-08 por un motivo distinto: la
+// pantalla del cerebro presenta el equipo de agentes de IA, y Karibu no los
+// contrato (services.agents=false). Mostrarle esa bienvenida seria ofrecerle
+// algo que su panel no tiene.
+export const CLIENTES_SIN_INTRO: ReadonlySet<string> = new Set([
+  'alto-castillo',
+  'karibu-safari-africa',
+]);
 
 // Aplica el theme del cliente sobre las custom properties de :root. Sin
 // client_id conocido, restaura los defaults neutros de RockyBrand
@@ -153,6 +185,13 @@ export interface ClientLocation {
 export const CLIENT_LOCATION: Record<string, ClientLocation> = {
   'alto-castillo': { label: 'Cerro Castillo', region: 'Región de Aysén', lat: -46.12, lon: -72.15 },
   'chile-fly-fishing': { label: 'Coyhaique', region: 'Región de Aysén', lat: -45.5752, lon: -72.0662 },
+  // Karibu opera safaris en África pero su base -y la de quien mira este
+  // panel- es Santiago, tal como lo declara su propio sitio
+  // (karibu-web/src/lib/site.ts, SITE.location: "Santiago, Chile."). El
+  // widget dice qué tiempo hace donde está el equipo, no en el destino del
+  // próximo viaje: un operador con salidas a Kenia, Tanzania y Sudáfrica no
+  // tiene UNA ubicación de destino que mostrar.
+  'karibu-safari-africa': { label: 'Santiago', region: 'Región Metropolitana', lat: -33.4489, lon: -70.6693 },
 };
 
 // Antes de loguearse no hay ningún dato de identidad todavía (sin sesión,
