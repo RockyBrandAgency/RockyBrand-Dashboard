@@ -128,8 +128,14 @@ function LogoCard() {
 
 // Toggles de notificaciones + horario de avisos 100% locales - ni esta
 // sesión ni las anteriores construyeron un backend de notificaciones, así
-// que estos controles no mandan nada a ningún servidor (no se finge una
-// persistencia que no existe). Layout y copy siguen el Figma real (frame
+// que estos controles no mandan nada a ningún servidor.
+//
+// El comentario decía "no se finge una persistencia que no existe", pero la
+// nota visible SÍ la fingía a medias: decía "Preferencias guardadas solo en
+// este dispositivo" y no se guardan ni ahí -son `useState`, se pierden al
+// recargar-. Y la tarjeta del horario no llevaba ninguna advertencia, así que
+// quien bajaba hasta ella ajustaba un horario creyendo que silenciaba avisos
+// que no existen. Ahora las dos lo dicen (2026-09-08). Layout y copy siguen el Figma real (frame
 // "05 — Configuración"); el logo es la única sección que sí es 100% real
 // de punta a punta (pedido explícito de Mato, 2026-08-03).
 export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
@@ -183,7 +189,8 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
             <ToggleRow label="Error de sincronización PMS" sub="Alerta crítica si falla la conexión automática" on={sw.syncError} toggle={() => tog('syncError')} />
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 'var(--space-7)' }}>
-            Preferencias guardadas solo en este dispositivo — todavía no hay un backend de notificaciones.
+            Todavía no hay un backend de notificaciones: <strong>estos controles
+            no se guardan</strong> y vuelven a su estado inicial al recargar.
           </div>
         </Card>
 
@@ -192,6 +199,9 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Horario Preferido de Avisos</div>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
               Restringe las notificaciones automáticas para resguardar las horas de descanso.
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+              Igual que arriba: todavía no se guarda ni se aplica.
             </div>
           </div>
           <div style={{ height: 1, background: 'var(--border-soft)', marginBottom: 'var(--space-6)' }} />

@@ -191,6 +191,10 @@ export interface MeResponse {
   // decir "Huéspedes" agregándole un bloque a terminologiaPms.ts y
   // desplegando el panel. null cuando el cliente no la declaró — se usa la
   // genérica, nunca una inventada.
+  // El remitente REAL de las campañas de este cliente (client-config,
+  // email_from_name/email_from_address). null si no lo tiene configurado: la
+  // vista previa dice que falta en vez de prometer un "De:" inventado.
+  email_from?: { name: string | null; address: string | null } | null;
   terminologia?: { singular: string | null; plural: string | null } | null;
   // Sub-opciones dentro de cada servicio: qué pantallas del PMS y qué
   // pestañas de Email Marketing tiene habilitadas este cliente

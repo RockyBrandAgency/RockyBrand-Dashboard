@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { STATUS } from '../../../components/status';
 import {
   getEmailCampaign, saveEmailCampaign, getEmailTemplates, getEmailTemplate, sendTestEmail,
   sendEmailNow, scheduleEmailCampaign, getEmailContacts, UnauthorizedError,
@@ -70,7 +71,7 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
   onGuardada: () => void;
   onCancelar: () => void;
 }) {
-  const { handleUnauthorized, clientDisplayName, userEmail } = useAuth();
+  const { handleUnauthorized, clientDisplayName, userEmail, clientEmailFrom } = useAuth();
   const [campana, setCampana] = useState<Partial<EmailCampaign>>({ name: '', subject: '', html_body: '', template_id: '' });
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [cargando, setCargando] = useState(!!campaignId);
@@ -324,7 +325,24 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
 
       <Card title="Vista Previa del Email" right={<span className="crm-tag">Móvil y Desktop</span>}>
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-6)', fontSize: 12, color: 'var(--text-sub)', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 'var(--space-6)' }}>
-          <div><strong style={{ color: 'var(--text)' }}>De:</strong> {clientDisplayName ?? 'RockyBrand Client'}</div>
+          {/* El remitente REAL que arma SES, no el nombre del panel. Antes
+              decía `De: {display_name}` —el rótulo del sidebar— y ese no es
+              el que recibe nadie: SES usa `email_from_name
+              <email_from_address>` de client-config, dos campos aparte. Quien
+              aprobaba el envío validaba un "De:" que no iba a existir. */}
+          <div>
+            <strong style={{ color: 'var(--text)' }}>De:</strong>{' '}
+            {clientEmailFrom?.address ? (
+              <>
+                {clientEmailFrom.name ?? ''}{' '}
+                <span style={{ opacity: 0.75 }}>&lt;{clientEmailFrom.address}&gt;</span>
+              </>
+            ) : (
+              <span style={{ color: STATUS.critico.tagText }}>
+                sin remitente configurado — el envío va a fallar
+              </span>
+            )}
+          </div>
           <div><strong style={{ color: 'var(--text)' }}>Para:</strong> {userEmail} (prueba)</div>
           <div><strong style={{ color: 'var(--text)' }}>Asunto:</strong> {campana.subject || '(sin asunto)'}</div>
         </div>

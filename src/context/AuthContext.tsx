@@ -25,6 +25,8 @@ interface AuthContextValue {
   // Viaja por el contexto y no se lee de un módulo suelto para que el
   // sidebar y las pantallas se redibujen cuando llega /dashboard/me.
   clientTerminologia: MeResponse['terminologia'];
+  /** Remitente real de las campañas; null si no está configurado. */
+  clientEmailFrom: MeResponse['email_from'];
   // Logo real del cliente logueado, en sus 2 variantes (mismo criterio que
   // ya usaba LoginScreen con CLIENT_BRANDING: "Light" para fondo claro -
   // Sidebar -, "Dark" para fondo oscuro/de marca - MobileBar). El que subió
@@ -166,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientId, setClientId] = useState<string | null>(() => perfilInicial()?.client_id ?? null);
   const [pmsRoomViews, setPmsRoomViews] = useState(() => perfilInicial()?.pms_room_views ?? true);
   const [clientTerminologia, setClientTerminologia] = useState<MeResponse['terminologia']>(() => perfilInicial()?.terminologia ?? null);
+  const [clientEmailFrom, setClientEmailFrom] = useState<MeResponse['email_from']>(() => perfilInicial()?.email_from ?? null);
   const [features, setFeatures] = useState<ClientFeatures | null>(() => perfilInicial()?.features ?? null);
 
   const setUploadedLogo = useCallback((src: string) => {
@@ -210,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClientId(me.client_id);
         setPmsRoomViews(me.pms_room_views);
         setClientTerminologia(me.terminologia ?? null);
+        setClientEmailFrom(me.email_from ?? null);
         setFeatures(me.features ?? null);
         // Solo SETEA acá, nunca resetea (ver la rama !isAuthenticated de
         // arriba) - si reseteara en cada mount, pisaría el theme que
@@ -299,6 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clientDisplaySubtitle,
         clientServices,
         clientTerminologia,
+        clientEmailFrom,
         clientLogoSrcLight,
         clientLogoSrcDark,
         clientId,
