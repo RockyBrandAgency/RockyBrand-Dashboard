@@ -7,6 +7,7 @@ import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
+import type { IndexacionEstado } from '../../types';
 
 function formatDateShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -22,6 +23,106 @@ function rutaDe(url: string): string {
   } catch {
     return url;
   }
+}
+
+// Los estados llegan de Google en inglés y crudos. Se traducen acá, en la
+// capa de presentación, y no en el backend: el snapshot guarda lo que Google
+// dijo, palabra por palabra, para que dentro de un año se pueda saber qué
+// contestó exactamente. Un estado que Google agregue y no esté en este mapa
+// se muestra tal cual, en inglés: peor que un texto en inglés es un texto
+// nuestro que adivina lo que significa.
+const ESTADO_ES: Record<string, string> = {
+  'Submitted and indexed': 'Indexada',
+  'Indexed, not submitted in sitemap': 'Indexada (fuera del sitemap)',
+  'Discovered - currently not indexed': 'Descubierta, sin indexar',
+  'Crawled - currently not indexed': 'Rastreada, sin indexar',
+  'URL is unknown to Google': 'Google no la conoce',
+  'Duplicate without user-selected canonical': 'Duplicada, sin canónica elegida',
+  'Duplicate, Google chose different canonical than user': 'Duplicada, Google eligió otra canónica',
+  'Excluded by ‘noindex’ tag': 'Excluida por noindex',
+  'Page with redirect': 'Redirige a otra página',
+  'Soft 404': 'Error 404 blando',
+  'Blocked by robots.txt': 'Bloqueada por robots.txt',
+  'Not found (404)': 'No encontrada (404)',
+};
+
+function estadoEs(estado: string): string {
+  return ESTADO_ES[estado] ?? estado;
+}
+
+function IndexacionCard({ idx, isDesktop }: { idx: IndexacionEstado; isDesktop: boolean }) {
+  const medidas = idx.inspeccionadas;
+  const indexadas = idx.indexadas ?? 0;
+  const pct = medidas > 0 ? Math.round((indexadas / medidas) * 100) : 0;
+
+  return (
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-card)', overflow: 'hidden', marginBottom: 20 }}>
+      <div style={{ padding: 'var(--space-8)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Páginas en Google</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>medido el {idx.medido_el}</div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)' }}>{indexadas}</span>
+          <span style={{ fontSize: 14, color: 'var(--text-sub)' }}>de {medidas} páginas</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>({pct}%)</span>
+        </div>
+
+        <div style={{ background: 'var(--border-soft)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: '#34A853', borderRadius: 4 }} />
+        </div>
+
+        {/* Con cobertura parcial el número es de la muestra y no del sitio.
+            Decirlo acá y no en una nota al pie: es la diferencia entre "te
+            faltan 3 páginas" y "no medimos 300". */}
+        {idx.cobertura_parcial && idx.urls_en_sitemap != null && (
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.5 }}>
+            El sitemap declara {idx.urls_en_sitemap} páginas y esta medición alcanzó a revisar {medidas}.
+            El porcentaje es de esas {medidas}, no del sitio completo.
+          </div>
+        )}
+      </div>
+
+      {idx.paginas.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', padding: '4px 16px 6px' }}>
+            Todavía no están en Google
+            <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>{idx.paginas.length}</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#f3f4f6' }}>
+                  <th style={{ textAlign: 'left', padding: 12, color: 'var(--text-sub)', fontWeight: 700, fontSize: 12 }}>Página</th>
+                  <th style={{ textAlign: 'left', padding: 12, color: 'var(--text-sub)', fontWeight: 700, fontSize: 12 }}>Estado según Google</th>
+                  <th style={{ textAlign: 'right', padding: 12, color: 'var(--text-sub)', fontWeight: 700, fontSize: 12 }}>Último rastreo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {idx.paginas.map((p) => (
+                  <tr key={p.url} style={{ borderBottom: '1px solid var(--border-soft)' }}>
+                    <td style={{ padding: '10px 16px', color: 'var(--text)', wordBreak: 'break-all' }}>{p.ruta}</td>
+                    <td style={{ padding: '10px 16px', color: 'var(--text-sub)' }}>{estadoEs(p.estado)}</td>
+                    <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{p.ultimo_rastreo ?? 'nunca'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Sin esta línea, una tabla de páginas "que fallan" manda a
+              arreglar algo que no está roto. En un dominio nuevo, que Google
+              conozca una página y no la haya indexado todavía es el estado
+              normal durante semanas. */}
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '12px 16px 16px', lineHeight: 1.5, borderTop: '1px solid var(--border-soft)' }}>
+            «Descubierta, sin indexar» y «Google no la conoce» no son errores del sitio: en un dominio
+            nuevo son el estado normal durante semanas, y se resuelven solos a medida que Google rastrea.
+            {isDesktop && ' Para apurar una página concreta, se pide indexación a mano desde Search Console.'}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 // Detalle real de SEO/Search Console (seo_snapshot#, search_console_snapshot#)
@@ -59,6 +160,17 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
       ['Impresiones'],
       ['Fecha', 'Impresiones'],
       ...seo.impressions_snapshots.map((s) => [s.fecha, s.impresiones]),
+      [],
+      ...(seo.indexacion && !seo.indexacion.nota ? [
+        [],
+        ['Páginas en Google', `medido el ${seo.indexacion.medido_el}`],
+        ['Indexadas', seo.indexacion.indexadas ?? null],
+        ['Revisadas', seo.indexacion.inspeccionadas],
+        ['Declaradas en el sitemap', seo.indexacion.urls_en_sitemap ?? null],
+        ['Todavía no están en Google'],
+        ['Página', 'Estado según Google', 'Último rastreo'],
+        ...seo.indexacion.paginas.map((p) => [p.ruta, estadoEs(p.estado), p.ultimo_rastreo ?? 'nunca']),
+      ] as (string | number | null)[][] : []),
       [],
       ['Búsquedas en Google', periodoTabla ?? ''],
       ['Búsqueda', 'Posición', 'Cambio', 'Clics', 'Impresiones', 'Página'],
@@ -104,6 +216,10 @@ export function MetricasSeo({ isDesktop }: { isDesktop: boolean }) {
                   ]}
                 />
               </div>
+
+              {seo.indexacion && !seo.indexacion.nota && (
+                <IndexacionCard idx={seo.indexacion} isDesktop={isDesktop} />
+              )}
 
               {/* La posición va sola y arriba: es la tendencia que dice si el
                   SEO avanza. Clics e impresiones suben y bajan con la

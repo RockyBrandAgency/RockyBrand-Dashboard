@@ -613,6 +613,35 @@ export interface SeoMetrics {
   impressions_snapshots: SeoImpressionsPoint[];
   posicion_snapshots?: SeoPosicionPoint[];
   clics_organicos_actual: number | null;
+  // Foto del estado de indexación, no una serie: "cuántas de tus páginas
+  // están hoy en Google". `null` mientras no haya ninguna captura, que NO es
+  // lo mismo que cero indexadas.
+  indexacion?: IndexacionEstado | null;
+}
+
+// El veredicto real de Google para una página, vía URL Inspection API. Solo
+// viajan las que NO están indexadas: la lista útil es la de las que faltan.
+export interface IndexacionPagina {
+  url: string;
+  ruta: string;
+  estado: string;
+  veredicto: string;
+  ultimo_rastreo: string | null;
+}
+
+export interface IndexacionEstado {
+  propiedad: string;
+  urls_en_sitemap: number | null;
+  inspeccionadas: number;
+  indexadas: number | null;
+  no_indexadas: number | null;
+  por_estado: Record<string, number>;
+  paginas: IndexacionPagina[];
+  // true cuando el sitio tiene más páginas de las que alcanzó a medir una
+  // corrida. Con esto en true, `indexadas` es de la muestra, no del sitio.
+  cobertura_parcial: boolean;
+  nota: string | null;
+  medido_el: string;
 }
 
 // GA4 real. Todo lo numérico es `null` cuando falta la propiedad, falta la
