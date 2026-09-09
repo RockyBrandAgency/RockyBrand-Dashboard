@@ -9,6 +9,7 @@ import { STATUS } from '../components/status';
 import { getSemaforo, getReservasResumen, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { CLIENT_LOCATION } from '../branding';
+import { terminologiaPms } from '../lib/terminologiaPms';
 import { temporadaActualCff, CFF_CLIENT_ID } from '../lib/temporadaCff';
 import type { SemaforoResponse, ReservaResumenItem } from '../types';
 
@@ -33,7 +34,11 @@ function greetingByHour(): string {
 // (MetricasResumen.tsx), misma fuente de datos (getSemaforo), solo
 // cambia dónde se muestra.
 export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesktop: boolean }) {
-  const { handleUnauthorized, clientId, clientDisplayName, pmsRoomViews } = useAuth();
+  const { handleUnauthorized, clientId, clientDisplayName, pmsRoomViews, clientTerminologia } = useAuth();
+  // Overview es la PRIMERA pantalla: decir "huéspedes" acá mientras el
+  // sidebar dice "Viajeros" hace que el panel se contradiga a sí mismo
+  // sobre cómo se llaman los clientes de quien lo mira.
+  const term = terminologiaPms(clientId, clientTerminologia);
   const location = clientId ? CLIENT_LOCATION[clientId] : undefined;
   const temporada = clientId === CFF_CLIENT_ID ? temporadaActualCff(new Date()) : null;
   const [data, setData] = useState<SemaforoResponse | null>(null);
@@ -137,7 +142,7 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                 >
                   <span style={{ fontSize: 16, flexShrink: 0, color: STATUS.atencion.dot }}>▲</span>
                   <div style={{ flex: 1, fontSize: 13, color: STATUS.atencion.tagText }}>
-                    {conBanderas} huésped{conBanderas === 1 ? '' : 'es'} con indicaciones especiales llegan en las próximas 48 horas.
+                    {conBanderas} {conBanderas === 1 ? term.columnaPersona.toLowerCase() : term.personasMinuscula} con indicaciones especiales llegan en las próximas 48 horas.
                     Haz clic para ver detalles.
                   </div>
                   <span style={{ fontSize: 16, color: STATUS.atencion.dot, flexShrink: 0, fontWeight: 700 }}>→</span>
@@ -240,7 +245,7 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
                   <MetricCard
                     title="Llegadas próximas 48 hrs"
                     estado={s.llegadas_48h.estado}
-                    value={`${s.llegadas_48h.valor.cantidad} huésped${s.llegadas_48h.valor.cantidad === 1 ? '' : 'es'}`}
+                    value={`${s.llegadas_48h.valor.cantidad} ${s.llegadas_48h.valor.cantidad === 1 ? term.columnaPersona.toLowerCase() : term.personasMinuscula}`}
                     sub={conBanderas > 0 ? `${conBanderas} con indicaciones especiales` : 'Sin indicaciones especiales'}
                     onClick={onDetail}
                   />

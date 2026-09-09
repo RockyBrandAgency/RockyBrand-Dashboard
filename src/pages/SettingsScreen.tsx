@@ -178,7 +178,7 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
           <div style={{ height: 1, background: 'var(--border-soft)', marginBottom: 'var(--space-6)' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             <ToggleRow label="Nueva reserva" sub="Avisar cuando ingrese una reserva del motor directo o Booking.com" on={sw.newBooking} toggle={() => tog('newBooking')} />
-            <ToggleRow label="Cancelación de reserva" sub="Recibir alerta inmediata si un huésped libera su cabaña" on={sw.cancellation} toggle={() => tog('cancellation')} />
+            <ToggleRow label="Cancelación de reserva" sub="Recibir alerta inmediata si se cancela una reserva confirmada" on={sw.cancellation} toggle={() => tog('cancellation')} />
             <ToggleRow label="Nueva consulta web" sub="Avisos por formularios de consulta de tu sitio" on={sw.inquiry} toggle={() => tog('inquiry')} />
             <ToggleRow label="Error de sincronización PMS" sub="Alerta crítica si falla la conexión automática" on={sw.syncError} toggle={() => tog('syncError')} />
           </div>

@@ -104,7 +104,7 @@ export function SubjectField({ value, onChange }: { value: string; onChange: (v:
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="La temporada de mosca seca abre en Coyhaique"
+        placeholder="Escribe el asunto del correo"
         className="crm-input"
         style={{ borderColor: ev.estado === 'problema' ? 'var(--status-critico-dot)' : undefined }}
       />

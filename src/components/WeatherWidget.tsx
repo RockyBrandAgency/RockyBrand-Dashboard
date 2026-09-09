@@ -20,11 +20,15 @@ function wxIcon(c: number) {
 function wxLabel(c: number) {
   return WX_LABEL[c] ?? 'Variable';
 }
+// El consejo describe el CLIMA, no el negocio. Antes nombraba "pesca con
+// mosca, senderismo y cabalgatas" y "el ambiente del lodge" para cualquier
+// cliente: un operador de safaris leía en su propio panel el catálogo de otra
+// marca. Este widget es multi-cliente y no sabe qué vende quien lo mira.
 function buildInsight(days: WeatherDay[]) {
   const good = days.filter((d) => d.code <= 3).length;
-  if (good >= 4) return 'Los próximos 5 días se proyectan soleados. Excelente oportunidad para reforzar actividades al aire libre: pesca con mosca, senderismo y cabalgatas.';
-  if (good >= 2) return `Se esperan ${good} días de buen tiempo. Ideal para planificar actividades al aire libre en esas ventanas soleadas.`;
-  return 'Se esperan días con lluvias. Buen momento para destacar actividades interiores y el ambiente del lodge.';
+  if (good >= 4) return 'Los próximos 5 días se proyectan despejados: buena ventana para las actividades al aire libre.';
+  if (good >= 2) return `Se esperan ${good} días de buen tiempo, con el resto inestable.`;
+  return 'Se esperan días con lluvias en la mayor parte del período.';
 }
 
 // Fuente real (Open-Meteo, API publica) - no depende del backend de la
@@ -36,7 +40,6 @@ function buildInsight(days: WeatherDay[]) {
 export function WeatherWidget({ location }: { location: ClientLocation }) {
   const [days, setDays] = useState<WeatherDay[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
   const DAY = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
   useEffect(() => {
@@ -57,14 +60,15 @@ export function WeatherWidget({ location }: { location: ClientLocation }) {
         setLoading(false);
       })
       .catch(() => {
-        setDays([
-          { date: '2026-01-26', max: 18, min: 9, code: 1 },
-          { date: '2026-01-27', max: 20, min: 10, code: 0 },
-          { date: '2026-01-28', max: 19, min: 11, code: 0 },
-          { date: '2026-01-29', max: 15, min: 8, code: 3 },
-          { date: '2026-01-30', max: 12, min: 7, code: 61 },
-        ]);
-        setOffline(true);
+        // No se inventa un pronóstico. Hasta el 2026-09-08 este `catch`
+        // rellenaba cinco días con temperaturas fijas de enero y la tarjeta
+        // seguía pintándose entera, consejo incluido: si la llamada fallaba,
+        // el cliente leía "Hoy 18°/9°… los próximos 5 días se proyectan
+        // soleados" sobre números que no existían, avisado sólo por un
+        // "· datos estimados" de 11px. Es el mismo criterio que el resto del
+        // panel ya aplica a las métricas sin fuente conectada: se dice que no
+        // hay dato, nunca se rellena.
+        setDays([]);
         setLoading(false);
       });
   }, [location.lat, location.lon]);
@@ -76,13 +80,17 @@ export function WeatherWidget({ location }: { location: ClientLocation }) {
         <div>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Clima — {location.label}</div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Pronóstico 5 días · {location.region}
-            {offline && ' · datos estimados'}
+            {days.length > 0 ? `Pronóstico ${days.length} días · ` : ''}{location.region}
           </div>
         </div>
       </div>
       {loading ? (
         <div style={{ fontSize: 14, color: 'var(--text-muted)', padding: '8px 0' }}>Cargando pronóstico…</div>
+      ) : days.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0', lineHeight: 1.5 }}>
+          No pudimos consultar el pronóstico ahora. Vuelve a intentarlo en unos
+          minutos.
+        </div>
       ) : (
         <>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>

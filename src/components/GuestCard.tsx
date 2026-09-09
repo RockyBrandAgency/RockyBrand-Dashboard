@@ -78,7 +78,7 @@ export function GuestCard({ guest, isDesktop }: { guest: LlegadaGuest; isDesktop
         )}
 
         {guest.SpecialNotes && (
-          <InfoRow icon="📝" label="Nota del huésped" urgent={false} noteBg>
+          <InfoRow icon="📝" label="Nota" urgent={false} noteBg>
             <span style={{ fontSize: 14, color: 'var(--text-sub)', lineHeight: 1.5 }}>{guest.SpecialNotes}</span>
           </InfoRow>
         )}

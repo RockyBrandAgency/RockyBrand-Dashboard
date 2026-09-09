@@ -204,7 +204,7 @@ export function NewBookingModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={fieldLabel}>Nombre completo</label>
-                <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} placeholder="Ej. Orlando Araneda" />
+                <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} placeholder="Nombre y apellido" />
               </div>
               <div>
                 <label style={fieldLabel}>Email</label>
@@ -239,7 +239,7 @@ export function NewBookingModal({
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             style={inputStyle}
-            placeholder={roomViews ? 'Ej. Cabaña Sur' : 'Ej. Pesca con mosca 3 días'}
+            placeholder={roomViews ? 'Ej. Cabaña Sur' : 'Ej. Programa de 3 días'}
           />
         </div>
 

@@ -56,7 +56,7 @@ export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
               Llegadas próximas 48 horas
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
-              Revisa los ingresos y requerimientos especiales de los huéspedes.
+              Revisa los ingresos y requerimientos especiales de las próximas llegadas.
             </div>
           </div>
           {contextLabel && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{contextLabel}</div>}
