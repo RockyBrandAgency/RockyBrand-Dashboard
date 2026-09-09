@@ -240,7 +240,22 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
             <SectionHead>Tráfico del sitio</SectionHead>
             <AsyncState loading={reportLoading} error={reportError} onRetry={reloadReport}>
               {report && (
-                <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(2,1fr)' : 'repeat(1,1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3,1fr)' : 'repeat(1,1fr)', gap: 12 }}>
+                  {/* Usuarios y sesiones son del rango elegido arriba;
+                      "visitas desde Estados Unidos" tiene su propia ventana
+                      fija de 7 días desde el 2026-08-07 y por eso lo dice en
+                      su subtítulo. Tres números con dos períodos distintos en
+                      la misma fila se leen mal si no está declarado. */}
+                  <AnimatedStatBox
+                    label="Usuarios"
+                    value={report.web.usuarios}
+                    sub={report.web.nota ?? report.web.periodo ?? 'Usuarios activos (GA4)'}
+                  />
+                  <AnimatedStatBox
+                    label="Sesiones"
+                    value={report.web.sesiones}
+                    sub={report.web.nota ? null : (report.web.periodo ?? 'Sesiones (GA4)')}
+                  />
                   <AnimatedStatBox
                     label="Visitas desde Estados Unidos"
                     value={report.web.visitas_eeuu_7d}

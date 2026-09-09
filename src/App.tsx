@@ -22,6 +22,7 @@ import { MetricasFacebook } from './pages/Metricas/MetricasFacebook';
 import { MetricasInstagram } from './pages/Metricas/MetricasInstagram';
 import { MetricasYoutube } from './pages/Metricas/MetricasYoutube';
 import { MetricasSeo } from './pages/Metricas/MetricasSeo';
+import { MetricasWeb } from './pages/Metricas/MetricasWeb';
 import { MetricasTiktok } from './pages/Metricas/MetricasTiktok';
 import { TiendaInventario } from './pages/Tienda/TiendaInventario';
 import { TiendaVentas } from './pages/Tienda/TiendaVentas';
@@ -152,6 +153,7 @@ function AuthenticatedShell() {
             {screen === 'metricas-instagram' && <MetricasInstagram isDesktop={isDesktop} />}
             {screen === 'metricas-youtube' && <MetricasYoutube isDesktop={isDesktop} />}
             {screen === 'metricas-seo' && <MetricasSeo isDesktop={isDesktop} />}
+            {screen === 'metricas-web' && <MetricasWeb isDesktop={isDesktop} />}
             {screen === 'metricas-tiktok' && <MetricasTiktok isDesktop={isDesktop} />}
             {screen === 'servicio-pms-resumen' && <PmsResumen isDesktop={isDesktop} />}
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}

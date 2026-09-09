@@ -615,12 +615,51 @@ export interface SeoMetrics {
   clics_organicos_actual: number | null;
 }
 
-// GA4 real (2026-08-07) - visitas_eeuu_7d es null cuando falta la
-// propiedad/credencial o la consulta falló (ver `nota`), y 0 cuando GA4
-// consultó bien pero de verdad no hubo ningún usuario de Estados Unidos
-// en la ventana - dos casos distintos, nunca se confunden en la UI.
+// GA4 real. Todo lo numérico es `null` cuando falta la propiedad, falta la
+// credencial o la consulta falló (el motivo viaja en `nota`), y 0 cuando GA4
+// respondió bien y de verdad no hubo nadie - dos casos distintos que la UI
+// nunca confunde.
+//
+// `visitas_eeuu_7d` (2026-08-07) sigue acá con su propia ventana fija de 7
+// días, independiente del rango que elija el usuario arriba: es el KPI de la
+// tarjeta del resumen y nació para Chile Fly Fishing, que le vende a
+// pescadores de Estados Unidos. El resto del reporte (2026-09-09) es lo que
+// sirve para cualquier cliente.
+export interface WebDailyPoint {
+  fecha: string;
+  usuarios: number;
+  sesiones: number;
+}
+
+export interface WebChannelRow {
+  canal: string;
+  sesiones: number;
+  usuarios: number;
+}
+
+export interface WebPageRow {
+  ruta: string;
+  vistas: number;
+  usuarios: number;
+}
+
+export interface WebCountryRow {
+  pais: string;
+  usuarios: number;
+}
+
 export interface WebMetrics {
   visitas_eeuu_7d: number | null;
+  usuarios: number | null;
+  sesiones: number | null;
+  paginas_vistas: number | null;
+  serie_usuarios: WebDailyPoint[];
+  canales: WebChannelRow[];
+  paginas: WebPageRow[];
+  paises: WebCountryRow[];
+  // Las fechas que GA4 devolvió de verdad, no "últimos N días": una
+  // propiedad joven contesta menos días de los que se le piden.
+  periodo: string | null;
   nota: string | null;
 }
 

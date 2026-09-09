@@ -19,6 +19,7 @@ export type Screen =
   | 'metricas-instagram'
   | 'metricas-youtube'
   | 'metricas-seo'
+  | 'metricas-web'
   | 'metricas-tiktok'
   | 'servicio-pms-resumen'
   | 'servicio-pms-reservas'
@@ -184,6 +185,9 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: 'metricas-instagram', label: 'Instagram', shortLabel: 'Instagram', serviceKeys: METRICS_SERVICE_KEYS },
       { id: 'metricas-youtube', label: 'Youtube', shortLabel: 'Youtube', serviceKeys: METRICS_SERVICE_KEYS },
       { id: 'metricas-seo', label: 'SEO', shortLabel: 'SEO', serviceKeys: METRICS_SERVICE_KEYS },
+      // Sitio web va pegado a SEO a proposito: las dos miran el mismo sitio,
+      // SEO lo que Google muestra y Sitio web lo que pasa una vez que entran.
+      { id: 'metricas-web', label: 'Sitio web', shortLabel: 'Sitio', serviceKeys: METRICS_SERVICE_KEYS },
       { id: 'metricas-tiktok', label: 'TikTok', shortLabel: 'TikTok', serviceKeys: METRICS_SERVICE_KEYS },
     ],
   },
