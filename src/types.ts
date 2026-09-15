@@ -559,6 +559,81 @@ export interface YoutubeMetrics {
   top_videos: YoutubeTopVideo[];
 }
 
+// --- TikTok (2026-09-14) ---------------------------------------------------
+//
+// Lo que entrega la API con los scopes aprobados: perfil (user.info.basic +
+// user.info.stats) y listado de videos con sus contadores (video.list). NO hay
+// demografía de audiencia ni serie diaria de vistas - eso vive en la API de
+// TikTok Business, que es otro producto y otra revisión. Si algún día se pide
+// "edad y país de la audiencia", la respuesta honesta es que este permiso no
+// lo entrega, no un gráfico aproximado.
+export interface TiktokVideo {
+  id: string;
+  fecha: string;
+  titulo: string;
+  vistas: number;
+  likes: number;
+  comentarios: number;
+  compartidos: number;
+  duracion_seg: number;
+  // null, no 0, cuando el video no tiene vistas: dividir por cero y mostrar
+  // 0% diría "no enganchó", que es una afirmación sobre el contenido.
+  engagement_pct: number | null;
+  url: string;
+  portada: string;
+}
+
+export interface TiktokMes {
+  mes: string; // YYYY-MM
+  videos: number;
+  vistas: number;
+  likes: number;
+}
+
+export interface TiktokTotales {
+  videos?: number;
+  vistas?: number;
+  likes?: number;
+  comentarios?: number;
+  compartidos?: number;
+  vistas_promedio?: number;
+  vistas_mediana?: number | null;
+  engagement_pct?: number | null;
+  duracion_mediana_seg?: number | null;
+  dias?: number;
+}
+
+export interface TiktokMetrics {
+  conectado: boolean;
+  medido_el: string | null;
+  entorno: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  seguidores_actuales: number | null;
+  siguiendo: number | null;
+  likes_totales: number | null;
+  videos_totales: number | null;
+  // null con un solo snapshot: "no se movió" y "todavía no hay con qué
+  // comparar" son cosas distintas.
+  seguidores_netos_periodo: number | null;
+  snapshots: { fecha: string; seguidores: number }[];
+  cobertura: {
+    videos_leidos?: number;
+    videos_declarados?: number | null;
+    videos_no_entregados?: number | null;
+    desde?: string | null;
+    hasta?: string | null;
+  };
+  acumulado: TiktokTotales;
+  resumen_periodo: TiktokTotales;
+  // Las tres ventanas del selector (7/30/90), calculadas en el backend
+  // sobre TODOS los videos. La clave es el número de días como string.
+  resumen_por_ventana: Record<string, TiktokTotales>;
+  serie_mensual: TiktokMes[];
+  top_videos: TiktokVideo[];
+  videos_recientes: TiktokVideo[];
+}
+
 export interface SeoSnapshotPoint {
   fecha: string;
   keyword: string | null;
@@ -699,6 +774,7 @@ export interface MetricsReportResponse {
   social: SocialMetrics;
   facebook: FacebookMetrics;
   youtube: YoutubeMetrics;
+  tiktok: TiktokMetrics;
   seo: SeoMetrics;
   web: WebMetrics;
 }

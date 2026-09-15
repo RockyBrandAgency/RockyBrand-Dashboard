@@ -140,6 +140,7 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
       ['Facebook', report?.facebook.seguidores_actuales ?? '', 'seguidores'],
       ['Instagram', report?.social.seguidores_actuales ?? '', 'seguidores'],
       ['Youtube', report?.youtube.suscriptores_actuales ?? '', 'suscriptores'],
+      ['TikTok', report?.tiktok?.seguidores_actuales ?? '', 'seguidores'],
       ['SEO', report?.seo.posicion_actual ?? '', report?.seo.posicion_periodo
         ? `posición promedio · ${report.seo.posicion_periodo}`
         : (report?.seo.keyword ?? 'posición promedio')],
@@ -221,12 +222,30 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
                       : (report.seo.keyword ?? null)}
                     onClick={() => onNavigate('metricas-seo')}
                   />
+                  {/* Conectado el 2026-09-14. La tarjeta sigue teniendo el
+                      camino "No Conectado": el panel es multi-cliente y la
+                      mayoría no tiene TikTok autorizado - el estado real manda,
+                      no la fecha en que se conectó el primero. */}
                   <ChannelCard
                     icon={<TiktokIcon />}
-                    iconBg="#f1f3f5"
+                    iconBg={report.tiktok?.conectado ? '#fdeaee' : '#f1f3f5'}
                     label="TikTok"
-                    value="No Conectado"
-                    disconnected
+                    value={
+                      report.tiktok?.conectado
+                        ? `Seguidores: ${report.tiktok.seguidores_actuales?.toLocaleString('es-CL') ?? '—'}`
+                        : 'No Conectado'
+                    }
+                    sub={
+                      report.tiktok?.conectado
+                        ? `${(report.tiktok.resumen_por_ventana?.[String(days)]?.videos ?? 0).toLocaleString('es-CL')} videos · ${(report.tiktok.resumen_por_ventana?.[String(days)]?.vistas ?? 0).toLocaleString('es-CL')} vistas`
+                        : null
+                    }
+                    delta={
+                      report.tiktok?.seguidores_netos_periodo
+                        ? `${report.tiktok.seguidores_netos_periodo > 0 ? '+' : ''}${report.tiktok.seguidores_netos_periodo} seguidores`
+                        : null
+                    }
+                    disconnected={!report.tiktok?.conectado}
                     onClick={() => onNavigate('metricas-tiktok')}
                   />
                 </div>
