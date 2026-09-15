@@ -504,6 +504,97 @@ export interface SocialMetrics {
   // seguidores del mismo día. null si ninguna publicación del rango
   // tiene dato de alcance.
   insight_post: InstagramInsightPost | null;
+  // Horario sugerido (2026-09-15). Ventana propia y larga: NO respeta el
+  // selector de rango de la página — con 30 días quedarían ~10 publicaciones
+  // y no alcanzarían para recomendar nada. Nunca es null: el backend
+  // devuelve siempre la forma, con `hay_recomendacion: false` cuando no hay
+  // muestra suficiente.
+  mejores_horarios: MejoresHorarios;
+}
+
+// `hay_recomendacion` es el campo que la vista mira PRIMERO. Con false solo
+// están garantizados los campos de `MejoresHorariosSinDatos`: leer `mejor` o
+// `franjas` ahí es leer undefined. La unión discriminada lo hace imposible de
+// olvidar, que es justo el error que se comete con un objeto de campos
+// opcionales.
+export type MejoresHorarios = MejoresHorariosConDatos | MejoresHorariosSinDatos;
+
+export interface MejoresHorariosSinDatos {
+  hay_recomendacion: false;
+  zona_horaria: string;
+  publicaciones_registradas: number;
+  publicaciones_analizadas: number;
+  publicaciones_muy_recientes: number;
+  minimo_requerido: number;
+  dias_madurez: number;
+  // Formatos que esta fuente no mide (hoy: historias). El backend lo declara
+  // en vez de dejar que la vista invente un vacío.
+  sin_dato: string[];
+  mensaje: string;
+}
+
+export interface FranjaHoraria {
+  franja: string;
+  desde_hora: number;
+  publicaciones: number;
+  // null cuando nunca se publicó en esa franja. Un 0 diría "llegaste a cero
+  // personas", que es otra cosa.
+  alcance_mediano: number | null;
+  engagement_mediano_pct: number | null;
+  // Cuántas veces rinde la franja respecto de la franja típica del día.
+  indice: number | null;
+  // Bajo el mínimo de publicaciones por franja: se dibuja, pero no se
+  // recomienda ni se desaconseja.
+  suficiente: boolean;
+}
+
+export interface FranjaComparada {
+  franja: string;
+  publicaciones: number;
+  alcance_mediano: number;
+  alcance_mediano_resto: number | null;
+  diferencia_pct: number | null;
+}
+
+export interface HorarioPorFormato {
+  hay_recomendacion: boolean;
+  etiqueta: string;
+  publicaciones: number;
+  franjas?: FranjaHoraria[];
+  mejor?: FranjaComparada;
+  confianza?: 'alta' | 'media' | 'baja';
+  titular?: string;
+  evidencia?: string;
+  mensaje: string;
+}
+
+export interface MejoresHorariosConDatos {
+  hay_recomendacion: true;
+  zona_horaria: string;
+  publicaciones_registradas: number;
+  publicaciones_analizadas: number;
+  publicaciones_muy_recientes: number;
+  minimo_requerido: number;
+  minimo_por_franja: number;
+  dias_madurez: number;
+  ventana: { desde: string; hasta: string };
+  franjas: FranjaHoraria[];
+  mejor: FranjaComparada;
+  // null cuando ninguna franja rinde lo bastante peor como para desaconsejarla.
+  evitar: FranjaComparada | null;
+  por_formato: Record<string, HorarioPorFormato>;
+  confianza: 'alta' | 'media' | 'baja';
+  // El backend separa la frase imperativa ('Publica entre las 09:00 y las
+  // 12:00') de la evidencia que la sostiene: la tarjeta pone la primera en
+  // grande y la segunda como párrafo. `mensaje` es la unión de ambas, para
+  // quien consuma el texto entero de una.
+  titular: string;
+  evidencia: string;
+  mensaje: string;
+  metrica: string;
+  sin_dato: string[];
+  fuente: string;
+  advertencia: string;
 }
 
 export interface InstagramInsightPost {

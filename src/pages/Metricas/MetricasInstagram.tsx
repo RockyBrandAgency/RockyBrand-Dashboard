@@ -3,6 +3,7 @@ import { AsyncState } from '../../components/AsyncState';
 import { TrendChart } from '../../components/TrendChart';
 import { DailyBarsChart } from '../../components/DailyBarsChart';
 import { SelloFrescura } from '../../components/SelloFrescura';
+import { MejoresHorariosCard } from '../../components/MejoresHorariosCard';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { MetricNotAvailable } from '../../components/MetricNotAvailable';
@@ -289,6 +290,11 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
               </div>
 
               {ig.insight_post && <InsightBanner post={ig.insight_post} />}
+
+              {/* Va arriba de los gráficos de seguidores a propósito: es la
+                  única sección de esta página que dice qué HACER, no cómo
+                  viene el mes. */}
+              <MejoresHorariosCard horarios={ig.mejores_horarios} />
 
               <RetencionCard posts={ig.publicaciones} />
 
