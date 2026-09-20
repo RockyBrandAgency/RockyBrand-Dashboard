@@ -34,6 +34,14 @@ export const CLIENT_BRANDING: Record<string, { logoSrcDark: string; logoSrcLight
     logoSrcLight: '/logo-karibu-safari-africa.svg',
     logoAlt: 'Karibu Safari Africa',
   },
+  // Wordmark a color (azul + magenta) sobre fondo transparente, sin insignia
+  // propia - mismo archivo para las 2 claves porque no depende de un fondo
+  // oscuro como el sello de Karibu.
+  'bionam': {
+    logoSrcDark: '/logo-bionam.svg',
+    logoSrcLight: '/logo-bionam.svg',
+    logoAlt: 'Bionam',
+  },
 };
 
 // Regla permanente (2026-08-01, pedido explícito de Mato): todo panel de
@@ -78,6 +86,13 @@ export const CLIENT_THEME: Record<string, ClientTheme> = {
   // fondo oscuro: aca no hubo que derivar nada, la paleta los declara.
   // Savanna Gold #c89b57 queda para el acento (ver CLIENT_ACCENT_ON_DARK).
   'karibu-safari-africa': { primary: '#1c1b18', primaryHover: '#2e2c28', sage: '#9e9a94', sageMid: '#8f8b85' },
+  // bionam: hex reales del propio archivo del logo (logo-bionam.svg, único
+  // insumo de marca recibido). `primary`/`primaryHover` son los dos tonos de
+  // azul del degradado del wordmark (#1d70b7 el medio, #18529f el oscuro).
+  // `sage`/`sageMid` reutilizan el único gris del archivo (#645f62, texto del
+  // tagline "Tecnologías Ecológicas") en las dos claves: no hay un segundo
+  // tono documentado para derivar uno distinto sin inventarlo.
+  'bionam': { primary: '#1d70b7', primaryHover: '#18529f', sage: '#645f62', sageMid: '#645f62' },
 };
 
 // Color de acento sobre FONDO OSCURO, para la pantalla del cerebro de marca
