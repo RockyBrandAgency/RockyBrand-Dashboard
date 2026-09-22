@@ -22,7 +22,7 @@ import type {
 //
 // Lo que sí muestra:
 // - Qué está por salir, con el copy aprobado tal cual va a salir.
-// - Qué ya salió, con el permalink real, que es lo único que el cliente puede
+// - Qué ya salió, con el enlace real, que es lo único que el cliente puede
 //   comprobar por su cuenta sin creernos.
 // - Qué destino quedó a medias y necesita que alguien lo mire.
 //
@@ -231,9 +231,9 @@ function FilaHistorial({ h }: { h: PublicacionHistorial }) {
               )}
             </div>
 
-            {d.permalink && (
+            {d.enlace && (
               <a
-                href={d.permalink}
+                href={d.enlace}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ fontSize: 13, color: 'var(--primary)', wordBreak: 'break-all' }}

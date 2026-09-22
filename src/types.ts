@@ -1164,8 +1164,12 @@ export interface DestinoPublicado {
   requiere_persona: boolean;
   terminado: boolean;
   intentos: number;
+  // El nombre del campo es el MISMO de punta a punta (publisher_core.CAMPO_ENLACE):
+  // el registro lo escribe como `enlace` y acá se lee como `enlace`. Nació como
+  // `permalink` de este lado, y esa sola diferencia hacía que la pantalla dijera
+  // "Publicada" sin el link — el único dato que el cliente puede comprobar solo.
   /** La única prueba que el cliente puede comprobar por su cuenta. */
-  permalink: string | null;
+  enlace: string | null;
   actualizado: string | null;
   error: string | null;
 }
