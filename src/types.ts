@@ -106,7 +106,7 @@ export interface DisponibilidadResponse {
   nota?: string;
 }
 
-export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing' | 'content_approval' | 'store' | 'agencias';
+export type ServiceKey = 'agents' | 'pms' | 'crm' | 'email_marketing' | 'content_approval' | 'store' | 'agencias' | 'publicacion';
 
 // ---------------------------------------------------------------- agencias --
 // Portal B2B: agencias de viaje con tarifa negociada propia. Espejo de
@@ -1136,6 +1136,76 @@ export interface ContentPiecesResponse {
   piezas: ContentPiece[];
   total: number;
   pendientes: number;
+}
+
+// ------------------------------------------------- publicación (Berry) -----
+// Espeja `publisher_panel.vista()` en el backend. Todo lo que hay acá es de
+// LECTURA: esta sección muestra qué está por salir y qué ya salió; publicar,
+// reintentar y parar siguen viviendo en publisher_lambda (decisión 0010).
+//
+// El identificador de la cuenta de destino NO está en estos tipos, y no es un
+// olvido: el backend no lo manda (criterio de AGENTS.md sobre identificadores
+// de cuenta). La pantalla sabe la plataforma, que es lo que necesita mostrar.
+
+// Los 11 estados reales del registro. El backend manda además `etiqueta` ya
+// redactada — la vista NO traduce: dos pantallas traduciendo por su cuenta
+// terminan diciendo cosas distintas del mismo estado.
+export type EstadoPublicacion =
+  | 'READY' | 'UPLOADING' | 'PROCESSING' | 'PUBLISHING' | 'PUBLISHED'
+  | 'VERIFYING_VISIBILITY' | 'SUCCEEDED' | 'RETRY_WAIT' | 'FAILED_FINAL'
+  | 'NEEDS_ACTION' | 'UNKNOWN';
+
+export interface DestinoPublicado {
+  plataforma: string;
+  estado: EstadoPublicacion;
+  /** Ya redactada por el backend. La vista la muestra tal cual. */
+  etiqueta: string;
+  /** UNKNOWN o NEEDS_ACTION: alguien tiene que mirarlo antes de repetir. */
+  requiere_persona: boolean;
+  terminado: boolean;
+  intentos: number;
+  /** La única prueba que el cliente puede comprobar por su cuenta. */
+  permalink: string | null;
+  actualizado: string | null;
+  error: string | null;
+}
+
+export interface PublicacionHistorial {
+  publication_id: string;
+  actualizado: string | null;
+  destinos: DestinoPublicado[];
+}
+
+export interface DestinoEnCola {
+  plataforma: string;
+  modalidad: string;
+  /** El copy aprobado, tal cual va a salir. Berry no lo reescribe. */
+  copy: string;
+  disponible: boolean;
+}
+
+export interface PublicacionEnCola {
+  publication_id: string;
+  orden: number | null;
+  // Berry no borra el original del cliente, así que la carpeta de una pieza
+  // ya publicada sigue en la cola. Con esto la pantalla distingue "está por
+  // salir" de "ya salió y la carpeta sigue ahí" sin adivinarlo.
+  ya_tiene_registro: boolean;
+  destinos: DestinoEnCola[];
+}
+
+export interface PlataformaPublicacion {
+  plataforma: string;
+  /** Hay adaptador escrito para esta plataforma hoy. */
+  disponible: boolean;
+}
+
+export interface PublicacionesResponse {
+  client_id: string;
+  plataformas: PlataformaPublicacion[];
+  cola: PublicacionEnCola[];
+  historial: PublicacionHistorial[];
+  resumen: { en_cola: number; publicadas: number; requieren_atencion: number };
 }
 
 // Siempre la misma forma, con o sin datos suficientes. `hay_recomendacion`

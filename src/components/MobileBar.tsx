@@ -17,11 +17,15 @@ const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
   email_marketing: { label: 'Email Marketing', icon: '✉' },
   store: { label: 'Tienda', icon: '▤' },
   agencias: { label: 'Agencias', icon: '⇄' },
+  // Berry (2026-09-22). El Record es completo por tipo: agregarlo a
+  // ServiceKey sin agregarlo acá rompe el build, que es exactamente lo que
+  // pasó con content_approval en el commit 6cca3d3.
+  publicacion: { label: 'Publicación de Reels', icon: '▶' },
 };
 // Sin 'pms' desde 2026-08-11: dejo de tener una entrada unica en
 // SERVICE_ENTRY_SCREEN (ahora es una seccion con dos accesos), asi que
 // listarlo aca no agregaba nada.
-const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'crm', 'email_marketing', 'store'];
+const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'publicacion', 'crm', 'email_marketing', 'store'];
 
 // Rediseño 2026-08-03 contra Figma (frames "21 — Mobile: Overview" y
 // hermanos): el mockup muestra exactamente 4 tabs fijos (Inicio/Métricas/

@@ -3,7 +3,7 @@ import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, isNavLeafVisible, type Na
 import { useAuth } from '../context/AuthContext';
 import type { ServiceKey } from '../types';
 import { labelSeccion } from '../lib/terminologiaPms';
-import { LayoutGridIcon, ChartColumnIcon, ShoppingBagIcon, CalendarIcon, CalendarRangeIcon, ImageIcon, MailIcon, SettingsIcon } from './icons/RockyIcons';
+import { LayoutGridIcon, ChartColumnIcon, ShoppingBagIcon, CalendarIcon, CalendarRangeIcon, ImageIcon, MailIcon, SettingsIcon, LineChartIcon } from './icons/RockyIcons';
 import { ClientLogo } from './ClientLogo';
 import { Sidebar } from './Sidebar';
 
@@ -11,6 +11,7 @@ const SERVICE_ICON: Partial<Record<ServiceKey, (size: number) => ReactElement>> 
   pms: (size) => <CalendarIcon size={size} />,
   email_marketing: (size) => <MailIcon size={size} />,
   content_approval: (size) => <ImageIcon size={size} />,
+  publicacion: (size) => <LineChartIcon size={size} />,
 };
 
 // Icono por seccion de NAV_SECTIONS, mismo criterio que Sidebar.tsx.

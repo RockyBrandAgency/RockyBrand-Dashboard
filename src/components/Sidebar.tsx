@@ -30,6 +30,8 @@ const SERVICE_META: Record<ServiceKey, { label: string }> = {
   content_approval: { label: 'Revisión de Contenido' },
   store: { label: 'Tienda' },
   agencias: { label: 'Agencias' },
+  // Berry (2026-09-22). Mismo label en los tres componentes de navegación.
+  publicacion: { label: 'Publicación de Reels' },
 };
 // 'store' queda afuera a proposito: a diferencia de PMS/Email/Revision de
 // Contenido (que solo tienen esta entrada informativa o, si tienen pagina
@@ -41,7 +43,7 @@ const SERVICE_META: Record<ServiceKey, { label: string }> = {
 // desde que tiene sus dos accesos propios en NAV_SECTIONS, listarlo
 // tambien aca dejaba un "PMS" duplicado y no clickeable debajo del PMS
 // real.
-const SERVICE_ORDER: ServiceKey[] = ['email_marketing', 'content_approval', 'agents', 'crm'];
+const SERVICE_ORDER: ServiceKey[] = ['email_marketing', 'content_approval', 'publicacion', 'agents', 'crm'];
 
 const activeTint = 'color-mix(in srgb, var(--primary) 8%, transparent)';
 

@@ -1,5 +1,6 @@
-// Los 7 agentes de IA REALES de RockyBrand, con sus nombres y roles tal cual
-// existen en el backend - no una lista inventada para la UI.
+// Los 8 agentes REALES de RockyBrand, con sus nombres y roles tal cual
+// existen en el backend - no una lista inventada para la UI. Eran 7 hasta el
+// 2026-09-22, cuando entró Berry (`publisher`).
 //
 // Fuentes de verdad (verificadas 2026-08-07 leyendo el código, no de memoria):
 // - Nombres y claves: `04-codigo/agent_core.py` (docstring: "Modulo compartido
@@ -24,7 +25,8 @@ export type AgentKey =
   | 'analytics'
   | 'seo_geo_aeo'
   | 'filmmaker'
-  | 'research';
+  | 'research'
+  | 'publisher';
 
 export interface Agent {
   key: AgentKey;
@@ -99,6 +101,21 @@ export const AGENTS: Record<AgentKey, Agent> = {
     role: 'Research',
     tarea: 'Finds market insights on Reddit and RSS',
   },
+  // Berry (2026-09-22). Fuente: `04-codigo/publisher_core.py` (AGENT_KEY =
+  // "publisher") y `infra/rockybrand_infra/agents_stack.py`, igual que los
+  // otros 7 — no un rol inventado para la pantalla.
+  //
+  // Es el único del equipo que NO llama al modelo: no genera texto y no gasta
+  // tokens. Publica piezas que otro ya aprobó, con sus copies ya escritos, en
+  // el horario que Neil midió. Por eso su `tarea` dice "already-approved" y
+  // no "creates": si algún día este agente escribiera un copy, la frase
+  // dejaría de ser cierta y la decisión 0010 estaría rota.
+  publisher: {
+    key: 'publisher',
+    name: 'Berry',
+    role: 'Publishing',
+    tarea: 'Ships already-approved reels at the hour the data favors',
+  },
 };
 
 // Qué agentes trabajan para cada cliente. Espeja `infra/clientes.json`, que es
@@ -112,8 +129,15 @@ export const AGENTS: Record<AgentKey, Agent> = {
 // detalle por agente. Si mañana se agrega un cliente a clientes.json, hay que
 // agregarlo acá también; un cliente sin entrada no ve esta pantalla en vez de
 // mostrarle un equipo inventado.
+// `publisher` (Berry) sigue el mismo criterio que `content_strategist`: está
+// fuera de los schedules de clientes.json —hoy se invoca a pedido, no por
+// cron— pero SÍ trabaja para el cliente, y hay evidencia de que lo hizo (el
+// primer reel de chile-fly-fishing salió por él el 22-sep-2026). Va solo en
+// chile-fly-fishing: Alto Castillo todavía no tiene el permiso
+// `instagram_content_publish` de Meta, así que ponerlo en su equipo sería
+// prometerle un agente que hoy no podría publicarle nada.
 const CLIENT_AGENT_KEYS: Record<string, AgentKey[]> = {
-  'chile-fly-fishing': ['rox', 'content_strategist', 'art_director', 'analytics', 'seo_geo_aeo', 'filmmaker', 'research'],
+  'chile-fly-fishing': ['rox', 'content_strategist', 'art_director', 'analytics', 'seo_geo_aeo', 'filmmaker', 'research', 'publisher'],
   'alto-castillo': ['rox', 'content_strategist', 'art_director', 'analytics', 'seo_geo_aeo', 'filmmaker', 'research'],
 };
 

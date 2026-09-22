@@ -28,6 +28,7 @@ export type Screen =
   | 'servicio-pms-housekeeping'
   | 'servicio-email-campanas'
   | 'servicio-contenido-revision'
+  | 'publicacion-reels'
   | 'tienda-inventario'
   | 'tienda-ventas'
   | 'tienda-garantias'
@@ -208,4 +209,15 @@ export const SERVICE_ENTRY_SCREEN: Partial<Record<ServiceKey, Screen>> = {
   // propio y no dentro de "Agentes de IA": es una capacidad que se
   // contrata aparte, y su gate en el backend es services.content_approval.
   content_approval: 'servicio-contenido-revision',
+  // Publicación de Reels (Berry, 2026-09-22). Mismo criterio que
+  // content_approval y por el mismo motivo: es una capacidad que se contrata
+  // aparte, con su propio gate real en el backend (services.publicacion,
+  // default False en agent_core._SERVICIOS_OPT_IN).
+  //
+  // Va acá y no como sección de NAV_SECTIONS porque hoy es UNA pantalla:
+  // listarlo en los dos lados es lo que dejó un "PMS" y una "Tienda"
+  // duplicados en el sidebar (ver el comentario de SERVICE_ORDER en
+  // Sidebar.tsx). El día que Berry tenga dos accesos, sube a sección y sale
+  // de acá — igual que hicieron PMS y Tienda.
+  publicacion: 'publicacion-reels',
 };

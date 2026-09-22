@@ -41,6 +41,7 @@ import type {
   AgenciaEstado,
   AgenciaFila,
   AgenciasResponse,
+  PublicacionesResponse,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -480,4 +481,12 @@ export function getAgenciasReporte(desde?: string, hasta?: string): Promise<{ ag
   if (hasta) qs.set('hasta', hasta);
   const cola = qs.toString();
   return request(`/dashboard/agencias/reporte${cola ? `?${cola}` : ''}`);
+}
+
+// Berry (2026-09-22): la cola de videos aprobados y el registro de lo que ya
+// salió a las cuentas del cliente. Solo GET — publicar, reintentar y parar no
+// se hacen desde el panel (decisión 0010): quien escribe el registro es
+// publisher_lambda y nadie más.
+export function getPublicaciones(): Promise<PublicacionesResponse> {
+  return request<PublicacionesResponse>('/dashboard/publicaciones', 'GET');
 }
