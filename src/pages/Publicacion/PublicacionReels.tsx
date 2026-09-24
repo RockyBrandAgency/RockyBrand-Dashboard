@@ -32,6 +32,7 @@ import type {
 
 const NOMBRE_PLATAFORMA: Record<string, string> = {
   instagram: 'Instagram',
+  facebook: 'Facebook',
   tiktok: 'TikTok',
   youtube: 'YouTube',
 };
