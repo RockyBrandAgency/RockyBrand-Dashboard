@@ -92,10 +92,36 @@ export async function login(email: string, password: string): Promise<StoredSess
   return session;
 }
 
+// Una sola renovación a la vez (2026-09-28). Al abrir una pantalla salen 2-3
+// llamadas juntas; con el token vencido, cada una recibía su 401 y pedía su
+// propio refresh a Cognito. Ahora la segunda se cuelga de la primera.
+let renovacionEnCurso: Promise<StoredSession> | null = null;
+
+export function refreshSession(): Promise<StoredSession> {
+  if (!renovacionEnCurso) {
+    renovacionEnCurso = renovar().finally(() => {
+      renovacionEnCurso = null;
+    });
+  }
+  return renovacionEnCurso;
+}
+
+// Margen para renovar ANTES de que venza: el ID token dura una hora, y
+// esperar el 401 costaba tres idas y vueltas por llamada (el 401, el refresh
+// y el reintento).
+const MARGEN_RENOVACION_MS = 60_000;
+
+export async function sesionVigente(): Promise<StoredSession | null> {
+  const session = getStoredSession();
+  if (!session) return null;
+  if (session.expiresAt - Date.now() > MARGEN_RENOVACION_MS) return session;
+  return refreshSession();
+}
+
 // REFRESH_TOKEN_AUTH nunca rota el refresh token (no se habilito rotacion
 // en el app client) - el mismo refresh token sigue siendo valido hasta sus
 // 30 dias o revocacion explicita.
-export async function refreshSession(): Promise<StoredSession> {
+async function renovar(): Promise<StoredSession> {
   const current = getStoredSession();
   if (!current) throw new SessionExpiredError('No hay sesión guardada.');
   const result = await cognitoRequest('InitiateAuth', {

@@ -64,6 +64,11 @@ interface AuthContextValue {
   // SettingsScreen la llama después de subir un logo nuevo, para que el
   // Sidebar/MobileBar lo reflejen sin esperar a un remount de toda la app.
   setUploadedLogo: (src: string) => void;
+  // Error de /dashboard/me cuando no hay perfil recordado (2026-09-28). Antes
+  // un fallo de red o un 5xx ahí dejaba el panel en el spinner para siempre:
+  // clientServices quedaba en null y nada lo volvía a pedir.
+  perfilError: string | null;
+  reintentarPerfil: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -170,6 +175,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientTerminologia, setClientTerminologia] = useState<MeResponse['terminologia']>(() => perfilInicial()?.terminologia ?? null);
   const [clientEmailFrom, setClientEmailFrom] = useState<MeResponse['email_from']>(() => perfilInicial()?.email_from ?? null);
   const [features, setFeatures] = useState<ClientFeatures | null>(() => perfilInicial()?.features ?? null);
+  const [perfilError, setPerfilError] = useState<string | null>(null);
+  const [intentoPerfil, setIntentoPerfil] = useState(0);
+
+  const reintentarPerfil = useCallback(() => {
+    setPerfilError(null);
+    setIntentoPerfil((n) => n + 1);
+  }, []);
 
   const setUploadedLogo = useCallback((src: string) => {
     setClientLogoSrcLight(src);
@@ -179,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated) {
       borrarPerfilCacheado();
+      setPerfilError(null);
       setClientDisplayName(null);
       setClientDisplaySubtitle('');
       setClientServices(null);
@@ -205,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         const sesion = getStoredSession();
         if (sesion) guardarPerfilCacheado(sesion.idToken, me);
+        setPerfilError(null);
         setClientDisplayName(me.display_name);
         setClientDisplaySubtitle(me.display_subtitle);
         setClientServices(me.services);
@@ -238,11 +252,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // se queda cargando en vez de mostrar/esconder algo por error de
         // red transitorio (mismo criterio que 05-panel-web).
         console.error('Error cargando el perfil del cliente', e);
+        setPerfilError(e instanceof Error ? e.message : 'No se pudo cargar tu panel.');
       });
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, intentoPerfil]);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoggingIn(true);
@@ -310,6 +325,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         pmsRoomViews,
         features,
         setUploadedLogo,
+        perfilError,
+        reintentarPerfil,
       }}
     >
       {children}

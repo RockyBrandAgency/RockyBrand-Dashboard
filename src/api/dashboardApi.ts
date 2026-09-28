@@ -1,5 +1,5 @@
 import { DASHBOARD_API_URL } from '../config';
-import { getStoredSession, refreshSession, SessionExpiredError } from './cognitoAuth';
+import { refreshSession, sesionVigente, SessionExpiredError, type StoredSession } from './cognitoAuth';
 import type {
   SemaforoResponse,
   LlegadasResponse,
@@ -53,42 +53,110 @@ export class UnauthorizedError extends Error {
   }
 }
 
-async function authedFetch(path: string, method: string, body?: unknown): Promise<Response> {
-  const session = getStoredSession();
+// Tope por llamada (2026-09-28). La Lambda corta a los 20 s y API Gateway a
+// los 30 s; sin tope, una conexión colgada dejaba la pantalla en esqueleto
+// para siempre, sin error ni botón de reintentar.
+const TIEMPO_MAXIMO_MS = 25_000;
+
+// Solo GET se reintenta: POST/PUT/DELETE crean reservas, envían correos o
+// confirman pagos, y repetirlos tras un corte puede duplicarlos. Tampoco se
+// reintenta un timeout: serían otros 25 s esperando lo mismo.
+const ESPERAS_REINTENTO_MS = [500, 1500];
+const ESTADOS_TRANSITORIOS = new Set([429, 502, 503, 504]);
+
+const SIN_CONEXION = 'No se pudo conectar con el panel. Revisa tu conexión e intenta de nuevo.';
+
+export class TimeoutError extends Error {
+  constructor() {
+    super('El panel tardó demasiado en responder. Intenta de nuevo.');
+  }
+}
+
+// Falla que puede no repetirse: red caída, throttling o un 5xx de pasada.
+class ErrorTransitorio extends Error {}
+
+interface Respuesta {
+  status: number;
+  ok: boolean;
+  data: unknown;
+}
+
+async function llamar(path: string, method: string, body: unknown, idToken: string): Promise<Respuesta> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIEMPO_MAXIMO_MS);
+  try {
+    const res = await fetch(`${DASHBOARD_API_URL}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (controller.signal.aborted) throw new TimeoutError();
+    return { status: res.status, ok: res.ok, data };
+  } catch (e) {
+    if (e instanceof TimeoutError || controller.signal.aborted) throw new TimeoutError();
+    throw new ErrorTransitorio(SIN_CONEXION);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function renovarOSalir(): Promise<StoredSession> {
+  try {
+    return await refreshSession();
+  } catch (e) {
+    if (e instanceof SessionExpiredError) throw new UnauthorizedError();
+    throw new ErrorTransitorio(SIN_CONEXION);
+  }
+}
+
+async function requestUnaVez<T>(path: string, method: string, body: unknown): Promise<T> {
+  let session: StoredSession | null;
+  try {
+    session = await sesionVigente();
+  } catch (e) {
+    if (e instanceof SessionExpiredError) throw new UnauthorizedError();
+    throw new ErrorTransitorio(SIN_CONEXION);
+  }
   if (!session) throw new UnauthorizedError();
-  return fetch(`${DASHBOARD_API_URL}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${session.idToken}`,
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+
+  let res = await llamar(path, method, body, session.idToken);
+  if (res.status === 401) {
+    session = await renovarOSalir();
+    res = await llamar(path, method, body, session.idToken);
+  }
+  if (res.status === 401) throw new UnauthorizedError();
+
+  if (!res.ok) {
+    const mensaje = (res.data as { error?: string }).error || 'Error de conexión con el dashboard.';
+    if (ESTADOS_TRANSITORIOS.has(res.status)) throw new ErrorTransitorio(mensaje);
+    throw new Error(mensaje);
+  }
+  return res.data as T;
+}
+
+function esperar(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // El client_id SIEMPRE sale del claim del ID token en el backend (nunca de
 // un parametro ni del body) - este cliente no manda ni podria mandar un
 // client_id, ni falta que lo haga.
 async function request<T>(path: string, method: string = 'GET', body?: unknown): Promise<T> {
-  let res = await authedFetch(path, method, body);
-
-  if (res.status === 401) {
+  for (let intento = 0; ; intento++) {
     try {
-      await refreshSession();
+      return await requestUnaVez<T>(path, method, body);
     } catch (e) {
-      if (e instanceof SessionExpiredError) throw new UnauthorizedError();
-      throw e;
+      const reintentar =
+        method === 'GET' && e instanceof ErrorTransitorio && intento < ESPERAS_REINTENTO_MS.length;
+      if (!reintentar) throw e;
+      await esperar(ESPERAS_REINTENTO_MS[intento]);
     }
-    res = await authedFetch(path, method, body);
   }
-
-  if (res.status === 401) throw new UnauthorizedError();
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error((data as { error?: string }).error || 'Error de conexión con el dashboard.');
-  }
-  return data as T;
 }
 
 // Sin gate de `services` en el backend (a diferencia de las 3 de abajo) -

@@ -1,0 +1,12 @@
+# Cabeceras que Amplify aplica al servir el build (2026-09-28).
+#
+# Vite nombra todo lo de /assets con el hash del contenido: un cambio produce
+# otro nombre, así que el archivo viejo nunca necesita revalidarse. Sin esto
+# Amplify los servía con `max-age=0` y el navegador preguntaba por el bundle
+# (716 KB) en cada visita. index.html queda como está: tiene que revalidarse
+# para que un despliegue nuevo llegue al cliente.
+customHeaders:
+  - pattern: '/assets/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=31536000, immutable'

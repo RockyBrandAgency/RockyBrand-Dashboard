@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { SidebarRail } from './components/SidebarRail';
 import { MobileBar } from './components/MobileBar';
 import { LoginScreen } from './pages/LoginScreen';
+import { PerfilNoDisponibleScreen } from './pages/PerfilNoDisponibleScreen';
 import { BrainIntro } from './pages/BrainIntro';
 import { Overview } from './pages/Overview';
 import { DetailScreen } from './pages/DetailScreen';
@@ -186,7 +187,10 @@ function AuthenticatedShell() {
 const BRAIN_INTRO_KEY = 'rockybrand.brainIntroSeen';
 
 function Root() {
-  const { isAuthenticated, sessionExpiredMessage, clientId, clientServices, clientLogoSrcDark, clientDisplayName } = useAuth();
+  const {
+    isAuthenticated, sessionExpiredMessage, clientId, clientServices, clientLogoSrcDark, clientDisplayName,
+    perfilError, reintentarPerfil, logout,
+  } = useAuth();
   const [introSeen, setIntroSeen] = useState(() => sessionStorage.getItem(BRAIN_INTRO_KEY) === '1');
 
   const dismissIntro = useCallback(() => {
@@ -225,6 +229,11 @@ function Root() {
   // dibujarse el cerebro: sin salto, y sin afirmar nada del cliente todavía.
   // Para quien no la ve nunca, esa espera es una pantalla negra gratis.
   if (!isAuthenticated) return <LoginScreen sessionExpiredMessage={sessionExpiredMessage} />;
+  // Sin perfil no hay qué pantallas mostrar: si /dashboard/me falló, se dice y
+  // se ofrece reintentar, en vez del spinner o el esqueleto eternos.
+  if (!servicesLoaded && perfilError) {
+    return <PerfilNoDisponibleScreen mensaje={perfilError} onRetry={reintentarPerfil} onLogout={logout} />;
+  }
   // La espera oscura sobre la que después se dibuja el cerebro. Lleva un
   // punto que respira: sin él, en el primer ingreso de la pestaña -el único
   // caso en que esto se ve, porque desde el segundo el perfil viene recordado
