@@ -84,7 +84,6 @@ export const CLIENT_THEME: Record<string, ClientTheme> = {
   // Charcoal de su guideline. `sage`/`sageMid` son Ash Grey #9e9a94 y
   // #8f8b85, los dos grises que su CSS ya reserva para texto y rotulos sobre
   // fondo oscuro: aca no hubo que derivar nada, la paleta los declara.
-  // Savanna Gold #c89b57 queda para el acento (ver CLIENT_ACCENT_ON_DARK).
   'karibu-safari-africa': { primary: '#1c1b18', primaryHover: '#2e2c28', sage: '#9e9a94', sageMid: '#8f8b85' },
   // bionam: hex reales del propio archivo del logo (logo-bionam.svg, único
   // insumo de marca recibido). `primary`/`primaryHover` son los dos tonos de
@@ -94,60 +93,6 @@ export const CLIENT_THEME: Record<string, ClientTheme> = {
   // tono documentado para derivar uno distinto sin inventarlo.
   'bionam': { primary: '#1d70b7', primaryHover: '#18529f', sage: '#645f62', sageMid: '#645f62' },
 };
-
-// Color de acento sobre FONDO OSCURO, para la pantalla del cerebro de marca
-// (BrainIntro). `CLIENT_THEME.primary` no sirve ahí: es un color pensado para
-// pintar superficies sobre fondo claro (sidebar blanco, botones), y sobre negro
-// desaparece - el de Chile Fly Fishing es Charcoal #202020, que sobre un fondo
-// #04070E es literalmente invisible.
-//
-// Hex reales de cada manual de marca, con la línea exacta de su tabla de color
-// (verificado 2026-08-07 leyendo los extractos, no de memoria):
-// - chile-fly-fishing: Corporate Blue #006DC6, fila "Exclusivo: UI Buttons &
-//   Text Links" de clientes/chile-fly-fishing/01-knowledge-base/brand-guidelines-extracto.md.
-//   Es su único color vívido y el mismo azul de su propio logotipo; la pantalla
-//   del cerebro es UI, que es justo el uso que su guideline le reserva. Luxury
-//   Gold quedaría muy apagado sobre negro y Charcoal no se ve.
-// - alto-castillo: Verde Salvia #BCC2B3, fila "texto de apoyo sobre fondos
-//   oscuros" de su propio extracto - o sea, el color que su guideline ya
-//   designa para exactamente esta situación. Verde Bosque #425327 es demasiado
-//   oscuro sobre negro.
-//
-// Un client_id sin entrada acá NO ve la pantalla del cerebro (App.tsx la
-// omite): mismo criterio que el resto del archivo - antes de inventarle un
-// color a un cliente, no se le muestra la pantalla.
-export const CLIENT_ACCENT_ON_DARK: Record<string, string> = {
-  'alto-castillo': '#bcc2b3',
-  'chile-fly-fishing': '#006dc6',
-  // Savanna Gold, `--color-amber` de su propio globals.css. Es el unico color
-  // vivido de la paleta de Karibu y el que su sitio ya usa para acentos sobre
-  // el fondo #101010 - exactamente esta situacion. El carbon del sello seria
-  // invisible sobre negro, igual que le pasa al Charcoal de CFF.
-  'karibu-safari-africa': '#c89b57',
-};
-
-// Clientes que entran DERECHO al panel: el login los deja en Overview, sin la
-// pantalla del cerebro.
-//
-// Es una lista aparte y no se resuelve borrando al cliente de
-// CLIENT_ACCENT_ON_DARK, aunque eso también lo sacaría de la pantalla: ese hex
-// es un dato de su manual de marca y sigue siendo cierto. Mezclar las dos
-// cosas deja una trampa para después - el día que alguien reponga el acento
-// porque lo necesita para otra cosa, la bienvenida vuelve a aparecer sin que
-// nadie la haya pedido.
-//
-// alto-castillo sale por decisión de Mato el 2026-08-12: Carolina y Adrián
-// prueban el circuito completo y la bienvenida les mete una pantalla que no
-// pidieron entre el login y lo que vienen a ver.
-//
-// karibu-safari-africa entra el 2026-09-08 por un motivo distinto: la
-// pantalla del cerebro presenta el equipo de agentes de IA, y Karibu no los
-// contrato (services.agents=false). Mostrarle esa bienvenida seria ofrecerle
-// algo que su panel no tiene.
-export const CLIENTES_SIN_INTRO: ReadonlySet<string> = new Set([
-  'alto-castillo',
-  'karibu-safari-africa',
-]);
 
 // Aplica el theme del cliente sobre las custom properties de :root. Sin
 // client_id conocido, restaura los defaults neutros de RockyBrand

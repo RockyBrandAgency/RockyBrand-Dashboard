@@ -51,7 +51,6 @@ async function montar() {
 describe('perfil que no carga', () => {
   it('muestra el error con Reintentar en vez del spinner eterno, y reintentar recupera el panel', async () => {
     setStoredSession({ idToken: 'x.e30.y', accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3_600_000 });
-    sessionStorage.setItem('rockybrand.brainIntroSeen', '1');
     getMe
       .mockRejectedValueOnce(new Error('No se pudo conectar con el panel. Revisa tu conexión e intenta de nuevo.'))
       .mockResolvedValueOnce({
@@ -63,7 +62,6 @@ describe('perfil que no carga', () => {
 
     expect(contenedor!.textContent).toContain('No pudimos cargar tu panel');
     expect(contenedor!.textContent).toContain('No se pudo conectar con el panel');
-    expect(contenedor!.querySelector('.brain-espera')).toBeNull();
 
     const reintentar = [...contenedor!.querySelectorAll('button')].find((b) => b.textContent === 'Reintentar');
     await act(async () => {

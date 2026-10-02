@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { initButtonHoverGsap } from './lib/buttonHoverGsap';
 import { useBreakpoint } from './hooks/useBreakpoint';
@@ -8,7 +8,6 @@ import { SidebarRail } from './components/SidebarRail';
 import { MobileBar } from './components/MobileBar';
 import { LoginScreen } from './pages/LoginScreen';
 import { PerfilNoDisponibleScreen } from './pages/PerfilNoDisponibleScreen';
-import { BrainIntro } from './pages/BrainIntro';
 import { Overview } from './pages/Overview';
 import { DetailScreen } from './pages/DetailScreen';
 import { ReservasResumen } from './pages/Reservas/ReservasResumen';
@@ -34,8 +33,6 @@ import { AgenciasReporte } from './pages/Agencias/AgenciasReporte';
 import { SettingsScreen } from './pages/SettingsScreen';
 import { ServiceUnavailableScreen } from './pages/ServiceUnavailableScreen';
 import { OVERVIEW, NAV_SECTIONS, SERVICE_ENTRY_SCREEN, SIDEBAR_W, isNavLeafVisible, type NavGate, type Screen } from './screens';
-import { CLIENT_ACCENT_ON_DARK, CLIENTES_SIN_INTRO, clientIdFromHostname } from './branding';
-import { agentsForClient } from './agents';
 import type { ClientServices } from './types';
 
 function isServiceEntryVisible(screen: Screen, clientServices: ClientServices | null): boolean {
@@ -180,82 +177,17 @@ function AuthenticatedShell() {
   );
 }
 
-// Una vez por sesión de navegador, no por navegación ni por render: la
-// bienvenida se ve al entrar y no vuelve a aparecer hasta el próximo login en
-// una pestaña nueva. sessionStorage y no localStorage a propósito - que se vea
-// de nuevo mañana está bien; que se vea 8 veces en la misma tarde, no.
-const BRAIN_INTRO_KEY = 'rockybrand.brainIntroSeen';
-
 function Root() {
-  const {
-    isAuthenticated, sessionExpiredMessage, clientId, clientServices, clientLogoSrcDark, clientDisplayName,
-    perfilError, reintentarPerfil, logout,
-  } = useAuth();
-  const [introSeen, setIntroSeen] = useState(() => sessionStorage.getItem(BRAIN_INTRO_KEY) === '1');
+  const { isAuthenticated, sessionExpiredMessage, clientServices, perfilError, reintentarPerfil, logout } = useAuth();
 
-  const dismissIntro = useCallback(() => {
-    sessionStorage.setItem(BRAIN_INTRO_KEY, '1');
-    setIntroSeen(true);
-  }, []);
-
-  const agents = agentsForClient(clientId);
-  const accent = clientId ? CLIENT_ACCENT_ON_DARK[clientId] : undefined;
-  // Solo con datos REALES: el cliente tiene el servicio de agentes contratado,
-  // tiene equipo definido y tiene un acento documentado en su manual de marca.
-  // Si falta cualquiera de los tres, no se muestra - antes que inventarle un
-  // color o un equipo a un cliente, entra derecho al panel.
-  //
-  // `clientServices?.agents` y no `clientServices !== null && clientServices.agents`:
-  // si /dashboard/me alguna vez responde sin el campo `services`, lo segundo
-  // tira un TypeError acá arriba de todo el árbol y tumba el panel entero por
-  // una pantalla de bienvenida (pasó de verdad probando esto). Con optional
-  // chaining, un payload raro simplemente no muestra la bienvenida.
-  const servicesLoaded = clientServices !== null;
-  // Y además: que el cliente no esté en la lista de los que entran derecho
-  // (CLIENTES_SIN_INTRO en branding.ts, con el porqué de cada uno).
-  //
-  // Se mira el clientId real y, mientras /dashboard/me no responde, el
-  // subdominio - que es el mismo indicio que LoginScreen ya usa para pintar el
-  // theme antes del login. Sirve solo para saltarse la espera oscura de abajo:
-  // si el hostname dijera un cliente y el JWT otro, lo único que pasa es que la
-  // bienvenida aparece un instante tarde. Ninguna decisión de datos cuelga de
-  // acá; el aislamiento sigue saliendo del claim del JWT, nunca del hostname.
-  const sinIntro = CLIENTES_SIN_INTRO.has(clientId ?? clientIdFromHostname(window.location.hostname) ?? '');
-  const canShowIntro = !sinIntro && !!clientServices?.agents && agents.length > 0 && !!accent;
-
-  // Mientras /dashboard/me carga todavía no se sabe si corresponde mostrarla.
-  // En vez de mostrar el panel y que la bienvenida aparezca encima medio
-  // segundo después, se espera con la misma superficie oscura sobre la que va a
-  // dibujarse el cerebro: sin salto, y sin afirmar nada del cliente todavía.
-  // Para quien no la ve nunca, esa espera es una pantalla negra gratis.
+  // La bienvenida con el cerebro de marca y el equipo de agentes (BrainIntro)
+  // se eliminó el 2026-10-02 por pedido de Mato: «no quiero que vuelva a
+  // aparecer». El login lleva directo al panel.
   if (!isAuthenticated) return <LoginScreen sessionExpiredMessage={sessionExpiredMessage} />;
   // Sin perfil no hay qué pantallas mostrar: si /dashboard/me falló, se dice y
   // se ofrece reintentar, en vez del spinner o el esqueleto eternos.
-  if (!servicesLoaded && perfilError) {
+  if (clientServices === null && perfilError) {
     return <PerfilNoDisponibleScreen mensaje={perfilError} onRetry={reintentarPerfil} onLogout={logout} />;
-  }
-  // La espera oscura sobre la que después se dibuja el cerebro. Lleva un
-  // punto que respira: sin él, en el primer ingreso de la pestaña -el único
-  // caso en que esto se ve, porque desde el segundo el perfil viene recordado
-  // (api/perfilCache.ts)- la pantalla negra y quieta se lee como "se colgó",
-  // que fue textual lo que reportó Mato el 2026-08-18.
-  if (!introSeen && !servicesLoaded && !sinIntro) {
-    return (
-      <div className="brain-screen">
-        <div className="brain-espera" role="status" aria-label="Cargando" />
-      </div>
-    );
-  }
-  if (!introSeen && canShowIntro && accent) {
-    return (
-      <BrainIntro
-        agents={agents}
-        accent={accent}
-        logoSrc={clientLogoSrcDark}
-        logoAlt={clientDisplayName ?? 'Logo del cliente'}
-        onEnter={dismissIntro}
-      />
-    );
   }
   return <AuthenticatedShell />;
 }
