@@ -1210,6 +1210,72 @@ export interface PublicacionesResponse {
   cola: PublicacionEnCola[];
   historial: PublicacionHistorial[];
   resumen: { en_cola: number; publicadas: number; requieren_atencion: number };
+  // Cómo le fue a lo publicado en las cuatro redes (backend:
+  // rendimiento_rrss.py). null para un cliente que no tiene la medición
+  // diaria; ausente si el backend es anterior al 2026-10-02.
+  rendimiento?: RendimientoRedes | null;
+}
+
+// --- Rendimiento en redes (2026-10-02) --------------------------------------
+//
+// Lo escribe una vez al día `panel_rrss.py` desde el Mac del cliente. Cada
+// métrica que la red no entrega llega como null y se muestra como "—": Meta no
+// da alcance de reels de Facebook y la API de YouTube no da alcance. Un 0 es
+// un dato real ("nadie"); un null es "no se sabe".
+export type RedSocial = 'instagram' | 'facebook' | 'youtube' | 'tiktok';
+
+export interface PublicacionRed {
+  plataforma: RedSocial;
+  id: string;
+  fecha: string; // ISO-8601 en UTC
+  texto: string;
+  url: string | null;
+  miniatura: string | null;
+  alcance: number | null;
+  vistas: number | null;
+  likes: number | null;
+  comentarios: number | null;
+  compartidos: number | null;
+  guardados: number | null;
+  edad_dias: number;
+  // Menos de 7 días: todavía junta vistas y no entra a ningún ranking.
+  madurando: boolean;
+  formato?: string;
+  prueba?: boolean; // reel de prueba de Instagram
+  retencion_s?: number | null;
+  retencion_3s_pct?: number | null;
+  duracion_s?: number | null;
+}
+
+export interface InsightNumero {
+  tipo: 'bien' | 'mal' | 'info' | 'probar';
+  titulo: string;
+  detalle: string;
+  plataforma?: RedSocial;
+  id?: string;
+}
+
+export interface InsightVigente {
+  id: string;
+  signo: 'hacer' | 'no_hacer' | 'probar';
+  red: string;
+  hallazgo: string;
+  evidencia: string;
+  estado: string;
+  accion: string;
+}
+
+export interface RendimientoRedes {
+  version: 1;
+  generado: string;
+  guardado: string | null;
+  ventana_dias: number;
+  madurando_dias: number;
+  // Una red que no respondió conserva sus números de la medición anterior
+  // (`arrastrado_de`, ISO) y el panel lo avisa.
+  fuentes: Partial<Record<RedSocial, { ok: boolean; publicaciones: number; error: string | null; arrastrado_de?: string | null }>>;
+  publicaciones: PublicacionRed[];
+  insights: { numeros: InsightNumero[]; vigentes: InsightVigente[] };
 }
 
 // Siempre la misma forma, con o sin datos suficientes. `hay_recomendacion`

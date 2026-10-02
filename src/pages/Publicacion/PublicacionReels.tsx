@@ -4,6 +4,8 @@ import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { KpiRow } from '../../components/KpiRow';
 import { SectionHead } from '../../components/SectionHead';
+import { TabsWithIndicator } from '../../components/TabsWithIndicator';
+import { RendimientoRedes } from './RendimientoRedes';
 import { LineChartIcon } from '../../components/icons/RockyIcons';
 import { useAuth } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
@@ -259,6 +261,10 @@ export function PublicacionReels({ isDesktop }: { isDesktop: boolean }) {
   const [horario, setHorario] = useState<HorarioSugerido | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Dos vistas de la misma respuesta: cómo le fue a lo publicado en las cuatro
+  // redes (incluido lo que salió fuera de Berry) y la cola y el historial de
+  // Berry. Una sola llamada al backend alimenta las dos.
+  const [pestana, setPestana] = useState<'rendimiento' | 'cola'>('rendimiento');
 
   const cargar = useCallback(async () => {
     setCargando(true); setError(null);
@@ -311,6 +317,20 @@ export function PublicacionReels({ isDesktop }: { isDesktop: boolean }) {
           {!datos ? null : (
             <>
               <div style={{ marginBottom: 'var(--space-7)' }}>
+                <TabsWithIndicator
+                  tabs={[
+                    { id: 'rendimiento', label: 'Rendimiento en redes' },
+                    { id: 'cola', label: 'Cola de Berry' },
+                  ]}
+                  active={pestana}
+                  onChange={setPestana}
+                />
+              </div>
+              {pestana === 'rendimiento' ? (
+                <RendimientoRedes datos={datos.rendimiento} isDesktop={isDesktop} />
+              ) : (
+              <>
+              <div style={{ marginBottom: 'var(--space-7)' }}>
                 <KpiRow items={[
                   { label: 'En cola', value: datos.resumen.en_cola },
                   { label: 'Publicadas', value: datos.resumen.publicadas },
@@ -360,6 +380,8 @@ export function PublicacionReels({ isDesktop }: { isDesktop: boolean }) {
                     : `Hay ${yaSalieron.length} carpetas en la cola cuyo contenido ya se publicó.`}
                   {' '}El video original no se borra al publicar: retirarlo es una decisión tuya.
                 </div>
+              )}
+              </>
               )}
             </>
           )}
