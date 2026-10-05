@@ -310,10 +310,30 @@ export interface ReservaResumenItem {
   // haría que una reserva recién creada pareciera incompleta.
   FlightNumber?: string;
   FlightReportedAt?: string;
+  // Acompañantes de la estadía (2026-10-05). Opcional porque una Lambda
+  // anterior no lo manda; la actual entrega [] cuando no hay.
+  Companions?: Acompanante[];
   TotalAmount: number;
   Currency: string;
   PaymentStatus: string | null;
 }
+
+// Quien viaja con el titular de la reserva sin ser el titular: la señora que
+// acompaña al pescador, por ejemplo. Vive en la reserva, no como ficha de
+// huésped. El servidor valida y normaliza (pms_models.validar_acompanantes) y
+// asigna el CompanionID; FoodAllergyDetail viene vacío si FoodAllergy es false.
+export interface Acompanante {
+  CompanionID: string;
+  FirstName: string;
+  LastName: string;
+  BirthDate: string | null;
+  FoodAllergy: boolean;
+  FoodAllergyDetail: string;
+  Notes: string;
+}
+
+// Lo que el panel manda al guardar: un acompañante nuevo todavía no tiene id.
+export type BorradorAcompanante = Omit<Acompanante, 'CompanionID'> & { CompanionID?: string };
 
 export interface ReservasResumenResponse {
   client_id: string;

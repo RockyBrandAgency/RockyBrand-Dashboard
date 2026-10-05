@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { actualizarReserva, cancelarReserva, confirmarReserva, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { telefonoDe, enlaceWhatsapp } from '../lib/contactoHuesped';
+import { AcompanantesReserva } from './AcompanantesReserva';
 import { OriginBadge } from './OriginBadge';
 import { fmtSelloUtc } from '../lib/selloUtc';
 import type { ReservaResumenItem } from '../types';
@@ -91,6 +92,18 @@ export function BookingDetailModal({
   const [confirmando, setConfirmando] = useState(false);
   // "No avisar al pescador" (2026-08-18). Ver confirmar() más abajo.
   const [sinAviso, setSinAviso] = useState(false);
+  // Acompañantes (2026-10-05): se guardan sin cerrar la ficha, así que la
+  // reserva que tiene la página queda vieja. Si cambiaron, cerrar pasa por
+  // onGuardado -que en las páginas que la abren cierra y recarga- en vez de onClose.
+  const [acompanantesCambiaron, setAcompanantesCambiaron] = useState(false);
+  const [editandoAcompanante, setEditandoAcompanante] = useState(false);
+  const marcarAcompanantesCambiaron = useCallback(() => setAcompanantesCambiaron(true), []);
+
+  function cerrar() {
+    if (editandoAcompanante && !confirm('Hay un acompañante sin guardar. ¿Cerrar la ficha de todos modos?')) return;
+    if (acompanantesCambiaron) onGuardado();
+    else onClose();
+  }
 
   const sc = STATUS_COLOR[reserva.Status];
   const contacto = reserva.GuestContact || {};
@@ -189,7 +202,7 @@ export function BookingDetailModal({
   return (
     <div
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) cerrar();
       }}
       style={{
         position: 'fixed',
@@ -232,7 +245,7 @@ export function BookingDetailModal({
               recorta con el border-radius del botón, y sin radio quedaba un
               rectángulo duro alrededor de la ×. */}
           <button
-            onClick={onClose}
+            onClick={cerrar}
             aria-label="Cerrar"
             style={{
               all: 'unset',
@@ -322,6 +335,14 @@ export function BookingDetailModal({
             </div>
           </div>
         </div>
+
+        <AcompanantesReserva
+          bookingId={reserva.BookingID}
+          inicial={reserva.Companions ?? []}
+          editable={reserva.Status !== 'CANCELLED'}
+          onCambio={marcarAcompanantesCambiaron}
+          onEditando={setEditandoAcompanante}
+        />
 
         {/* Vuelo de llegada. El pescador lo manda por WhatsApp DESPUÉS de
             pagar, contestando el correo de confirmación, así que casi siempre

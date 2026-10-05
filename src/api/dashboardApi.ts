@@ -6,6 +6,8 @@ import type {
   DisponibilidadResponse,
   MeResponse,
   ReservasResumenResponse,
+  Acompanante,
+  BorradorAcompanante,
   NuevaReservaPayload,
   NuevoHuespedPayload,
   HuespedesResponse,
@@ -203,6 +205,17 @@ export function actualizarReserva(
 // pedido explícito de Mato: "el PMS... debe ser capaz de agregar o
 // eliminar reservas", para todos los clientes). "Eliminar" cancela
 // (Status=CANCELLED), nunca borra el registro — confirmado con Mato.
+// Reemplaza la lista ENTERA de acompañantes de la reserva (lista vacía = sin
+// acompañantes). Va por la misma ruta que las fechas. La respuesta trae la
+// lista que quedó guardada, con los CompanionID que asignó el servidor: si no
+// la trae, la Lambda desplegada es anterior a la función e ignoró el campo.
+export function guardarAcompanantes(
+  bookingId: string,
+  companions: BorradorAcompanante[]
+): Promise<{ BookingID: string; message: string; Companions?: Acompanante[] }> {
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'PUT', { Companions: companions });
+}
+
 export function crearReserva(payload: NuevaReservaPayload): Promise<{ BookingID: string; message: string }> {
   return request('/dashboard/reservas', 'POST', payload);
 }
