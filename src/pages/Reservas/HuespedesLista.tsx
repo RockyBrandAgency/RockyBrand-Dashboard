@@ -6,6 +6,7 @@ import { getHuespedes, getReservasResumen, actualizarHuesped, UnauthorizedError 
 import { useAuth } from '../../context/AuthContext';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import { telefonoDe, enlaceWhatsapp } from '../../lib/contactoHuesped';
+import { AcompanantesReserva } from '../../components/AcompanantesReserva';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
 
 const PAGE_SIZE = 20;
@@ -301,6 +302,22 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
 function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onClose: () => void; onGuardado: () => void }) {
   const { handleUnauthorized } = useAuth();
   const [editando, setEditando] = useState(false);
+  // Acompañantes (2026-10-05, pedido de Mato: "en Lodge, Pescadores, al
+  // presionar un pescador confirmado, poder agregarle un acompañante"). Viven
+  // en cada reserva, así que va una sección por viaje que no esté cancelado.
+  // Se guardan sin cerrar la ficha; si cambiaron, cerrar pasa por onGuardado
+  // para que la lista se recargue con lo guardado.
+  const viajesActivos = fila.reservas.filter((r) => r.Status !== 'CANCELLED');
+  const [acompanantesCambiaron, setAcompanantesCambiaron] = useState(false);
+  const [editandoAcompanante, setEditandoAcompanante] = useState<Record<string, boolean>>({});
+  const marcarAcompanantesCambiaron = useCallback(() => setAcompanantesCambiaron(true), []);
+
+  function cerrar() {
+    const hayFormularioAbierto = Object.values(editandoAcompanante).some(Boolean);
+    if (hayFormularioAbierto && !confirm('Hay un acompañante sin guardar. ¿Cerrar la ficha de todos modos?')) return;
+    if (acompanantesCambiaron) onGuardado();
+    else onClose();
+  }
   const [birth, setBirth] = useState(fila.BirthDate ?? '');
   const [anniv, setAnniv] = useState(fila.AnniversaryDate ?? '');
   const [guardando, setGuardando] = useState(false);
@@ -329,7 +346,7 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
   return (
     <div
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) cerrar();
       }}
       style={{
         position: 'fixed',
@@ -374,7 +391,7 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
           {/* Icon button de M3: 40x40 redondo, para que la capa de estado
               del hover se recorte redonda y no como un cuadrado. */}
           <button
-            onClick={onClose}
+            onClick={cerrar}
             aria-label="Cerrar"
             style={{
               all: 'unset',
@@ -492,6 +509,21 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
             </div>
           )}
         </div>
+
+        {viajesActivos.map((r) => (
+          <AcompanantesReserva
+            key={r.BookingID}
+            bookingId={r.BookingID}
+            inicial={r.Companions ?? []}
+            editable
+            separacion="arriba"
+            titulo={`Acompañantes · viaje del ${fmtDate(r.CheckIn)}${r.Status === 'PENDING' ? ' (pendiente de pago)' : ''}`}
+            onCambio={marcarAcompanantesCambiaron}
+            onEditando={(abierto) =>
+              setEditandoAcompanante((prev) => (prev[r.BookingID] === abierto ? prev : { ...prev, [r.BookingID]: abierto }))
+            }
+          />
+        ))}
 
         {notas.length > 0 && (
           <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)' }}>

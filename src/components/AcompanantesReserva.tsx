@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { guardarAcompanantes, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -41,18 +41,27 @@ function fmtNacimiento(iso: string): string {
 // permitir cambios. `onCambio` avisa que la ficha que abrió la página ya no
 // coincide con lo guardado; `onEditando` avisa que hay un formulario abierto,
 // para no cerrar la ficha con un acompañante a medio cargar.
+//
+// Se usa en dos fichas: la de la reserva (BookingDetailModal) y la del
+// pescador en Lodge → Pescadores (HuespedesLista), que muestra una sección por
+// viaje activo. `titulo` dice de qué viaje es; `separacion` sigue la
+// convención de margen de cada ficha.
 export function AcompanantesReserva({
   bookingId,
   inicial,
   editable,
   onCambio,
   onEditando,
+  titulo = 'Acompañantes',
+  separacion = 'abajo',
 }: {
   bookingId: string;
   inicial: Acompanante[];
   editable: boolean;
   onCambio: () => void;
   onEditando: (editando: boolean) => void;
+  titulo?: string;
+  separacion?: 'arriba' | 'abajo';
 }) {
   const { handleUnauthorized } = useAuth();
   const ids = useId();
@@ -63,9 +72,13 @@ export function AcompanantesReserva({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
 
+  // En un ref para que el efecto dependa solo de `editando`: quien pasa una
+  // flecha nueva en cada render no dispara un aviso (y un render) por render.
+  const onEditandoRef = useRef(onEditando);
+  onEditandoRef.current = onEditando;
   useEffect(() => {
-    onEditando(editando !== null);
-  }, [editando, onEditando]);
+    onEditandoRef.current(editando !== null);
+  }, [editando]);
 
   function abrir(a: Acompanante | null) {
     setBorrador(a ? { ...a } : BORRADOR_VACIO);
@@ -127,9 +140,18 @@ export function AcompanantesReserva({
   const puedeAgregar = editable && editando === null && lista.length < LIMITES_ACOMPANANTE.maxPorReserva;
 
   return (
-    <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+    <div
+      style={{
+        borderTop: '1px solid var(--border-soft)',
+        paddingTop: 'var(--space-6)',
+        ...(separacion === 'arriba' ? { marginTop: 'var(--space-6)' } : { marginBottom: 'var(--space-6)' }),
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div style={fieldLabel}>Acompañantes{lista.length > 0 ? ` (${lista.length})` : ''}</div>
+        <div style={fieldLabel}>
+          {titulo}
+          {lista.length > 0 ? ` (${lista.length})` : ''}
+        </div>
         {puedeAgregar && (
           <button className="crm-btn crm-btn-ghost crm-btn-sm" onClick={() => abrir(null)} disabled={guardando}>
             + Agregar acompañante
