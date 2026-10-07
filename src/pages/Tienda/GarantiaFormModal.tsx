@@ -23,10 +23,11 @@ const inputStyle: React.CSSProperties = {
   background: 'var(--white)',
   color: 'var(--text)',
 };
-const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' };
+const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' };
 const seccion: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: 'var(--space-6) 0 8px' };
-const grilla: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 };
+const grilla: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 };
 const ayuda: React.CSSProperties = { fontSize: 12, color: 'var(--text-faint)', marginTop: 6 };
+const errorDeCampo: React.CSSProperties = { fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 4 };
 
 const MONTO_MAXIMO_CLP = 10_000_000;
 const EMAIL_RE = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/;
@@ -96,23 +97,28 @@ export function leerMonto(texto: string): number | null | 'invalido' {
   return n <= MONTO_MAXIMO_CLP ? n : 'invalido';
 }
 
-export function validarFormulario(f: Formulario): { datos: StoreGarantiaDatos } | { error: string } {
+export function validarFormulario(f: Formulario): { datos: StoreGarantiaDatos } | { error: string; campo: keyof Formulario } {
   const t = (s: string) => s.trim();
-  if (!t(f.nombre)) return { error: 'Falta el nombre.' };
-  if (!t(f.telefono)) return { error: 'Falta el teléfono.' };
-  if (t(f.email) && !EMAIL_RE.test(t(f.email))) return { error: 'El correo no tiene un formato válido.' };
-  if (!t(f.cana)) return { error: 'Falta la caña.' };
-  if (!TRAMO_NOMBRE[f.tramo]) return { error: 'Elige el tramo.' };
+  if (!t(f.nombre)) return { error: 'Falta el nombre.', campo: 'nombre' };
+  if (!t(f.telefono)) return { error: 'Falta el teléfono.', campo: 'telefono' };
+  if (t(f.email) && !EMAIL_RE.test(t(f.email))) return { error: 'El correo no tiene un formato válido.', campo: 'email' };
+  if (!t(f.cana)) return { error: 'Falta la caña.', campo: 'cana' };
+  if (!TRAMO_NOMBRE[f.tramo]) return { error: 'Elige el tramo.', campo: 'tramo' };
 
   const precio = leerMonto(f.costo_clp);
-  if (precio === null) return { error: 'Falta el precio al cliente.' };
+  if (precio === null) return { error: 'Falta el precio al cliente.', campo: 'costo_clp' };
   const despacho = leerMonto(f.costo_despacho_clp);
   const douglas = leerMonto(f.costo_douglas_clp);
-  for (const [valor, nombre] of [[precio, 'El precio al cliente'], [despacho, 'El costo de despacho'], [douglas, 'El costo pagado a Douglas']] as const) {
-    if (valor === 'invalido') return { error: `${nombre} debe ser un monto en pesos, sin decimales (hasta $10.000.000).` };
+  const montos = [
+    [precio, 'El precio al cliente', 'costo_clp'],
+    [despacho, 'El costo de despacho', 'costo_despacho_clp'],
+    [douglas, 'El costo pagado a Douglas', 'costo_douglas_clp'],
+  ] as const;
+  for (const [valor, nombre, campo] of montos) {
+    if (valor === 'invalido') return { error: `${nombre} debe ser un monto en pesos, sin decimales (hasta $10.000.000).`, campo };
   }
   if (f.fecha_despacho && f.fecha_entrega && f.fecha_entrega < f.fecha_despacho) {
-    return { error: 'La fecha de entrega no puede ser anterior a la de despacho.' };
+    return { error: 'La fecha de entrega no puede ser anterior a la de despacho.', campo: 'fecha_entrega' };
   }
 
   return {
@@ -158,6 +164,9 @@ export function GarantiaFormModal({
   const [f, setF] = useState<Formulario>(inicial);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El campo que no pasó la validación: el error se muestra bajo él y no al
+  // final de un formulario de 21 campos, donde no se ve.
+  const [errorCampo, setErrorCampo] = useState<keyof Formulario | null>(null);
   const id = useId();
   const tituloId = `${id}-titulo`;
   const editando = Boolean(garantia);
@@ -165,6 +174,24 @@ export function GarantiaFormModal({
 
   function set<K extends keyof Formulario>(clave: K, valor: Formulario[K]) {
     setF((prev) => ({ ...prev, [clave]: valor }));
+    if (clave === errorCampo) {
+      setErrorCampo(null);
+      setError(null);
+    }
+  }
+
+  function errorBajo(clave: keyof Formulario) {
+    return errorCampo === clave && error ? (
+      <div id={`${id}-${clave}-error`} role="alert" style={errorDeCampo}>
+        {error}
+      </div>
+    ) : null;
+  }
+
+  function invalido(clave: keyof Formulario) {
+    return errorCampo === clave
+      ? { 'aria-invalid': true as const, 'aria-describedby': `${id}-${clave}-error`, style: { ...inputStyle, border: '1px solid var(--status-critico-dot)' } }
+      : {};
   }
 
   // Un formulario largo no se pierde por un Escape o un clic de más.
@@ -186,10 +213,15 @@ export function GarantiaFormModal({
     const r = validarFormulario(f);
     if ('error' in r) {
       setError(r.error);
+      setErrorCampo(r.campo);
+      const el = document.getElementById(`${id}-${r.campo}`);
+      el?.focus({ preventScroll: true });
+      el?.scrollIntoView?.({ block: 'center' });
       return;
     }
     setGuardando(true);
     setError(null);
+    setErrorCampo(null);
     try {
       if (garantia) {
         await editarTiendaGarantia(garantia.solicitud_id, r.datos, garantia.actualizada_en ?? '');
@@ -230,7 +262,9 @@ export function GarantiaFormModal({
           style={inputStyle}
           disabled={guardando}
           {...extra}
+          {...invalido(clave)}
         />
+        {errorBajo(clave)}
       </div>
     );
   }
@@ -335,7 +369,7 @@ export function GarantiaFormModal({
             <label htmlFor={`${id}-tramo`} style={fieldLabel}>
               Tramo *
             </label>
-            <select id={`${id}-tramo`} value={f.tramo} onChange={(e) => set('tramo', e.target.value)} style={inputStyle} disabled={guardando}>
+            <select id={`${id}-tramo`} value={f.tramo} onChange={(e) => set('tramo', e.target.value)} style={inputStyle} disabled={guardando} {...invalido('tramo')}>
               <option value="">Elige…</option>
               {Object.entries(TRAMO_NOMBRE).map(([n, nombre]) => (
                 <option key={n} value={n}>
@@ -343,6 +377,7 @@ export function GarantiaFormModal({
                 </option>
               ))}
             </select>
+            {errorBajo('tramo')}
           </div>
           {area('descripcion', 'Qué pasó', 1000)}
         </div>
@@ -418,19 +453,32 @@ export function GarantiaFormModal({
           {area('nota_interna', 'Nota interna (no la ve el cliente)', 500)}
         </div>
 
-        {error && (
-          <div role="alert" style={{ fontSize: 13, color: 'var(--status-critico-dot)', marginTop: 'var(--space-6)' }}>
-            {error}
-          </div>
-        )}
+        {/* Pie pegado al borde inferior: con 21 campos, los botones y el error
+            del servidor no pueden quedar fuera de la vista. */}
+        <div
+          style={{
+            position: 'sticky',
+            bottom: 'calc(-1 * var(--space-8))',
+            margin: 'var(--space-7) calc(-1 * var(--space-8)) calc(-1 * var(--space-8))',
+            padding: 'var(--space-6) var(--space-8) var(--space-8)',
+            background: 'var(--white)',
+            borderTop: '1px solid var(--border-soft)',
+          }}
+        >
+          {error && !errorCampo && (
+            <div role="alert" style={{ fontSize: 13, color: 'var(--status-critico-dot)', marginBottom: 'var(--space-5)' }}>
+              {error}
+            </div>
+          )}
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 'var(--space-7)', paddingTop: 'var(--space-6)', borderTop: '1px solid var(--border-soft)', alignItems: 'center', justifyContent: 'flex-end' }}>
-          <button className="crm-btn crm-btn-text" onClick={cerrar} disabled={guardando}>
-            Cancelar
-          </button>
-          <button className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando || (editando && !cambiado)}>
-            {guardando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Agregar garantía'}
-          </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
+            <button className="crm-btn crm-btn-text" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </button>
+            <button className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando || (editando && !cambiado)}>
+              {guardando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Agregar garantía'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
