@@ -38,6 +38,7 @@ import type {
   StoreOrder,
   StoreGarantia,
   StoreGarantiaEstado,
+  StoreGarantiaDatos,
   Agencia,
   AgenciaAcceso,
   AgenciaEstado,
@@ -497,12 +498,36 @@ export function getTiendaGarantias(): Promise<{ garantias: StoreGarantia[] }> {
 // Mover una garantía de estado. El backend valida que el id sea de una
 // garantía y no de una venta: mandar el id de una orden por acá no le escribe
 // un estado de garantía encima a un pedido real.
+// `nota` solo viaja si se pasa: sin ella el backend no toca la nota guardada.
+// Al pasar a despachada o entregada, el backend completa la fecha con la de
+// hoy si estaba vacía.
 export function actualizarTiendaGarantia(
   solicitud_id: string,
   estado: StoreGarantiaEstado,
   nota?: string,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; actualizada_en?: string }> {
+  // JSON.stringify omite `nota` cuando es undefined.
   return request('/dashboard/tienda/garantias', 'PUT', { solicitud_id, estado, nota });
+}
+
+// Garantía agregada a mano (un caso por WhatsApp, por teléfono o anterior al
+// formulario de la web). No le manda ningún correo al cliente.
+export function crearTiendaGarantia(datos: StoreGarantiaDatos): Promise<{ ok: boolean; solicitud_id: string }> {
+  return request('/dashboard/tienda/garantias', 'POST', { datos });
+}
+
+// Edición completa. `actualizada_en_esperada` es el valor que la pantalla
+// tenía cargado: si alguien la cambió en el medio, el backend responde 409 en
+// vez de pisar ese cambio con datos viejos.
+export function editarTiendaGarantia(
+  solicitud_id: string,
+  datos: StoreGarantiaDatos,
+  actualizada_en_esperada: string,
+): Promise<{ ok: boolean; actualizada_en: string }> {
+  return request(`/dashboard/tienda/garantias/${encodeURIComponent(solicitud_id)}`, 'PUT', {
+    datos,
+    actualizada_en_esperada,
+  });
 }
 
 // ------------------------------------------------------------- agencias --

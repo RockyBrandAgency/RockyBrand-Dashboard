@@ -5,10 +5,8 @@ import { KpiRow } from '../../components/KpiRow';
 import { getTiendaGarantias, actualizarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { StoreGarantia, StoreGarantiaEstado } from '../../types';
-
-function money(clp: number | undefined): string {
-  return (clp ?? 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
-}
+import { GarantiaFormModal } from './GarantiaFormModal';
+import { ESTADOS_GARANTIA as ESTADOS, TRAMO_NOMBRE, fmtFecha, margen, money } from './garantias';
 
 function fmtWhen(iso?: string): string {
   if (!iso) return '—';
@@ -16,26 +14,6 @@ function fmtWhen(iso?: string): string {
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
-
-// Cuatro estados, espejo de ESTADOS_GARANTIA en store_admin_lambda.py. Sin
-// esto la pantalla es una lista que solo crece: todo queda en "recibida" para
-// siempre y a los pocos meses no se distingue lo pendiente de lo resuelto.
-const ESTADOS: { key: StoreGarantiaEstado; label: string; bg: string; fg: string }[] = [
-  { key: 'recibida', label: 'Recibida', bg: 'var(--status-atencion-bg)', fg: 'var(--status-atencion-dot)' },
-  { key: 'en_revision', label: 'En revisión', bg: 'var(--status-neutro-bg)', fg: 'var(--text-sub)' },
-  { key: 'despachada', label: 'Despachada', bg: 'var(--status-bien-bg)', fg: 'var(--status-bien-dot)' },
-  { key: 'rechazada', label: 'Rechazada', bg: 'var(--status-critico-bg)', fg: 'var(--status-critico-dot)' },
-];
-
-// El número de tramo solo dice algo si se sabe desde dónde se cuenta. Acá el
-// 1 es la punta — mismo criterio que el formulario público, que se lo explica
-// al cliente con esas mismas palabras.
-const TRAMO_NOMBRE: Record<string, string> = {
-  '1': 'Punta',
-  '2': 'Segundo',
-  '3': 'Tercero',
-  '4': 'Base',
-};
 
 export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
@@ -46,6 +24,8 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   const [abierta, setAbierta] = useState<string | null>(null);
   const [guardando, setGuardando] = useState<string | null>(null);
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
+  // null = cerrado; {} = agregar una nueva; { garantia } = editar esa.
+  const [formulario, setFormulario] = useState<{ garantia?: StoreGarantia } | null>(null);
 
   // Se actualiza la fila en memoria en vez de recargar la lista entera: el
   // backend ya confirmó el cambio, y recargar haría parpadear la pantalla y
@@ -55,10 +35,15 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     setGuardando(g.solicitud_id);
     setErrorGuardar(null);
     try {
-      await actualizarTiendaGarantia(g.solicitud_id, estado);
+      const r = await actualizarTiendaGarantia(g.solicitud_id, estado);
       setGarantias((prev) =>
-        (prev ?? []).map((x) => (x.solicitud_id === g.solicitud_id ? { ...x, estado } : x)),
+        (prev ?? []).map((x) =>
+          x.solicitud_id === g.solicitud_id ? { ...x, estado, actualizada_en: r.actualizada_en ?? x.actualizada_en } : x,
+        ),
       );
+      // Al pasar a Despachada o Entregada el backend completa la fecha si
+      // faltaba: se trae sin parpadeo para que el detalle la muestre.
+      recargarEnSilencio();
     } catch (e: unknown) {
       if (e instanceof UnauthorizedError) {
         handleUnauthorized();
@@ -85,6 +70,17 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
       .finally(() => setLoading(false));
   }, [handleUnauthorized]);
 
+  // Después de guardar: trae la lista sin el estado de carga, así la
+  // pantalla no parpadea ni se cierra el detalle abierto. `veces_usada` se
+  // recalcula en el backend, por eso no se arma la fila a mano.
+  const recargarEnSilencio = useCallback(() => {
+    getTiendaGarantias()
+      .then((r) => setGarantias(r.garantias))
+      .catch((e: unknown) => {
+        if (e instanceof UnauthorizedError) handleUnauthorized();
+      });
+  }, [handleUnauthorized]);
+
   useEffect(() => {
     load();
   }, [load]);
@@ -93,8 +89,9 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     const g = garantias ?? [];
     // Personas distintas, no solicitudes: dos tramos pedidos por la misma
     // persona son un caso, no dos clientes.
-    const personas = new Set(g.map((x) => x.email)).size;
-    const reincidentes = new Set(g.filter((x) => x.veces_usada > 1).map((x) => x.email)).size;
+    // `persona` es el correo o, sin correo (las agregadas a mano), el teléfono.
+    const personas = new Set(g.map((x) => x.persona ?? x.email)).size;
+    const reincidentes = new Set(g.filter((x) => x.veces_usada > 1).map((x) => x.persona ?? x.email)).size;
     const total = g.reduce((s, x) => s + (x.costo_clp || 0), 0);
     const pendientes = g.filter((x) => x.estado === 'recibida' || x.estado === 'en_revision').length;
     return { solicitudes: g.length, personas, reincidentes, total, pendientes };
@@ -127,9 +124,12 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
               Garantías
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
-              Solicitudes de reposición de tramos, tal como llegan del formulario de la web.
+              Solicitudes de reposición de tramos: las del formulario de la web y las que agregas a mano.
             </div>
           </div>
+          <button className="crm-btn crm-btn-primary" onClick={() => setFormulario({})}>
+            + Agregar garantía
+          </button>
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>
@@ -150,7 +150,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
             <EmptyStateIllustrated
               icon={<span style={{ fontSize: 36 }}>🎣</span>}
               title="Aún no hay solicitudes de garantía"
-              description="Cuando alguien pida reponer un tramo desde tienda.chileflyfishing.cl/garantia, va a aparecer acá con sus datos de despacho."
+              description="Cuando alguien pida reponer un tramo desde tienda.chileflyfishing.cl/garantia, o cuando agregues una a mano, va a aparecer acá con sus datos de despacho."
             />
           )}
 
@@ -228,7 +228,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                           <span style={{ display: 'block', fontWeight: 600, color: 'var(--text)', fontSize: isDesktop ? 13 : 14 }}>
                             {g.nombre || '—'}
                           </span>
-                          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)' }}>{g.email}</span>
+                          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)' }}>{g.email || g.telefono || 'Sin correo'}</span>
                         </span>
                         <span style={isDesktop ? col(190, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 13, color: 'var(--text-sub)' }}>
                           {g.cana}
@@ -275,17 +275,41 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                           style={{
                             padding: isDesktop ? '0 24px 18px' : '0 16px 18px',
                             display: 'grid',
-                            gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr',
+                            gridTemplateColumns: isDesktop ? '1fr 1fr 1fr' : '1fr',
                             gap: 'var(--space-6)',
                           }}
                         >
+                          <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                              N° {g.solicitud_id} · {g.origen === 'manual' ? 'Agregada a mano' : 'Formulario web'}
+                            </span>
+                            <button className="crm-btn crm-btn-tonal crm-btn-sm" onClick={() => setFormulario({ garantia: g })}>
+                              Editar garantía
+                            </button>
+                          </div>
                           <Dato label="Teléfono" valor={g.telefono} />
+                          <Dato label="Correo" valor={g.email} />
                           <Dato label="Dirección de despacho" valor={g.direccion} />
-                          <Dato label="Costo de reposición" valor={money(g.costo_clp)} />
-                          <Dato label="N° de solicitud" valor={g.solicitud_id} />
+                          <Dato label="Empresa de transporte" valor={g.courier} />
+                          <Dato label="N° de seguimiento" valor={g.numero_seguimiento} />
+                          <Dato label="Despachada el" valor={g.fecha_despacho ? fmtFecha(g.fecha_despacho) : ''} />
+                          <Dato label="Recibida por el cliente el" valor={g.fecha_entrega ? fmtFecha(g.fecha_entrega) : ''} />
+                          <Dato
+                            label="Pago"
+                            valor={g.pagado ? `Pagado${g.fecha_pago ? ` el ${fmtFecha(g.fecha_pago)}` : ''}` : 'Pendiente'}
+                          />
+                          <Dato label="Precio al cliente" valor={money(g.costo_clp)} />
+                          <Dato label="Costo de despacho" valor={g.costo_despacho_clp === null || g.costo_despacho_clp === undefined ? '' : money(g.costo_despacho_clp)} />
+                          <Dato label="Costo pagado a Douglas" valor={g.costo_douglas_clp === null || g.costo_douglas_clp === undefined ? '' : money(g.costo_douglas_clp)} />
+                          <Dato label="Margen" valor={margenDe(g)} />
                           {g.descripcion && (
                             <div style={{ gridColumn: '1 / -1' }}>
                               <Dato label="Qué pasó" valor={g.descripcion} />
+                            </div>
+                          )}
+                          {g.nota_interna && (
+                            <div style={{ gridColumn: '1 / -1' }}>
+                              <Dato label="Nota interna" valor={g.nota_interna} />
                             </div>
                           )}
                           <div style={{ gridColumn: '1 / -1' }}>
@@ -342,8 +366,27 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
           )}
         </AsyncState>
       </div>
+
+      {formulario && (
+        <GarantiaFormModal
+          garantia={formulario.garantia}
+          onClose={() => setFormulario(null)}
+          onGuardado={(id) => {
+            setFormulario(null);
+            setAbierta(id);
+            recargarEnSilencio();
+          }}
+        />
+      )}
     </div>
   );
+}
+
+// Las garantías anteriores al 2026-10-07 no tienen costos cargados: sin
+// costos no hay margen que mostrar.
+function margenDe(g: StoreGarantia): string {
+  const m = margen({ costo_clp: g.costo_clp, costo_despacho_clp: g.costo_despacho_clp ?? null, costo_douglas_clp: g.costo_douglas_clp ?? null });
+  return m === null ? '' : money(m);
 }
 
 function Dato({ label, valor }: { label: string; valor: string }) {

@@ -1431,33 +1431,85 @@ export interface StoreOrder {
   despachado_en?: string | null;
 }
 
+/** Los estados por los que pasa una garantía. Cada uno corresponde a algo
+ *  que la tienda de verdad hace distinto. Espejo exacto de ESTADOS_GARANTIA en
+ *  store_admin_lambda.py. `entregada` (2026-10-07): el cliente recibió el
+ *  tramo; no confundir con `recibida`, que es la tienda recibiendo la
+ *  solicitud. */
+export type StoreGarantiaEstado = 'recibida' | 'en_revision' | 'despachada' | 'entregada' | 'rechazada';
+
 /** Solicitud de garantia (reposicion de un tramo de cana Douglas).
  *
- *  Viene YA aplanada del backend: la direccion llega armada en un solo campo
- *  y `veces_usada` calculado. Esta pantalla no rearma nada, solo muestra.
+ *  Viene YA aplanada del backend: la direccion llega armada en `direccion` y
+ *  por partes para el formulario, y `veces_usada` calculado. Las fechas de
+ *  pago, despacho y entrega son "AAAA-MM-DD" ("" = sin cargar).
  */
-/** Los cuatro estados por los que pasa una garantía. Son cuatro y no más:
- *  cada uno corresponde a algo que la tienda de verdad hace distinto. Espejo
- *  exacto de ESTADOS_GARANTIA en store_admin_lambda.py. */
-export type StoreGarantiaEstado = 'recibida' | 'en_revision' | 'despachada' | 'rechazada';
-
 export interface StoreGarantia {
   solicitud_id: string;
   estado: StoreGarantiaEstado;
+  /** `web` = formulario de la tienda; `manual` = agregada desde el panel. */
+  origen: 'web' | 'manual';
   created_at: string;
+  /** Para el bloqueo optimista al editar. "" = nunca se editó. */
+  actualizada_en: string;
   nombre: string;
+  /** Puede venir vacío en una garantía agregada a mano. */
   email: string;
   telefono: string;
+  /** Dirección armada para mostrar: calle, comuna, región. */
   direccion: string;
+  direccion_calle: string;
+  comuna: string;
+  region: string;
   cana: string;
   modelo: string;
   /** "1" a "4". El 1 es la punta. */
   tramo: string;
   descripcion: string;
+  /** Precio de la reposición al cliente. */
   costo_clp: number;
-  /** Cuantas solicitudes lleva ESE correo en total, contando esta. */
+  /** null = no se ha cargado, que no es lo mismo que $0. */
+  costo_despacho_clp: number | null;
+  costo_douglas_clp: number | null;
+  pagado: boolean;
+  fecha_pago: string;
+  courier: string;
+  numero_seguimiento: string;
+  fecha_despacho: string;
+  /** Día en que el cliente recibió el tramo. */
+  fecha_entrega: string;
+  /** Con qué se reconoce a la misma persona: el correo o, sin correo, su
+   *  teléfono. Es la clave de `veces_usada`. */
+  persona: string;
+  /** Cuantas solicitudes lleva ESA persona en total, contando esta. */
   veces_usada: number;
   /** Nota de la tienda. No la ve el cliente. */
+  nota_interna: string;
+}
+
+/** El formulario completo de una garantía, igual al crear que al editar. El
+ *  backend exige todas las claves: una ausente no se lee como vacía. */
+export interface StoreGarantiaDatos {
+  nombre: string;
+  email: string;
+  telefono: string;
+  direccion: string;
+  comuna: string;
+  region: string;
+  cana: string;
+  modelo: string;
+  tramo: string;
+  descripcion: string;
+  estado: StoreGarantiaEstado;
+  costo_clp: number;
+  costo_despacho_clp: number | null;
+  costo_douglas_clp: number | null;
+  pagado: boolean;
+  fecha_pago: string;
+  courier: string;
+  numero_seguimiento: string;
+  fecha_despacho: string;
+  fecha_entrega: string;
   nota_interna: string;
 }
 

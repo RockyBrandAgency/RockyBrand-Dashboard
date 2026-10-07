@@ -15,6 +15,25 @@ muestra botones que no guardan.
 
 ---
 
+## 1.2.0
+
+**2026-10-07** · menor · requiere backend: arquitectura 1.8.0 de AI_Agency con
+`chile-fly-fishing-store-stack` y `rockybrand-dashboard-stack` desplegados.
+
+Tienda → Garantías (pedido de Mato):
+
+- **Agregar garantía** a mano, para un caso que no llegó por el formulario de la
+  web. El correo es opcional y no se le envía nada al cliente.
+- **Editar garantía**: cliente, caña y tramo, dirección de despacho, empresa de
+  transporte, N° de seguimiento, fechas de despacho y de entrega, precio al
+  cliente, costo de despacho, costo pagado a Douglas, pago y nota interna.
+- Estado nuevo **Entregada** (el cliente recibió el tramo). Al marcar
+  Despachada o Entregada sin fecha, se guarda la de hoy.
+- El detalle muestra el margen (precio menos costos cargados) y el pago.
+- Si otra persona cambió la garantía mientras la editabas, el guardado se
+  rechaza y pide recargar, en vez de pisar ese cambio.
+- Cambiar el estado ya no borra la nota interna.
+
 ## 1.1.0
 
 **2026-10-05** · menor · requiere backend: arquitectura 1.7.0 de AI_Agency con
