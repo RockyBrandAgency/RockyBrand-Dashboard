@@ -1,65 +1,53 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AsyncState } from '../../components/AsyncState';
+import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { KpiRow } from '../../components/KpiRow';
-import { getTiendaGarantias, actualizarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
+import { eliminarTiendaGarantia, getTiendaGarantias, restaurarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
-import type { StoreGarantia, StoreGarantiaEstado } from '../../types';
-import { GarantiaFormModal } from './GarantiaFormModal';
-import { ESTADOS_GARANTIA as ESTADOS, TRAMO_NOMBRE, fmtFecha, margen, money } from './garantias';
+import type { StoreGarantia } from '../../types';
+import { GarantiaFicha } from './GarantiaFicha';
+import { ESTADOS_GARANTIA as ESTADOS, TRAMO_NOMBRE, fmtMomento, money } from './garantias';
 
-function fmtWhen(iso?: string): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-}
+type Vista = 'activas' | 'eliminadas';
+
+// Ancho fijo para que «Restaurando…» no mueva la fila y el encabezado
+// reserve el mismo espacio.
+const ANCHO_RESTAURAR = 120;
+
+const porFecha = (a: StoreGarantia, b: StoreGarantia) => b.created_at.localeCompare(a.created_at);
 
 export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
   const [garantias, setGarantias] = useState<StoreGarantia[] | null>(null);
+  // La papelera (2026-10-07, decisión de Mato): no cuenta en la lista ni en
+  // los indicadores, y desde acá se restaura.
+  const [eliminadas, setEliminadas] = useState<StoreGarantia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [vista, setVista] = useState<Vista>('activas');
   const [soloReincidentes, setSoloReincidentes] = useState(false);
-  const [abierta, setAbierta] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState<string | null>(null);
-  const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
-  // null = cerrado; {} = agregar una nueva; { garantia } = editar esa.
-  const [formulario, setFormulario] = useState<{ garantia?: StoreGarantia } | null>(null);
+  // null = cerrada; sin garantía = agregar una. La garantía es la copia que
+  // había al abrir: recargar la lista no le cambia los datos a una ficha que
+  // alguien está editando. `n` la vuelve a montar cuando se reemplaza a
+  // propósito (al restaurarla, o al traer la versión actual tras un 409).
+  const [ficha, setFicha] = useState<{ garantia?: StoreGarantia; n: number } | null>(null);
+  const [aviso, setAviso] = useState<Aviso | null>(null);
+  const [restaurando, setRestaurando] = useState<string | null>(null);
+  const contador = useRef(0);
 
-  // Se actualiza la fila en memoria en vez de recargar la lista entera: el
-  // backend ya confirmó el cambio, y recargar haría parpadear la pantalla y
-  // cerraría el detalle que la persona tiene abierto.
-  async function cambiarEstado(g: StoreGarantia, estado: StoreGarantiaEstado) {
-    if (g.estado === estado) return;
-    setGuardando(g.solicitud_id);
-    setErrorGuardar(null);
-    try {
-      const r = await actualizarTiendaGarantia(g.solicitud_id, estado);
-      setGarantias((prev) =>
-        (prev ?? []).map((x) =>
-          x.solicitud_id === g.solicitud_id ? { ...x, estado, actualizada_en: r.actualizada_en ?? x.actualizada_en } : x,
-        ),
-      );
-      // Al pasar a Despachada o Entregada el backend completa la fecha si
-      // faltaba: se trae sin parpadeo para que el detalle la muestre.
-      recargarEnSilencio();
-    } catch (e: unknown) {
-      if (e instanceof UnauthorizedError) {
-        handleUnauthorized();
-        return;
-      }
-      setErrorGuardar(e instanceof Error ? e.message : 'No se pudo guardar el cambio.');
-    } finally {
-      setGuardando(null);
-    }
-  }
+  const avisar = (texto: string, extra?: Omit<Aviso, 'id' | 'texto'>) => setAviso({ id: ++contador.current, texto, ...extra });
+  const cerrarAviso = useCallback(() => setAviso(null), []);
+  const abrir = (g?: StoreGarantia) => setFicha({ garantia: g, n: ++contador.current });
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
     getTiendaGarantias()
-      .then((r) => setGarantias(r.garantias))
+      .then((r) => {
+        setGarantias(r.garantias);
+        setEliminadas(r.eliminadas ?? []);
+      })
       .catch((e: unknown) => {
         if (e instanceof UnauthorizedError) {
           handleUnauthorized();
@@ -70,20 +58,90 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
       .finally(() => setLoading(false));
   }, [handleUnauthorized]);
 
-  // Después de guardar: trae la lista sin el estado de carga, así la
-  // pantalla no parpadea ni se cierra el detalle abierto. `veces_usada` se
-  // recalcula en el backend, por eso no se arma la fila a mano.
-  const recargarEnSilencio = useCallback(() => {
-    getTiendaGarantias()
-      .then((r) => setGarantias(r.garantias))
-      .catch((e: unknown) => {
-        if (e instanceof UnauthorizedError) handleUnauthorized();
-      });
-  }, [handleUnauthorized]);
+  // Después de guardar, eliminar o restaurar: trae la lista sin el estado de
+  // carga, así la pantalla no parpadea. `veces_usada` se recalcula en el
+  // backend, por eso no se arma la fila a mano.
+  const recargarEnSilencio = useCallback(
+    () =>
+      getTiendaGarantias()
+        .then((r) => {
+          setGarantias(r.garantias);
+          setEliminadas(r.eliminadas ?? []);
+          return r;
+        })
+        .catch((e: unknown) => {
+          if (e instanceof UnauthorizedError) handleUnauthorized();
+          return null;
+        }),
+    [handleUnauthorized],
+  );
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // La ficha espera la respuesta antes de cerrarse: si falla, el error queda
+  // a la vista en la ficha y no hay una fila que desaparece y vuelve.
+  async function eliminar(g: StoreGarantia) {
+    const r = await eliminarTiendaGarantia(g.solicitud_id);
+    const marcada = { ...g, eliminada_en: r.eliminada_en, actualizada_en: r.actualizada_en };
+    setGarantias((prev) => (prev ?? []).filter((x) => x.solicitud_id !== g.solicitud_id));
+    setEliminadas((prev) => [marcada, ...prev.filter((x) => x.solicitud_id !== g.solicitud_id)]);
+    setFicha(null);
+    avisar(`Eliminaste la garantía de ${g.nombre || g.solicitud_id}.`, {
+      accion: { label: 'Deshacer', deshacer: true, onClick: () => void restaurar(marcada, 'deshacer') },
+    });
+    void recargarEnSilencio();
+  }
+
+  async function restaurar(g: StoreGarantia, desde: 'deshacer' | 'lista' | 'ficha') {
+    if (desde === 'deshacer') avisar('Restaurando…');
+    if (desde === 'lista') setRestaurando(g.solicitud_id);
+    try {
+      const r = await restaurarTiendaGarantia(g.solicitud_id);
+      const viva = { ...g, eliminada_en: '', actualizada_en: r.actualizada_en };
+      setEliminadas((prev) => prev.filter((x) => x.solicitud_id !== g.solicitud_id));
+      setGarantias((prev) => [viva, ...(prev ?? []).filter((x) => x.solicitud_id !== g.solicitud_id)].sort(porFecha));
+      if (desde === 'ficha') abrir(viva);
+      avisar(
+        desde === 'deshacer' ? 'Listo: la garantía volvió a la lista.' : `Restauraste la garantía de ${g.nombre || g.solicitud_id}.`,
+        desde === 'lista'
+          ? {
+              accion: {
+                label: 'Abrir',
+                onClick: () => {
+                  setVista('activas');
+                  abrir(viva);
+                  setAviso(null);
+                },
+              },
+            }
+          : undefined,
+      );
+      void recargarEnSilencio();
+    } catch (e) {
+      // Desde la ficha, el error lo muestra la ficha.
+      if (desde === 'ficha') throw e;
+      if (e instanceof UnauthorizedError) return handleUnauthorized();
+      avisar(`No se pudo restaurar: ${e instanceof Error ? e.message : 'error de red'}.`, { tono: 'error' });
+    } finally {
+      setRestaurando(null);
+    }
+  }
+
+  // Tras un 409: la versión guardada reemplaza lo que la ficha tenía.
+  async function verActual() {
+    const id = ficha?.garantia?.solicitud_id;
+    if (!id) return;
+    const r = await recargarEnSilencio();
+    const actual = r && [...r.garantias, ...(r.eliminadas ?? [])].find((x) => x.solicitud_id === id);
+    if (actual) {
+      abrir(actual);
+    } else {
+      setFicha(null);
+      avisar('No se pudo traer la versión actual. Recarga la página.', { tono: 'error' });
+    }
+  }
 
   const kpis = useMemo(() => {
     const g = garantias ?? [];
@@ -103,6 +161,193 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   );
 
   const col = (w: number, extra?: React.CSSProperties): React.CSSProperties => ({ flexShrink: 0, width: w, ...extra });
+  const encabezado: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    background: '#f9fafb',
+    borderBottom: '1px solid var(--border)',
+    padding: '12px 24px',
+    fontSize: 12,
+    fontWeight: 600,
+    color: 'var(--text-sub)',
+  };
+  const tabla: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' };
+  const conPapelera = eliminadas.length > 0 || vista === 'eliminadas';
+
+  function pastillaEstado(g: StoreGarantia) {
+    const meta = ESTADOS.find((e) => e.key === g.estado);
+    return (
+      <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: meta?.bg, color: meta?.fg }}>
+        {meta?.label ?? g.estado}
+      </span>
+    );
+  }
+
+  function vecesBadge(g: StoreGarantia) {
+    const repite = g.veces_usada > 1;
+    return (
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          padding: '4px 10px',
+          borderRadius: 'var(--radius-sm)',
+          background: repite ? 'var(--status-atencion-bg)' : 'var(--status-neutro-bg)',
+          color: repite ? 'var(--status-atencion-text)' : 'var(--text-sub)',
+        }}
+      >
+        {repite ? `${g.veces_usada}ª vez` : '1ª vez'}
+      </span>
+    );
+  }
+
+  const unaLinea: React.CSSProperties = { display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+
+  function celdasComunes(g: StoreGarantia) {
+    return (
+      <>
+        {/* El cliente se queda con el ancho que sobra: un nombre largo no se
+            corta mientras haya espacio en la fila. */}
+        <span style={{ flex: '1 1 210px', minWidth: 0, paddingRight: 12, boxSizing: 'border-box' }}>
+          <span style={{ ...unaLinea, fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{g.nombre || '—'}</span>
+          <span style={{ ...unaLinea, fontSize: 12, color: 'var(--text-muted)' }} title={g.email || undefined}>
+            {g.email || g.telefono || 'Sin correo'}
+          </span>
+        </span>
+        <span style={col(190, { ...unaLinea, paddingRight: 12, boxSizing: 'border-box', fontSize: 13, color: 'var(--text-sub)' })}>
+          {g.cana}
+          {g.modelo ? ` · ${g.modelo}` : ''}
+        </span>
+        <span style={col(120, { fontSize: 13, color: 'var(--text-sub)' })}>
+          {g.tramo} · {TRAMO_NOMBRE[g.tramo] ?? '—'}
+        </span>
+        <span style={col(130)}>{pastillaEstado(g)}</span>
+      </>
+    );
+  }
+
+  // En el celular, tres líneas en vez de siete: quién y cuándo, qué caña, y
+  // en qué va. El correo y el teléfono están en la ficha.
+  function filaMovil(g: StoreGarantia, cuando: string, extra?: React.ReactNode) {
+    return (
+      <>
+        <span style={{ display: 'flex', width: '100%', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ ...unaLinea, flex: 1, minWidth: 0, fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{g.nombre || '—'}</span>
+          <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--text-muted)' }}>{cuando}</span>
+        </span>
+        <span style={{ ...unaLinea, width: '100%', fontSize: 13, color: 'var(--text-sub)' }}>
+          {g.cana}
+          {g.modelo ? ` · ${g.modelo}` : ''} · Tramo {g.tramo} ({TRAMO_NOMBRE[g.tramo] ?? '—'})
+        </span>
+        <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+          {pastillaEstado(g)}
+          {extra}
+        </span>
+      </>
+    );
+  }
+
+  const fila: React.CSSProperties = {
+    all: 'unset',
+    boxSizing: 'border-box',
+    cursor: 'pointer',
+    width: '100%',
+    display: 'flex',
+    flexDirection: isDesktop ? 'row' : 'column',
+    alignItems: isDesktop ? 'center' : 'flex-start',
+    gap: isDesktop ? 0 : 4,
+    padding: isDesktop ? '14px 24px' : '14px 16px',
+  };
+
+  const listaActivas = (
+    <div style={tabla}>
+      {isDesktop && (
+        <div style={encabezado}>
+          <span style={{ flex: '1 1 210px', minWidth: 0 }}>Cliente</span>
+          <span style={col(190)}>Caña</span>
+          <span style={col(120)}>Tramo</span>
+          <span style={col(130)}>Estado</span>
+          <span style={col(95, { textAlign: 'center' })}>Veces</span>
+          <span style={col(130, { textAlign: 'right' })}>Fecha</span>
+          <span style={col(24)} />
+        </div>
+      )}
+      {filtradas.map((g) => (
+        // La fila entera abre la ficha, editable ahí mismo.
+        <button key={g.solicitud_id} onClick={() => abrir(g)} aria-haspopup="dialog" style={{ ...fila, borderBottom: '1px solid var(--border-soft)' }}>
+          {isDesktop ? (
+            <>
+              {celdasComunes(g)}
+              <span style={col(95, { textAlign: 'center' })}>{vecesBadge(g)}</span>
+              <span style={col(130, { textAlign: 'right', fontSize: 13, color: 'var(--text-sub)' })}>{fmtMomento(g.created_at)}</span>
+              <span aria-hidden="true" style={col(24, { textAlign: 'right', fontSize: 18, color: 'var(--text-faint)' })}>
+                ›
+              </span>
+            </>
+          ) : (
+            filaMovil(g, fmtMomento(g.created_at), g.veces_usada > 1 ? vecesBadge(g) : null)
+          )}
+        </button>
+      ))}
+      {filtradas.length === 0 && (
+        <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>Nadie ha pedido garantía más de una vez.</div>
+      )}
+    </div>
+  );
+
+  const listaEliminadas =
+    eliminadas.length === 0 ? (
+      <div className="crm-empty" style={{ fontWeight: 500, color: 'var(--text-muted)' }}>
+        No hay garantías eliminadas.
+      </div>
+    ) : (
+      <>
+        <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 'var(--space-5)' }}>
+          No cuentan en los indicadores ni en las veces de cada persona. Restaura una y vuelve a la lista tal como estaba.
+        </div>
+        <div style={tabla}>
+          {isDesktop && (
+            <div style={encabezado}>
+              <span style={{ flex: '1 1 210px', minWidth: 0 }}>Cliente</span>
+              <span style={col(190)}>Caña</span>
+              <span style={col(120)}>Tramo</span>
+              <span style={col(130)}>Estado</span>
+              <span style={col(130)}>Eliminada</span>
+              {/* El hueco de Restaurar en cada fila: botón + separación + margen
+                  derecho. Sin él, el cliente flexible del encabezado se estira
+                  más que el de la fila y las columnas no calzan. */}
+              <span style={col(ANCHO_RESTAURAR + 8 + 16)} />
+            </div>
+          )}
+          {eliminadas.map((g) => (
+            <div
+              key={g.solicitud_id}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: isDesktop ? 16 : 12, borderBottom: '1px solid var(--border-soft)' }}
+            >
+              <button onClick={() => abrir(g)} aria-haspopup="dialog" style={{ ...fila, flex: 1, minWidth: 0 }}>
+                {isDesktop ? (
+                  <>
+                    {celdasComunes(g)}
+                    <span style={col(130, { fontSize: 13, color: 'var(--text-sub)' })}>{fmtMomento(g.eliminada_en)}</span>
+                  </>
+                ) : (
+                  filaMovil(g, '', <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>Eliminada {fmtMomento(g.eliminada_en)}</span>)
+                )}
+              </button>
+              <button
+                className="crm-btn crm-btn-ghost crm-btn-sm"
+                style={{ width: ANCHO_RESTAURAR, flexShrink: 0 }}
+                onClick={() => void restaurar(g, 'lista')}
+                disabled={restaurando === g.solicitud_id}
+                aria-label={`Restaurar la garantía de ${g.nombre || g.solicitud_id}`}
+              >
+                {restaurando === g.solicitud_id ? 'Restaurando…' : 'Restaurar'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </>
+    );
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
@@ -120,20 +365,37 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-              Garantías
-            </h1>
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>Garantías</h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
               Solicitudes de reposición de tramos: las del formulario de la web y las que agregas a mano.
             </div>
           </div>
-          <button className="crm-btn crm-btn-primary" onClick={() => setFormulario({})}>
+          <button className="crm-btn crm-btn-primary" onClick={() => abrir()}>
             + Agregar garantía
           </button>
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>
-          {garantias && garantias.length > 0 && (
+          {/* El selector de vista va primero: debajo de los indicadores
+              saltaba hacia arriba al ocultarlos, justo bajo el puntero. */}
+          {garantias && conPapelera && (
+            <div style={{ marginBottom: 'var(--space-7)' }}>
+              <div role="group" aria-label="Qué garantías ver" style={{ display: 'flex', gap: 4 }}>
+                {(
+                  [
+                    ['activas', 'Activas', garantias.length],
+                    ['eliminadas', 'Eliminadas', eliminadas.length],
+                  ] as const
+                ).map(([clave, nombre, cuantas]) => (
+                  <button key={clave} className="crm-btn crm-btn-sm crm-btn-text" aria-pressed={vista === clave} onClick={() => setVista(clave)}>
+                    {nombre} <span style={{ fontWeight: 400, opacity: 0.75 }}>{cuantas}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {garantias && garantias.length > 0 && vista === 'activas' && (
             <div style={{ marginBottom: 'var(--space-8)' }}>
               <KpiRow
                 items={[
@@ -146,256 +408,62 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
             </div>
           )}
 
-          {garantias && garantias.length === 0 && (
+          {garantias && vista === 'activas' && kpis.reincidentes > 0 && (
+            <div style={{ marginBottom: 'var(--space-7)' }}>
+              <button
+                onClick={() => setSoloReincidentes((v) => !v)}
+                aria-pressed={soloReincidentes}
+                style={{
+                  all: 'unset',
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: soloReincidentes ? 'var(--status-atencion-text)' : 'var(--text-sub)',
+                  background: soloReincidentes ? 'var(--status-atencion-bg)' : 'var(--border)',
+                }}
+              >
+                {soloReincidentes ? '✓ ' : ''}Solo quienes ya pidieron antes
+              </button>
+            </div>
+          )}
+
+          {garantias && vista === 'activas' && garantias.length === 0 && (
             <EmptyStateIllustrated
               icon={<span style={{ fontSize: 36 }}>🎣</span>}
-              title="Aún no hay solicitudes de garantía"
-              description="Cuando alguien pida reponer un tramo desde tienda.chileflyfishing.cl/garantia, o cuando agregues una a mano, va a aparecer acá con sus datos de despacho."
+              title={eliminadas.length > 0 ? 'No hay garantías activas' : 'Aún no hay solicitudes de garantía'}
+              description={
+                eliminadas.length > 0
+                  ? 'Las que eliminaste están en Eliminadas, de donde se restauran.'
+                  : 'Cuando alguien pida reponer un tramo desde tienda.chileflyfishing.cl/garantia, o cuando agregues una a mano, va a aparecer acá con sus datos de despacho.'
+              }
             />
           )}
-
-          {garantias && garantias.length > 0 && (
-            <>
-              {kpis.reincidentes > 0 && (
-                <button
-                  onClick={() => setSoloReincidentes((v) => !v)}
-                  aria-pressed={soloReincidentes}
-                  style={{
-                    all: 'unset',
-                    cursor: 'pointer',
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    marginBottom: 'var(--space-7)',
-                    color: soloReincidentes ? 'var(--status-atencion-dot)' : 'var(--text-sub)',
-                    background: soloReincidentes ? 'var(--status-atencion-bg)' : 'var(--border)',
-                  }}
-                >
-                  {soloReincidentes ? '✓ ' : ''}Solo quienes ya pidieron antes
-                </button>
-              )}
-
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                {isDesktop && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      background: '#f9fafb',
-                      borderBottom: '1px solid var(--border)',
-                      padding: '12px 24px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--text-sub)',
-                    }}
-                  >
-                    <span style={col(210)}>Cliente</span>
-                    <span style={col(190)}>Caña</span>
-                    <span style={col(120)}>Tramo</span>
-                    <span style={col(130)}>Estado</span>
-                    <span style={col(95, { textAlign: 'center' })}>Veces</span>
-                    <span style={{ flex: 1, textAlign: 'right' }}>Fecha</span>
-                  </div>
-                )}
-
-                {filtradas.map((g) => {
-                  const repite = g.veces_usada > 1;
-                  const abierto = abierta === g.solicitud_id;
-                  const estadoMeta = ESTADOS.find((e) => e.key === g.estado);
-                  return (
-                    <div key={g.solicitud_id} style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                      {/* La fila entera abre el detalle. Los datos de despacho
-                          no caben en una tabla, pero son justo lo que hay que
-                          copiar para mandar el tramo — así que están a un
-                          clic, no en otra pantalla. */}
-                      <button
-                        onClick={() => setAbierta(abierto ? null : g.solicitud_id)}
-                        aria-expanded={abierto}
-                        style={{
-                          all: 'unset',
-                          boxSizing: 'border-box',
-                          cursor: 'pointer',
-                          width: '100%',
-                          display: 'flex',
-                          flexDirection: isDesktop ? 'row' : 'column',
-                          alignItems: isDesktop ? 'center' : 'flex-start',
-                          gap: isDesktop ? 0 : 6,
-                          padding: isDesktop ? '14px 24px' : '14px 16px',
-                        }}
-                      >
-                        <span style={isDesktop ? col(210) : { display: 'block' }}>
-                          <span style={{ display: 'block', fontWeight: 600, color: 'var(--text)', fontSize: isDesktop ? 13 : 14 }}>
-                            {g.nombre || '—'}
-                          </span>
-                          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)' }}>{g.email || g.telefono || 'Sin correo'}</span>
-                        </span>
-                        <span style={isDesktop ? col(190, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 13, color: 'var(--text-sub)' }}>
-                          {g.cana}
-                          {g.modelo ? ` · ${g.modelo}` : ''}
-                        </span>
-                        <span style={isDesktop ? col(120, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 13, color: 'var(--text-sub)' }}>
-                          {g.tramo} · {TRAMO_NOMBRE[g.tramo] ?? '—'}
-                        </span>
-                        <span style={isDesktop ? col(130) : { marginTop: 2 }}>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 600,
-                              padding: '4px 10px',
-                              borderRadius: 'var(--radius-sm)',
-                              background: estadoMeta?.bg,
-                              color: estadoMeta?.fg,
-                            }}
-                          >
-                            {estadoMeta?.label ?? g.estado}
-                          </span>
-                        </span>
-                        <span style={isDesktop ? col(95, { textAlign: 'center' }) : { marginTop: 2 }}>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              padding: '4px 10px',
-                              borderRadius: 'var(--radius-sm)',
-                              background: repite ? 'var(--status-atencion-bg)' : 'var(--status-neutro-bg)',
-                              color: repite ? 'var(--status-atencion-dot)' : 'var(--text-sub)',
-                            }}
-                          >
-                            {repite ? `${g.veces_usada}ª vez` : '1ª vez'}
-                          </span>
-                        </span>
-                        <span style={isDesktop ? { flex: 1, textAlign: 'right', fontSize: 13, color: 'var(--text-sub)' } : { fontSize: 12, color: 'var(--text-muted)' }}>
-                          {fmtWhen(g.created_at)}
-                        </span>
-                      </button>
-
-                      {abierto && (
-                        <div
-                          style={{
-                            padding: isDesktop ? '0 24px 18px' : '0 16px 18px',
-                            display: 'grid',
-                            gridTemplateColumns: isDesktop ? '1fr 1fr 1fr' : '1fr',
-                            gap: 'var(--space-6)',
-                          }}
-                        >
-                          <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                              N° {g.solicitud_id} · {g.origen === 'manual' ? 'Agregada a mano' : 'Formulario web'}
-                            </span>
-                            <button className="crm-btn crm-btn-tonal crm-btn-sm" onClick={() => setFormulario({ garantia: g })}>
-                              Editar garantía
-                            </button>
-                          </div>
-                          <Dato label="Teléfono" valor={g.telefono} />
-                          <Dato label="Correo" valor={g.email} />
-                          <Dato label="Dirección de despacho" valor={g.direccion} />
-                          <Dato label="Empresa de transporte" valor={g.courier} />
-                          <Dato label="N° de seguimiento" valor={g.numero_seguimiento} />
-                          <Dato label="Despachada el" valor={g.fecha_despacho ? fmtFecha(g.fecha_despacho) : ''} />
-                          <Dato label="Recibida por el cliente el" valor={g.fecha_entrega ? fmtFecha(g.fecha_entrega) : ''} />
-                          <Dato
-                            label="Pago"
-                            valor={g.pagado ? `Pagado${g.fecha_pago ? ` el ${fmtFecha(g.fecha_pago)}` : ''}` : 'Pendiente'}
-                          />
-                          <Dato label="Precio al cliente" valor={money(g.costo_clp)} />
-                          <Dato label="Costo de despacho" valor={g.costo_despacho_clp === null || g.costo_despacho_clp === undefined ? '' : money(g.costo_despacho_clp)} />
-                          <Dato label="Costo pagado a Douglas" valor={g.costo_douglas_clp === null || g.costo_douglas_clp === undefined ? '' : money(g.costo_douglas_clp)} />
-                          <Dato label="Margen" valor={margenDe(g)} />
-                          {g.descripcion && (
-                            <div style={{ gridColumn: '1 / -1' }}>
-                              <Dato label="Qué pasó" valor={g.descripcion} />
-                            </div>
-                          )}
-                          {g.nota_interna && (
-                            <div style={{ gridColumn: '1 / -1' }}>
-                              <Dato label="Nota interna" valor={g.nota_interna} />
-                            </div>
-                          )}
-                          <div style={{ gridColumn: '1 / -1' }}>
-                            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 8 }}>
-                              Marcar como
-                            </div>
-                            <div role="radiogroup" aria-label="Estado de la solicitud" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                              {ESTADOS.map((e) => {
-                                const activo = g.estado === e.key;
-                                return (
-                                  <button
-                                    key={e.key}
-                                    role="radio"
-                                    aria-checked={activo}
-                                    disabled={guardando === g.solicitud_id}
-                                    onClick={() => cambiarEstado(g, e.key)}
-                                    style={{
-                                      all: 'unset',
-                                      cursor: guardando === g.solicitud_id ? 'wait' : 'pointer',
-                                      padding: '7px 14px',
-                                      borderRadius: 'var(--radius-sm)',
-                                      fontSize: 13,
-                                      fontWeight: activo ? 700 : 500,
-                                      background: activo ? e.bg : 'var(--border)',
-                                      color: activo ? e.fg : 'var(--text-sub)',
-                                      opacity: guardando === g.solicitud_id ? 0.6 : 1,
-                                    }}
-                                  >
-                                    {activo ? '✓ ' : ''}
-                                    {e.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            {errorGuardar && (
-                              <div role="alert" style={{ marginTop: 8, fontSize: 13, color: 'var(--status-critico-dot)' }}>
-                                {errorGuardar}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {filtradas.length === 0 && (
-                  <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    Nadie ha pedido garantía más de una vez.
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          {garantias && vista === 'activas' && garantias.length > 0 && listaActivas}
+          {garantias && vista === 'eliminadas' && listaEliminadas}
         </AsyncState>
       </div>
 
-      {formulario && (
-        <GarantiaFormModal
-          garantia={formulario.garantia}
-          onClose={() => setFormulario(null)}
-          onGuardado={(id) => {
-            setFormulario(null);
-            setAbierta(id);
-            recargarEnSilencio();
+      {ficha && (
+        <GarantiaFicha
+          key={ficha.n}
+          garantia={ficha.garantia}
+          isDesktop={isDesktop}
+          onClose={() => setFicha(null)}
+          onGuardado={() => {
+            const nueva = !ficha.garantia;
+            setFicha(null);
+            if (nueva) setVista('activas');
+            avisar(nueva ? 'Agregaste la garantía.' : 'Guardaste los cambios.');
+            void recargarEnSilencio();
           }}
+          onEliminar={eliminar}
+          onRestaurar={(g) => restaurar(g, 'ficha')}
+          onVerActual={() => void verActual()}
         />
       )}
-    </div>
-  );
-}
-
-// Las garantías anteriores al 2026-10-07 no tienen costos cargados: sin
-// costos no hay margen que mostrar.
-function margenDe(g: StoreGarantia): string {
-  const m = margen({ costo_clp: g.costo_clp, costo_despacho_clp: g.costo_despacho_clp ?? null, costo_douglas_clp: g.costo_douglas_clp ?? null });
-  return m === null ? '' : money(m);
-}
-
-function Dato({ label, valor }: { label: string; valor: string }) {
-  return (
-    <div>
-      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 3, wordBreak: 'break-word' }}>{valor || '—'}</div>
+      {aviso && <AvisoFlotante key={aviso.id} aviso={aviso} isDesktop={isDesktop} onCerrar={cerrarAviso} />}
     </div>
   );
 }

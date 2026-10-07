@@ -15,6 +15,31 @@ muestra botones que no guardan.
 
 ---
 
+## 2.0.0
+
+**2026-10-07** · mayor (cambia cómo se edita una garantía) · requiere backend:
+arquitectura 1.9.0 de AI_Agency con `chile-fly-fishing-store-stack` y
+`rockybrand-dashboard-stack` desplegados.
+
+Tienda → Garantías (decisión de Mato):
+
+- **Ficha lateral editable**: tocar una fila abre la garantía a la derecha (a
+  pantalla completa en el celular) y se edita ahí mismo. Guardar y Eliminar
+  quedan fijos al pie. Reemplaza al detalle que se desplegaba bajo la fila y
+  al formulario aparte; el estado se elige con chips y se guarda con Guardar
+  (antes, un clic en «Marcar como» guardaba solo).
+- **Eliminar = papelera**: la garantía sale de la lista y de los indicadores
+  y aparece un aviso con **Deshacer** (también ⌘Z / Ctrl+Z). La vista
+  **Eliminadas** muestra las eliminadas con **Restaurar**; una eliminada se
+  abre en solo lectura. Nada se borra de verdad.
+- Si otra persona cambió o eliminó la garantía mientras la editabas, la ficha
+  ofrece **descartar tus cambios y ver la versión actual**.
+- ⌘S / Ctrl+S guarda; Escape cierra y pregunta si hay cambios sin guardar.
+- «Copiar datos de envío»: nombre, teléfono y dirección listos para la
+  etiqueta.
+- Los indicadores (KpiRow, todas las pantallas) ya no se desbordan en el
+  celular: pasan a dos por fila.
+
 ## 1.2.0
 
 **2026-10-07** · menor · requiere backend: arquitectura 1.8.0 de AI_Agency con

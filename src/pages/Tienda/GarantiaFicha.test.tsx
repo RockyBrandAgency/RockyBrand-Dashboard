@@ -8,6 +8,8 @@ import type { StoreGarantia, StoreGarantiaDatos } from '../../types';
 // formulario COMPLETO y bien convertido (montos en pesos enteros, opcionales
 // vacíos como null o ""), que no deja guardar lo que el backend rechazaría, y
 // que al editar manda el valor del bloqueo optimista que tenía cargado.
+// Y que la ficha lateral elimina, restaura y ofrece traer lo actual tras un
+// 409 (2026-10-07).
 
 const { crear, editar, handleUnauthorized } = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -19,10 +21,12 @@ vi.mock('../../api/dashboardApi', () => ({
   crearTiendaGarantia: (...args: unknown[]) => crear(...args),
   editarTiendaGarantia: (...args: unknown[]) => editar(...args),
   UnauthorizedError: class UnauthorizedError extends Error {},
+  ConflictError: class ConflictError extends Error {},
 }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ handleUnauthorized }) }));
 
-import { GarantiaFormModal, leerMonto } from './GarantiaFormModal';
+import { ConflictError } from '../../api/dashboardApi';
+import { GarantiaFicha, leerMonto } from './GarantiaFicha';
 
 const WEB: StoreGarantia = {
   solicitud_id: 'GAR-ABC1234567',
@@ -60,14 +64,14 @@ let root: Root;
 let onClose: Mock<() => void>;
 let onGuardado: Mock<(id: string) => void>;
 
-function render(garantia?: StoreGarantia) {
+function render(garantia?: StoreGarantia, extra: Partial<React.ComponentProps<typeof GarantiaFicha>> = {}) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
     root.render(
       <StrictMode>
-        <GarantiaFormModal garantia={garantia} onClose={onClose} onGuardado={onGuardado} />
+        <GarantiaFicha garantia={garantia} isDesktop onClose={onClose} onGuardado={onGuardado} {...extra} />
       </StrictMode>,
     );
   });
@@ -105,6 +109,12 @@ async function click(b: HTMLElement) {
   });
 }
 
+function radio(texto: string): HTMLInputElement {
+  const label = Array.from(container.querySelectorAll('label.garantia-chip')).find((l) => l.textContent?.replace('✓', '').trim() === texto);
+  if (!label) throw new Error(`No hay estado «${texto}»`);
+  return label.querySelector('input') as HTMLInputElement;
+}
+
 function alerta(): string | null | undefined {
   return container.querySelector('[role="alert"]')?.textContent;
 }
@@ -133,7 +143,7 @@ function llenarMinimo() {
   escribir('Tramo', '2');
 }
 
-describe('GarantiaFormModal — agregar', () => {
+describe('GarantiaFicha — agregar', () => {
   it('manda el formulario completo, con el precio por defecto y sin correo', async () => {
     crear.mockResolvedValue({ ok: true, solicitud_id: 'GAR-NUEVA00001' });
     render();
@@ -185,7 +195,7 @@ describe('GarantiaFormModal — agregar', () => {
     expect(container.textContent).toContain('$18.500');
     await click(campo('Pagado') as HTMLInputElement);
     escribir('Fecha de pago', '2026-10-02');
-    escribir('Estado', 'entregada');
+    await click(radio('Entregada'));
     await click(boton('Agregar garantía'));
 
     expect(crear).toHaveBeenCalledTimes(1);
@@ -255,7 +265,7 @@ describe('GarantiaFormModal — agregar', () => {
   });
 });
 
-describe('GarantiaFormModal — editar', () => {
+describe('GarantiaFicha — editar', () => {
   it('parte con lo guardado y no deja guardar sin cambios', () => {
     render(WEB);
     expect((campo('Nombre') as HTMLInputElement).value).toBe('Pedro Web');
@@ -320,6 +330,92 @@ describe('GarantiaFormModal — editar', () => {
     expect(alerta()).toContain('Recarga la página');
     expect(onGuardado).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe('GarantiaFicha — eliminar, restaurar y conflicto', () => {
+  it('una nueva no tiene Eliminar', () => {
+    render(undefined, { onEliminar: vi.fn() });
+    expect(() => boton('Eliminar')).toThrow();
+  });
+
+  it('elimina sin preguntar si no hay cambios', async () => {
+    const onEliminar = vi.fn().mockResolvedValue(undefined);
+    render(WEB, { onEliminar });
+    await click(boton('Eliminar'));
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(onEliminar).toHaveBeenCalledWith(WEB);
+  });
+
+  it('con cambios sin guardar pregunta antes de eliminar', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const onEliminar = vi.fn().mockResolvedValue(undefined);
+    render(WEB, { onEliminar });
+    escribir('Nombre', 'Otro');
+    await click(boton('Eliminar'));
+    expect(window.confirm).toHaveBeenCalled();
+    expect(onEliminar).not.toHaveBeenCalled();
+  });
+
+  it('si eliminar falla, muestra el error y la ficha sigue abierta', async () => {
+    const onEliminar = vi.fn().mockRejectedValue(new Error('No se pudo conectar con el panel.'));
+    render(WEB, { onEliminar });
+    await click(boton('Eliminar'));
+    expect(alerta()).toContain('No se pudo conectar');
+    expect(boton('Eliminar').disabled).toBe(false);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('una eliminada se abre en solo lectura y se restaura', async () => {
+    const onRestaurar = vi.fn().mockResolvedValue(undefined);
+    render({ ...WEB, eliminada_en: '2026-10-07T20:00:00+00:00' }, { onEliminar: vi.fn(), onRestaurar });
+    expect(container.querySelector('fieldset')?.disabled).toBe(true);
+    expect(() => boton('Guardar cambios')).toThrow();
+    expect(() => boton('Eliminar')).toThrow();
+    expect(container.textContent).toContain('Restáurala para editarla');
+    await click(boton('Restaurar'));
+    expect(onRestaurar).toHaveBeenCalledWith(expect.objectContaining({ solicitud_id: 'GAR-ABC1234567' }));
+  });
+
+  it('tras un 409 ofrece descartar y ver la versión actual', async () => {
+    editar.mockRejectedValue(new ConflictError('Esta garantía cambió desde que abriste el formulario.'));
+    const onVerActual = vi.fn();
+    render(WEB, { onVerActual });
+    escribir('Nombre', 'Otro');
+    await click(boton('Guardar cambios'));
+    await click(boton('Descartar mis cambios y ver la versión actual'));
+    expect(onVerActual).toHaveBeenCalledTimes(1);
+  });
+
+  it('un error que no es 409 no ofrece ver la versión actual', async () => {
+    editar.mockRejectedValue(new Error('Falta el nombre.'));
+    render(WEB, { onVerActual: vi.fn() });
+    escribir('Nombre', 'Otro');
+    await click(boton('Guardar cambios'));
+    expect(() => boton('Descartar mis cambios y ver la versión actual')).toThrow();
+  });
+
+  it('⌘S guarda, y sin cambios no hace nada', async () => {
+    editar.mockResolvedValue({ ok: true, actualizada_en: 'x' });
+    render(WEB);
+    const teclear = () =>
+      act(async () => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true }));
+      });
+    await teclear();
+    expect(editar).not.toHaveBeenCalled();
+    escribir('Empresa de transporte', 'Starken');
+    await teclear();
+    expect(editar).toHaveBeenCalledTimes(1);
+  });
+
+  it('el estado se elige con los chips y se manda al guardar', async () => {
+    editar.mockResolvedValue({ ok: true, actualizada_en: 'x' });
+    render(WEB);
+    expect(radio('Despachada').checked).toBe(true);
+    await click(radio('Rechazada'));
+    await click(boton('Guardar cambios'));
+    expect(editar.mock.calls[0][1]).toMatchObject({ estado: 'rechazada' });
   });
 });
 

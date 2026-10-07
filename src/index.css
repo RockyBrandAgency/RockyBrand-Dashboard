@@ -445,3 +445,32 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
 @media (prefers-reduced-motion: reduce) {
   .cal-dia { transition: none; }
 }
+
+/* ==========================================================================
+   Garantías: ficha lateral y aviso con «Deshacer» (2026-10-07)
+   ========================================================================== */
+.garantia-ficha-fondo{ animation:ficha-fondo-entra 0.18s ease-out; }
+.garantia-ficha{ animation:ficha-entra 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.garantia-ficha.movil{ animation-name:ficha-entra-movil; }
+@keyframes ficha-fondo-entra{ from{ opacity:0; } }
+@keyframes ficha-entra{ from{ transform:translateX(32px); opacity:0; } }
+@keyframes ficha-entra-movil{ from{ transform:translateY(24px); opacity:0; } }
+
+/* Chip de estado: un radio de verdad (flechas, Tab y lector de pantalla sin
+   código propio) con aspecto de botón. */
+.garantia-chip{ position:relative; display:inline-flex; align-items:center; min-height:36px; padding:0 14px; border:1px solid; border-radius:var(--radius-pill); font-size:13px; cursor:pointer; transition:background-color 0.15s ease, color 0.15s ease; }
+.garantia-chip input{ position:absolute; opacity:0; width:1px; height:1px; margin:0; pointer-events:none; }
+.garantia-chip:has(input:focus-visible){ outline:2px solid var(--primary); outline-offset:2px; }
+fieldset:disabled .garantia-chip{ cursor:default; }
+/* Una eliminada se abre en solo lectura: se tiene que leer (el gris que el
+   navegador le pone a un campo deshabilitado apenas se ve) y no parecer
+   editable. El !important le gana al fondo blanco del estilo en línea. */
+.garantia-ficha fieldset.solo-lectura :is(input, select, textarea){ color:var(--text); -webkit-text-fill-color:var(--text); background:var(--bg) !important; opacity:1; }
+
+.aviso-flotante{ position:fixed; left:50%; transform:translateX(-50%); z-index:120; animation:aviso-entra 0.2s ease-out; }
+@keyframes aviso-entra{ from{ transform:translate(-50%, 12px); opacity:0; } }
+
+@media (prefers-reduced-motion: reduce){
+  .garantia-ficha-fondo, .garantia-ficha, .aviso-flotante{ animation:none; }
+  .garantia-chip{ transition:none; }
+}
