@@ -1485,6 +1485,9 @@ export interface StoreGarantia {
   veces_usada: number;
   /** Nota de la tienda. No la ve el cliente. */
   nota_interna: string;
+  /** Cuándo se mandó a la papelera. "" (o ausente, con un backend anterior a
+   *  la arquitectura 1.9.0) = no está eliminada. */
+  eliminada_en?: string;
 }
 
 /** El formulario completo de una garantía, igual al crear que al editar. El

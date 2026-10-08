@@ -78,6 +78,11 @@ export class TimeoutError extends Error {
 // Falla que puede no repetirse: red caída, throttling o un 5xx de pasada.
 class ErrorTransitorio extends Error {}
 
+// 409: lo que se quería guardar se armó sobre datos que otra persona ya
+// cambió. Es un Error común con su mensaje, para que las pantallas que no lo
+// distinguen sigan mostrándolo igual; las que sí, ofrecen traer lo actual.
+export class ConflictError extends Error {}
+
 interface Respuesta {
   status: number;
   ok: boolean;
@@ -137,6 +142,7 @@ async function requestUnaVez<T>(path: string, method: string, body: unknown): Pr
   if (!res.ok) {
     const mensaje = (res.data as { error?: string }).error || 'Error de conexión con el dashboard.';
     if (ESTADOS_TRANSITORIOS.has(res.status)) throw new ErrorTransitorio(mensaje);
+    if (res.status === 409) throw new ConflictError(mensaje);
     throw new Error(mensaje);
   }
   return res.data as T;
@@ -491,7 +497,9 @@ export function getTiendaPedidoDetalle(orderId: string): Promise<{ orden: StoreO
 // Garantias. `veces_usada` NO viene guardado en cada solicitud: lo calcula el
 // backend sobre todas las del mismo correo, para que el numero siga siendo
 // correcto aunque se borre una. Ver store_admin_lambda._listar_garantias.
-export function getTiendaGarantias(): Promise<{ garantias: StoreGarantia[] }> {
+// `eliminadas` (la papelera) llega aparte y no cuenta en `veces_usada`; un
+// backend anterior a la arquitectura 1.9.0 no la manda.
+export function getTiendaGarantias(): Promise<{ garantias: StoreGarantia[]; eliminadas?: StoreGarantia[] }> {
   return request('/dashboard/tienda/garantias');
 }
 
@@ -528,6 +536,25 @@ export function editarTiendaGarantia(
     datos,
     actualizada_en_esperada,
   });
+}
+
+// Papelera (2026-10-07, decisión de Mato). Eliminar la saca de la lista y de
+// los indicadores, pero queda guardada: restaurar la devuelve tal cual. Nada
+// se borra de verdad. Repetir cualquiera de las dos no es un error.
+export interface RespuestaPapelera {
+  ok: boolean;
+  solicitud_id: string;
+  /** "" = no está en la papelera. */
+  eliminada_en: string;
+  actualizada_en: string;
+}
+
+export function eliminarTiendaGarantia(solicitud_id: string): Promise<RespuestaPapelera> {
+  return request(`/dashboard/tienda/garantias/${encodeURIComponent(solicitud_id)}/eliminar`, 'POST', {});
+}
+
+export function restaurarTiendaGarantia(solicitud_id: string): Promise<RespuestaPapelera> {
+  return request(`/dashboard/tienda/garantias/${encodeURIComponent(solicitud_id)}/restaurar`, 'POST', {});
 }
 
 // ------------------------------------------------------------- agencias --
