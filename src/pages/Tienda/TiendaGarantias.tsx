@@ -7,7 +7,7 @@ import { eliminarTiendaGarantia, getTiendaGarantias, restaurarTiendaGarantia, Un
 import { useAuth } from '../../context/AuthContext';
 import type { StoreGarantia } from '../../types';
 import { GarantiaFicha } from './GarantiaFicha';
-import { ESTADOS_GARANTIA as ESTADOS, TRAMO_NOMBRE, fmtMomento, money } from './garantias';
+import { ESTADOS_GARANTIA as ESTADOS, SIN_FILTROS, TRAMO_NOMBRE, anioDe, filtrarGarantias, fmtMomento, hayFiltros, money, opcionesDe, type FiltrosGarantias, type OpcionFiltro } from './garantias';
 
 type Vista = 'activas' | 'eliminadas';
 
@@ -26,11 +26,15 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [vista, setVista] = useState<Vista>('activas');
-  const [soloReincidentes, setSoloReincidentes] = useState(false);
-  // null = cerrada; sin garantía = agregar una. La garantía es la copia que
-  // había al abrir: recargar la lista no le cambia los datos a una ficha que
-  // alguien está editando. `n` la vuelve a montar cuando se reemplaza a
-  // propósito (al restaurarla, o al traer la versión actual tras un 409).
+  // Filtros del listado (2026-10-08, pedido de Mato): año, región, caña y
+  // reincidentes. Se conservan al abrir y cerrar una garantía, porque este
+  // componente no se desmonta.
+  const [filtros, setFiltros] = useState<FiltrosGarantias>(SIN_FILTROS);
+  // null = se ve el listado; sin garantía = agregar una. La garantía es la
+  // copia que había al abrir: recargar la lista no le cambia los datos a una
+  // página que alguien está editando. `n` la vuelve a montar cuando se
+  // reemplaza a propósito (al restaurarla, o al traer la versión actual tras
+  // un 409).
   const [ficha, setFicha] = useState<{ garantia?: StoreGarantia; n: number } | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [restaurando, setRestaurando] = useState<string | null>(null);
@@ -143,8 +147,24 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     }
   }
 
-  const kpis = useMemo(() => {
+  const filtradas = useMemo(() => filtrarGarantias(garantias ?? [], filtros), [garantias, filtros]);
+  const hayReincidentes = useMemo(() => (garantias ?? []).some((g) => g.veces_usada > 1), [garantias]);
+  // Las opciones salen de todas las activas, no de las filtradas: así se
+  // cambia de región sin tener que limpiar antes. Años de más nuevo a más
+  // viejo; regiones y cañas de más a menos casos.
+  const opciones = useMemo(() => {
     const g = garantias ?? [];
+    return {
+      anios: opcionesDe(g, anioDe).sort((a, b) => b.valor.localeCompare(a.valor)),
+      regiones: opcionesDe(g, (x) => x.region),
+      canas: opcionesDe(g, (x) => x.cana),
+    };
+  }, [garantias]);
+
+  // Los indicadores siguen a los filtros: con «Aysén» elegido dicen cuántas
+  // reposiciones y personas hay en Aysén. Esa es la métrica que pidió Mato.
+  const kpis = useMemo(() => {
+    const g = filtradas;
     // Personas distintas, no solicitudes: dos tramos pedidos por la misma
     // persona son un caso, no dos clientes.
     // `persona` es el correo o, sin correo (las agregadas a mano), el teléfono.
@@ -153,12 +173,8 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     const total = g.reduce((s, x) => s + (x.costo_clp || 0), 0);
     const pendientes = g.filter((x) => x.estado === 'recibida' || x.estado === 'en_revision').length;
     return { solicitudes: g.length, personas, reincidentes, total, pendientes };
-  }, [garantias]);
-
-  const filtradas = useMemo(
-    () => (garantias ?? []).filter((g) => !soloReincidentes || g.veces_usada > 1),
-    [garantias, soloReincidentes],
-  );
+  }, [filtradas]);
+  const filtrando = hayFiltros(filtros);
 
   const col = (w: number, extra?: React.CSSProperties): React.CSSProperties => ({ flexShrink: 0, width: w, ...extra });
   const encabezado: React.CSSProperties = {
@@ -173,6 +189,35 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   };
   const tabla: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' };
   const conPapelera = eliminadas.length > 0 || vista === 'eliminadas';
+
+  function filtroSelect(clave: 'anio' | 'region' | 'cana', label: string, lista: OpcionFiltro[], todos: string) {
+    const activo = Boolean(filtros[clave]);
+    return (
+      <select
+        aria-label={label}
+        value={filtros[clave]}
+        onChange={(e) => setFiltros((f) => ({ ...f, [clave]: e.target.value }))}
+        style={{
+          fontSize: 13,
+          fontWeight: activo ? 600 : 500,
+          padding: '6px 10px',
+          maxWidth: '100%',
+          border: `1px solid ${activo ? 'var(--text-sub)' : 'var(--border)'}`,
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--white)',
+          color: activo ? 'var(--text)' : 'var(--text-sub)',
+          fontFamily: 'inherit',
+        }}
+      >
+        <option value="">{todos}</option>
+        {lista.map((o) => (
+          <option key={o.valor} value={o.valor}>
+            {o.label} ({o.cuantas})
+          </option>
+        ))}
+      </select>
+    );
+  }
 
   function pastillaEstado(g: StoreGarantia) {
     const meta = ESTADOS.find((e) => e.key === g.estado);
@@ -273,8 +318,8 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
         </div>
       )}
       {filtradas.map((g) => (
-        // La fila entera abre la ficha, editable ahí mismo.
-        <button key={g.solicitud_id} onClick={() => abrir(g)} aria-haspopup="dialog" style={{ ...fila, borderBottom: '1px solid var(--border-soft)' }}>
+        // La fila entera abre la página de la garantía.
+        <button key={g.solicitud_id} onClick={() => abrir(g)} style={{ ...fila, borderBottom: '1px solid var(--border-soft)' }}>
           {isDesktop ? (
             <>
               {celdasComunes(g)}
@@ -290,7 +335,9 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
         </button>
       ))}
       {filtradas.length === 0 && (
-        <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>Nadie ha pedido garantía más de una vez.</div>
+        <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          {filtros.soloReincidentes && !filtros.anio && !filtros.region && !filtros.cana ? 'Nadie ha pedido garantía más de una vez.' : 'Ninguna garantía coincide con estos filtros.'}
+        </div>
       )}
     </div>
   );
@@ -324,7 +371,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
               key={g.solicitud_id}
               style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: isDesktop ? 16 : 12, borderBottom: '1px solid var(--border-soft)' }}
             >
-              <button onClick={() => abrir(g)} aria-haspopup="dialog" style={{ ...fila, flex: 1, minWidth: 0 }}>
+              <button onClick={() => abrir(g)} style={{ ...fila, flex: 1, minWidth: 0 }}>
                 {isDesktop ? (
                   <>
                     {celdasComunes(g)}
@@ -348,6 +395,33 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
         </div>
       </>
     );
+
+  // Agregar o editar es una página (2026-10-08, decisión de Mato): ocupa el
+  // área de contenido en lugar del listado, y al guardar el listado vuelve
+  // con el aviso de éxito.
+  if (ficha) {
+    return (
+      <>
+        <GarantiaFicha
+          key={ficha.n}
+          garantia={ficha.garantia}
+          isDesktop={isDesktop}
+          onClose={() => setFicha(null)}
+          onGuardado={() => {
+            const nueva = !ficha.garantia;
+            setFicha(null);
+            if (nueva) setVista('activas');
+            avisar(nueva ? 'Agregaste la garantía.' : 'Guardaste los cambios.');
+            void recargarEnSilencio();
+          }}
+          onEliminar={eliminar}
+          onRestaurar={(g) => restaurar(g, 'ficha')}
+          onVerActual={() => void verActual()}
+        />
+        {aviso && <AvisoFlotante key={aviso.id} aviso={aviso} isDesktop={isDesktop} onCerrar={cerrarAviso} />}
+      </>
+    );
+  }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
@@ -399,33 +473,51 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
             <div style={{ marginBottom: 'var(--space-8)' }}>
               <KpiRow
                 items={[
-                  { label: 'Por atender', value: kpis.pendientes, sub: `de ${kpis.solicitudes} en total` },
+                  { label: 'Por atender', value: kpis.pendientes, sub: `de ${kpis.solicitudes} ${filtrando ? 'filtradas' : 'en total'}` },
                   { label: 'Personas', value: kpis.personas, sub: 'distintas' },
                   { label: 'Repiten garantía', value: kpis.reincidentes, sub: 'con más de una solicitud' },
-                  { label: 'Reposiciones', value: money(kpis.total), sub: 'sumando todas las solicitudes' },
+                  { label: 'Reposiciones', value: money(kpis.total), sub: filtrando ? 'sumando lo filtrado' : 'sumando todas las solicitudes' },
                 ]}
               />
             </div>
           )}
 
-          {garantias && vista === 'activas' && kpis.reincidentes > 0 && (
-            <div style={{ marginBottom: 'var(--space-7)' }}>
-              <button
-                onClick={() => setSoloReincidentes((v) => !v)}
-                aria-pressed={soloReincidentes}
-                style={{
-                  all: 'unset',
-                  cursor: 'pointer',
-                  padding: '6px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: soloReincidentes ? 'var(--status-atencion-text)' : 'var(--text-sub)',
-                  background: soloReincidentes ? 'var(--status-atencion-bg)' : 'var(--border)',
-                }}
-              >
-                {soloReincidentes ? '✓ ' : ''}Solo quienes ya pidieron antes
-              </button>
+          {/* Filtros (2026-10-08): año, región y caña, con cuántas garantías
+              tiene cada opción. Para ver a qué región se despacha más, en qué
+              año hubo más casos y qué caña pide más garantías. */}
+          {garantias && vista === 'activas' && garantias.length > 0 && (
+            <div role="group" aria-label="Filtrar garantías" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 'var(--space-7)' }}>
+              {filtroSelect('anio', 'Año', opciones.anios, 'Todos los años')}
+              {filtroSelect('region', 'Región', opciones.regiones, 'Todas las regiones')}
+              {filtroSelect('cana', 'Caña', opciones.canas, 'Todas las cañas')}
+              {(hayReincidentes || filtros.soloReincidentes) && (
+                <button
+                  onClick={() => setFiltros((f) => ({ ...f, soloReincidentes: !f.soloReincidentes }))}
+                  aria-pressed={filtros.soloReincidentes}
+                  style={{
+                    all: 'unset',
+                    cursor: 'pointer',
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: filtros.soloReincidentes ? 'var(--status-atencion-text)' : 'var(--text-sub)',
+                    background: filtros.soloReincidentes ? 'var(--status-atencion-bg)' : 'var(--border)',
+                  }}
+                >
+                  {filtros.soloReincidentes ? '✓ ' : ''}Solo quienes ya pidieron antes
+                </button>
+              )}
+              {filtrando && (
+                <>
+                  <span style={{ fontSize: 13, color: 'var(--text-sub)', marginLeft: 4 }}>
+                    {filtradas.length} de {garantias.length}
+                  </span>
+                  <button className="crm-btn crm-btn-text crm-btn-sm" onClick={() => setFiltros(SIN_FILTROS)}>
+                    Limpiar filtros
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -445,24 +537,6 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
         </AsyncState>
       </div>
 
-      {ficha && (
-        <GarantiaFicha
-          key={ficha.n}
-          garantia={ficha.garantia}
-          isDesktop={isDesktop}
-          onClose={() => setFicha(null)}
-          onGuardado={() => {
-            const nueva = !ficha.garantia;
-            setFicha(null);
-            if (nueva) setVista('activas');
-            avisar(nueva ? 'Agregaste la garantía.' : 'Guardaste los cambios.');
-            void recargarEnSilencio();
-          }}
-          onEliminar={eliminar}
-          onRestaurar={(g) => restaurar(g, 'ficha')}
-          onVerActual={() => void verActual()}
-        />
-      )}
       {aviso && <AvisoFlotante key={aviso.id} aviso={aviso} isDesktop={isDesktop} onCerrar={cerrarAviso} />}
     </div>
   );

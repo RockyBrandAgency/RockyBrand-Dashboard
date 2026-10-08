@@ -1,17 +1,24 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { ConflictError, crearTiendaGarantia, editarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { StoreGarantia, StoreGarantiaDatos, StoreGarantiaEstado } from '../../types';
-import { ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, TRAMO_NOMBRE, fmtMomento, money } from './garantias';
+import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMBRE, fmtMomento, formatearRut, money, rutValido } from './garantias';
 
-// Ficha lateral de una garantía (2026-10-07, decisión de Mato): se abre al
-// tocar una fila y se edita ahí mismo, con Guardar y Eliminar fijos al pie.
-// En un celular ocupa la pantalla entera. La misma ficha sirve para agregar
+// Página de una garantía (2026-10-08, decisión de Mato): reemplaza a la ficha
+// lateral. Ocupa el área de contenido en lugar del listado y, al guardar, el
+// listado vuelve con el aviso de éxito. La misma página sirve para agregar
 // una a mano, porque el backend valida los dos casos con las mismas reglas
 // (store_admin_lambda._validar_datos_garantia).
 //
+// Los datos van en el orden que pidió Mato: 1 cliente, 2 despacho, 3 caña y
+// 4 estado y pago. La nota interna cierra.
+//
 // Una garantía eliminada (está en la papelera) se abre en solo lectura, con
 // Restaurar en vez de Guardar. Nada de esto le manda un correo al cliente.
+
+const ANCHO_PAGINA = 880;
+// Alto de la barra inferior del celular (MobileBar): el pie fijo va encima.
+const BARRA_MOVIL = 60;
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -26,20 +33,32 @@ const inputStyle: React.CSSProperties = {
   color: 'var(--text)',
 };
 const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' };
-const seccion: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: 0 };
+const tituloSeccion: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0 };
+const numeroSeccion: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 24,
+  height: 24,
+  borderRadius: '50%',
+  background: 'var(--text)',
+  color: 'var(--white)',
+  fontSize: 12,
+  fontWeight: 700,
+  flexShrink: 0,
+};
 const bloque: React.CSSProperties = { borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)', marginTop: 'var(--space-6)' };
-// Dos columnas en la ficha de escritorio, una en el celular.
-const grilla: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 10, marginTop: 8 };
 const ayuda: React.CSSProperties = { fontSize: 12, color: 'var(--text-muted)', marginTop: 6 };
 const errorDeCampo: React.CSSProperties = { fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 4 };
+const todoElAncho: React.CSSProperties = { gridColumn: '1 / -1' };
 
 const MONTO_MAXIMO_CLP = 10_000_000;
 const EMAIL_RE = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/;
-const FOCABLES = 'a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])';
 
 // Todo como texto, tal cual está en los inputs. Se convierte al guardar.
 interface Formulario {
   nombre: string;
+  rut: string;
   email: string;
   telefono: string;
   direccion: string;
@@ -69,6 +88,7 @@ function miles(n: number | null): string {
 function desdeGarantia(g?: StoreGarantia): Formulario {
   return {
     nombre: g?.nombre ?? '',
+    rut: g?.rut ?? '',
     email: g?.email ?? '',
     telefono: g?.telefono ?? '',
     direccion: g?.direccion_calle ?? '',
@@ -105,6 +125,7 @@ export function leerMonto(texto: string): number | null | 'invalido' {
 export function validarFormulario(f: Formulario): { datos: StoreGarantiaDatos } | { error: string; campo: keyof Formulario } {
   const t = (s: string) => s.trim();
   if (!t(f.nombre)) return { error: 'Falta el nombre.', campo: 'nombre' };
+  if (t(f.rut) && !rutValido(f.rut)) return { error: 'El RUT no es válido: revisa el número y el dígito verificador.', campo: 'rut' };
   if (!t(f.telefono)) return { error: 'Falta el teléfono.', campo: 'telefono' };
   if (t(f.email) && !EMAIL_RE.test(t(f.email))) return { error: 'El correo no tiene un formato válido.', campo: 'email' };
   if (!t(f.cana)) return { error: 'Falta la caña.', campo: 'cana' };
@@ -129,6 +150,8 @@ export function validarFormulario(f: Formulario): { datos: StoreGarantiaDatos } 
   return {
     datos: {
       nombre: t(f.nombre),
+      // Siempre "12.345.678-5": así la misma persona se lee igual.
+      rut: formatearRut(f.rut),
       email: t(f.email),
       telefono: t(f.telefono),
       direccion: t(f.direccion),
@@ -172,12 +195,13 @@ export function GarantiaFicha({
   /** Sin garantía = agregar una nueva. */
   garantia?: StoreGarantia;
   isDesktop: boolean;
+  /** Volver al listado sin guardar. */
   onClose: () => void;
   onGuardado: (solicitudId: string) => void;
-  /** Hace la llamada y cierra la ficha. Si lanza, la ficha muestra el error. */
+  /** Hace la llamada y vuelve al listado. Si lanza, la página muestra el error. */
   onEliminar?: (g: StoreGarantia) => Promise<void>;
   onRestaurar?: (g: StoreGarantia) => Promise<void>;
-  /** Tras un 409: trae la versión guardada y vuelve a abrir la ficha con ella. */
+  /** Tras un 409: trae la versión guardada y vuelve a abrir la página con ella. */
   onVerActual?: () => void;
 }) {
   const { handleUnauthorized } = useAuth();
@@ -187,19 +211,15 @@ export function GarantiaFicha({
   const [error, setError] = useState<string | null>(null);
   const [conflicto, setConflicto] = useState(false);
   // El campo que no pasó la validación: el error se muestra bajo él y no al
-  // pie de un formulario de 21 campos, donde no se ve.
+  // pie de un formulario de 22 campos, donde no se ve.
   const [errorCampo, setErrorCampo] = useState<keyof Formulario | null>(null);
   const [copiado, setCopiado] = useState<'si' | 'no' | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  // Se toma en el primer render: al agregar, el autoFocus del primer campo
-  // ya movió el foco cuando corren los efectos.
-  const [quienAbrio] = useState(() => document.activeElement as HTMLElement | null);
   const id = useId();
-  const tituloId = `${id}-titulo`;
   const editando = Boolean(garantia);
   const eliminada = Boolean(garantia?.eliminada_en);
   const cambiado = JSON.stringify(f) !== JSON.stringify(inicial);
   const puedeGuardar = !eliminada && ocupado === null && (!editando || cambiado);
+  const estadoActual = ESTADOS_GARANTIA.find((e) => e.key === f.estado);
 
   function set<K extends keyof Formulario>(clave: K, valor: Formulario[K]) {
     setF((prev) => ({ ...prev, [clave]: valor }));
@@ -223,57 +243,23 @@ export function GarantiaFicha({
       : {};
   }
 
-  // Un formulario largo no se pierde por un Escape o un clic de más.
+  // Un formulario largo no se pierde por un clic de más en «Volver».
   function cerrar() {
     if (ocupado) return;
     if (cambiado && !eliminada && !window.confirm('¿Descartar los cambios de esta garantía?')) return;
     onClose();
   }
 
-  // Al abrir, el foco entra a la ficha (al agregar, al primer campo); al
-  // cerrar, vuelve a la fila que la abrió.
-  useEffect(() => {
-    if (garantia) panelRef.current?.focus({ preventScroll: true });
-    return () => quienAbrio?.focus?.({ preventScroll: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     function alTeclear(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        cerrar();
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (puedeGuardar) void guardar();
-      } else if (e.key === 'Tab') {
-        atraparFoco(e);
       }
     }
     document.addEventListener('keydown', alTeclear);
     return () => document.removeEventListener('keydown', alTeclear);
   });
-
-  // aria-modal no impide que Tab salga de la ficha hacia la lista de atrás.
-  function atraparFoco(e: KeyboardEvent) {
-    const panel = panelRef.current;
-    if (!panel) return;
-    const focables = Array.from(panel.querySelectorAll<HTMLElement>(FOCABLES));
-    if (focables.length === 0) return;
-    const primero = focables[0];
-    const ultimo = focables[focables.length - 1];
-    const activo = document.activeElement;
-    if (!panel.contains(activo)) {
-      e.preventDefault();
-      primero.focus();
-    } else if (e.shiftKey && (activo === primero || activo === panel)) {
-      e.preventDefault();
-      ultimo.focus();
-    } else if (!e.shiftKey && activo === ultimo) {
-      e.preventDefault();
-      primero.focus();
-    }
-  }
 
   function fallo(e: unknown, porDefecto: string) {
     if (e instanceof UnauthorizedError) return handleUnauthorized();
@@ -342,7 +328,7 @@ export function GarantiaFicha({
   // Lo que hay que escribir en la etiqueta del envío, listo para pegar.
   async function copiarDespacho() {
     const direccion = [f.direccion, f.comuna, f.region].map((s) => s.trim()).filter(Boolean).join(', ');
-    const texto = [f.nombre.trim(), f.telefono.trim(), direccion].filter(Boolean).join('\n');
+    const texto = [f.nombre.trim(), formatearRut(f.rut), f.telefono.trim(), direccion].filter(Boolean).join('\n');
     try {
       await navigator.clipboard.writeText(texto);
       setCopiado('si');
@@ -361,12 +347,16 @@ export function GarantiaFicha({
       : null;
   const fechaAutomatica = FECHA_AUTOMATICA[f.estado];
 
+  // Tres columnas en escritorio, una en el celular.
+  const grilla: React.CSSProperties = { display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 12, marginTop: 12 };
+  const dosColumnas: React.CSSProperties = isDesktop ? { gridColumn: 'span 2' } : {};
+
   // Campo de texto con su label enlazado: el id lo exige el label y lo usan
   // las pruebas para encontrar cada campo por su nombre visible.
-  function texto(clave: keyof Formulario, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) {
+  function texto(clave: keyof Formulario, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}, caja?: React.CSSProperties) {
     const campoId = `${id}-${clave}`;
     return (
-      <div>
+      <div style={caja}>
         <label htmlFor={campoId} style={fieldLabel}>
           {label}
         </label>
@@ -386,7 +376,7 @@ export function GarantiaFicha({
   function area(clave: 'descripcion' | 'nota_interna', label: string, maxLength: number) {
     const campoId = `${id}-${clave}`;
     return (
-      <div style={{ gridColumn: '1 / -1' }}>
+      <div style={todoElAncho}>
         <label htmlFor={campoId} style={fieldLabel}>
           {label}
         </label>
@@ -395,102 +385,149 @@ export function GarantiaFicha({
     );
   }
 
+  function seccion(n: number, titulo: string, derecha?: React.ReactNode) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 32 }}>
+        <h2 style={tituloSeccion}>
+          <span aria-hidden="true" style={numeroSeccion}>
+            {n}
+          </span>
+          {titulo}
+        </h2>
+        {derecha}
+      </div>
+    );
+  }
+
   const monto = { inputMode: 'numeric' as const, placeholder: '0' };
-  const lado = isDesktop ? 24 : 16;
+  const lado = isDesktop ? 40 : 16;
 
   return (
-    <div
-      className="garantia-ficha-fondo"
-      onMouseDown={(e) => {
-        // mousedown y no click: arrastrar para seleccionar texto de un campo
-        // y soltar afuera dispara un click en el fondo, y cerraba la ficha.
-        if (e.target === e.currentTarget) cerrar();
-      }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.32)', zIndex: 100 }}
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={tituloId}
-        tabIndex={-1}
-        className={isDesktop ? 'garantia-ficha' : 'garantia-ficha movil'}
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: isDesktop ? 'min(640px, 100vw)' : '100vw',
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'var(--white)',
-          boxShadow: isDesktop ? '-8px 0 24px rgba(0,0,0,0.08)' : 'none',
-          outline: 'none',
-        }}
-      >
-        <div style={{ padding: `${isDesktop ? 20 : 12}px ${lado}px ${isDesktop ? 16 : 12}px`, borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 id={tituloId} style={{ margin: 0, fontSize: isDesktop ? 20 : 18, fontWeight: 700, color: 'var(--text)', overflowWrap: 'anywhere' }}>
-                {garantia ? garantia.nombre || 'Garantía sin nombre' : 'Nueva garantía'}
-              </h2>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                {garantia ? (
-                  <>
-                    N° {garantia.solicitud_id} · {garantia.origen === 'manual' ? 'Agregada a mano' : 'Formulario web'} ·{' '}
-                    <span style={{ whiteSpace: 'nowrap' }}>{fmtMomento(garantia.created_at)}</span>
-                  </>
-                ) : (
-                  'Un caso que no llegó por el formulario de la web: WhatsApp, teléfono o en persona.'
-                )}
-              </div>
+    <div className="garantia-ficha" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
+      <div style={{ maxWidth: ANCHO_PAGINA, margin: '0 auto', padding: isDesktop ? `28px ${lado}px 0` : `16px ${lado}px ${BARRA_MOVIL}px` }}>
+        <button type="button" className="crm-btn crm-btn-text crm-btn-sm" onClick={cerrar} disabled={ocupado !== null} style={{ marginLeft: -12 }}>
+          ← Garantías
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 8, paddingBottom: 'var(--space-6)', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em', overflowWrap: 'anywhere' }}>
+              {garantia ? garantia.nombre || 'Garantía sin nombre' : 'Nueva garantía'}
+            </h1>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
+              {garantia ? (
+                <>
+                  N° {garantia.solicitud_id} · {garantia.origen === 'manual' ? 'Agregada a mano' : 'Formulario web'} ·{' '}
+                  <span style={{ whiteSpace: 'nowrap' }}>{fmtMomento(garantia.created_at)}</span>
+                </>
+              ) : (
+                'Un caso que no llegó por el formulario de la web: WhatsApp, teléfono o en persona. Completa los cuatro pasos y guarda.'
+              )}
             </div>
-            {garantia && !eliminada && garantia.veces_usada > 1 && (
-              <span
-                title="Solicitudes de esta persona, contando esta"
-                style={{ flexShrink: 0, marginTop: 2, fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--status-atencion-bg)', color: 'var(--status-atencion-text)' }}
-              >
-                {garantia.veces_usada}ª vez
-              </span>
-            )}
-            <button
-              onClick={cerrar}
-              aria-label="Cerrar"
-              style={{
-                all: 'unset',
-                boxSizing: 'border-box',
-                cursor: 'pointer',
-                fontSize: 22,
-                color: 'var(--text-muted)',
-                lineHeight: 1,
-                width: 40,
-                height: 40,
-                margin: '-6px -8px 0 0',
-                borderRadius: '50%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              ×
-            </button>
           </div>
-          {eliminada && garantia && (
-            <div className="crm-aviso alerta" style={{ margin: '12px 0 0' }}>
-              Eliminada el {fmtMomento(garantia.eliminada_en)}: no aparece en la lista ni en los indicadores. Restáurala para editarla.
-            </div>
+          {garantia && estadoActual && (
+            <span style={{ flexShrink: 0, marginTop: 2, fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: estadoActual.bg, color: estadoActual.fg }}>
+              {estadoActual.label}
+            </span>
+          )}
+          {garantia && !eliminada && garantia.veces_usada > 1 && (
+            <span
+              title="Solicitudes de esta persona, contando esta"
+              style={{ flexShrink: 0, marginTop: 2, fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--status-atencion-bg)', color: 'var(--status-atencion-text)' }}
+            >
+              {garantia.veces_usada}ª vez
+            </span>
           )}
         </div>
+        {eliminada && garantia && (
+          <div className="crm-aviso alerta" style={{ margin: '16px 0 0' }}>
+            Eliminada el {fmtMomento(garantia.eliminada_en)}: no aparece en la lista ni en los indicadores. Restáurala para editarla.
+          </div>
+        )}
 
-        <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: `${isDesktop ? 20 : 16}px ${lado}px 28px` }}>
-          {/* Un fieldset deshabilitado apaga todos los campos de una vez:
-              mientras se guarda y en una eliminada. */}
-          <fieldset disabled={eliminada || ocupado !== null} className={eliminada ? 'solo-lectura' : undefined} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-            <h3 style={seccion} id={`${id}-estado`}>
+        {/* Un fieldset deshabilitado apaga todos los campos de una vez:
+            mientras se guarda y en una eliminada. */}
+        <fieldset disabled={eliminada || ocupado !== null} className={eliminada ? 'solo-lectura' : undefined} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+          <div style={{ ...bloque, borderTop: 0, marginTop: 0 }}>
+            {seccion(1, 'Cliente')}
+            <div style={grilla}>
+              {texto('nombre', 'Nombre *', { autoFocus: !editando, maxLength: 80, autoComplete: 'off' }, dosColumnas)}
+              {texto('rut', 'RUT', { maxLength: 20, placeholder: '12.345.678-5', autoComplete: 'off', onBlur: () => set('rut', formatearRut(f.rut)) })}
+              {texto('telefono', 'Teléfono *', { maxLength: 24, placeholder: '+56 9…', type: 'tel', autoComplete: 'off' })}
+              {texto('email', 'Correo', { maxLength: 254, type: 'email', autoComplete: 'off' }, dosColumnas)}
+            </div>
+          </div>
+
+          <div style={bloque}>
+            {seccion(
+              2,
+              'Despacho',
+              !eliminada && (
+                <button type="button" className="crm-btn crm-btn-text crm-btn-sm" onClick={() => void copiarDespacho()} aria-live="polite">
+                  {copiado === 'si' ? '✓ Copiado' : copiado === 'no' ? 'No se pudo copiar' : 'Copiar datos de envío'}
+                </button>
+              ),
+            )}
+            <div style={grilla}>
+              {texto('direccion', 'Dirección de despacho', { maxLength: 160, placeholder: 'Calle y número', autoComplete: 'off' }, dosColumnas)}
+              {texto('comuna', 'Comuna', { maxLength: 60, autoComplete: 'off' })}
+              <div>
+                <label htmlFor={`${id}-region`} style={fieldLabel}>
+                  Región
+                </label>
+                <select id={`${id}-region`} value={f.region} onChange={(e) => set('region', e.target.value)} style={inputStyle}>
+                  <option value="">Elige…</option>
+                  {/* Una región escrita a mano en el formulario web se conserva
+                      como opción: editar no la borra. */}
+                  {f.region && !REGIONES.includes(f.region) && <option value={f.region}>{f.region}</option>}
+                  {REGIONES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {texto('courier', 'Empresa de transporte', { maxLength: 60, placeholder: 'Ej.: Starken', list: `${id}-couriers`, autoComplete: 'off' })}
+              <datalist id={`${id}-couriers`}>
+                {COURIERS.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+              {texto('numero_seguimiento', 'N° de seguimiento', { maxLength: 80, autoComplete: 'off' })}
+              {texto('fecha_despacho', 'Fecha de despacho', { type: 'date' })}
+              {texto('fecha_entrega', 'Recibida por el cliente el', { type: 'date', min: f.fecha_despacho || undefined })}
+            </div>
+          </div>
+
+          <div style={bloque}>
+            {seccion(3, 'Caña')}
+            <div style={grilla}>
+              {texto('cana', 'Caña *', { maxLength: 80, placeholder: 'Ej.: SKY G', autoComplete: 'off' })}
+              {texto('modelo', 'Modelo', { maxLength: 80, placeholder: 'Ej.: 5904', autoComplete: 'off' })}
+              <div>
+                <label htmlFor={`${id}-tramo`} style={fieldLabel}>
+                  Tramo *
+                </label>
+                <select id={`${id}-tramo`} value={f.tramo} onChange={(e) => set('tramo', e.target.value)} style={inputStyle} {...invalido('tramo')}>
+                  <option value="">Elige…</option>
+                  {Object.entries(TRAMO_NOMBRE).map(([n, nombre]) => (
+                    <option key={n} value={n}>
+                      {n} · {nombre}
+                    </option>
+                  ))}
+                </select>
+                {errorBajo('tramo')}
+              </div>
+              {area('descripcion', 'Qué pasó', 1000)}
+            </div>
+          </div>
+
+          <div style={bloque}>
+            {seccion(4, 'Estado y pago')}
+            <div style={{ ...fieldLabel, marginTop: 12 }} id={`${id}-estado`}>
               Estado
-            </h3>
-            <div role="radiogroup" aria-labelledby={`${id}-estado`} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+            </div>
+            <div role="radiogroup" aria-labelledby={`${id}-estado`} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {ESTADOS_GARANTIA.map((e) => {
                 const activo = f.estado === e.key;
                 return (
@@ -513,105 +550,51 @@ export function GarantiaFicha({
             </div>
             {fechaAutomatica && !f[fechaAutomatica.campo] && !eliminada && <div style={ayuda}>{fechaAutomatica.texto}</div>}
 
-            <div style={bloque}>
-              <h3 style={seccion}>Cliente</h3>
-              <div style={grilla}>
-                {texto('nombre', 'Nombre *', { autoFocus: !editando, maxLength: 80 })}
-                {texto('telefono', 'Teléfono *', { maxLength: 24, placeholder: '+56 9…', type: 'tel' })}
-                <div style={{ gridColumn: '1 / -1' }}>{texto('email', 'Correo', { maxLength: 254, type: 'email' })}</div>
-              </div>
-            </div>
-
-            <div style={bloque}>
-              <h3 style={seccion}>Caña</h3>
-              <div style={grilla}>
-                {texto('cana', 'Caña *', { maxLength: 80, placeholder: 'Ej.: SKY G' })}
-                {texto('modelo', 'Modelo', { maxLength: 80, placeholder: 'Ej.: 5904' })}
-                <div>
-                  <label htmlFor={`${id}-tramo`} style={fieldLabel}>
-                    Tramo *
-                  </label>
-                  <select id={`${id}-tramo`} value={f.tramo} onChange={(e) => set('tramo', e.target.value)} style={inputStyle} {...invalido('tramo')}>
-                    <option value="">Elige…</option>
-                    {Object.entries(TRAMO_NOMBRE).map(([n, nombre]) => (
-                      <option key={n} value={n}>
-                        {n} · {nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errorBajo('tramo')}
-                </div>
-                {area('descripcion', 'Qué pasó', 1000)}
-              </div>
-            </div>
-
-            <div style={bloque}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 32 }}>
-                <h3 style={seccion}>Despacho y entrega</h3>
-                {!eliminada && (
-                  <button type="button" className="crm-btn crm-btn-text crm-btn-sm" onClick={() => void copiarDespacho()} aria-live="polite">
-                    {copiado === 'si' ? '✓ Copiado' : copiado === 'no' ? 'No se pudo copiar' : 'Copiar datos de envío'}
-                  </button>
-                )}
-              </div>
-              <div style={grilla}>
-                <div style={{ gridColumn: '1 / -1' }}>{texto('direccion', 'Dirección de despacho', { maxLength: 160, placeholder: 'Calle y número' })}</div>
-                {texto('comuna', 'Comuna', { maxLength: 60 })}
-                {texto('region', 'Región', { maxLength: 60 })}
-                {texto('courier', 'Empresa de transporte', { maxLength: 60, placeholder: 'Ej.: Starken, Chilexpress' })}
-                {texto('numero_seguimiento', 'N° de seguimiento', { maxLength: 80 })}
-                {texto('fecha_despacho', 'Fecha de despacho', { type: 'date' })}
-                {texto('fecha_entrega', 'Recibida por el cliente el', { type: 'date', min: f.fecha_despacho || undefined })}
-              </div>
-            </div>
-
-            <div style={bloque}>
-              <h3 style={seccion}>Precio, costos y pago</h3>
-              <div style={grilla}>
-                {texto('costo_clp', 'Precio al cliente *', monto)}
-                {texto('costo_despacho_clp', 'Costo de despacho', monto)}
-                {texto('costo_douglas_clp', 'Costo pagado a Douglas', monto)}
-                <div>
-                  <div style={fieldLabel}>Margen</div>
-                  <div
-                    aria-live="polite"
-                    style={{
-                      fontSize: 14,
-                      marginTop: 4,
-                      padding: '8px 0',
-                      fontWeight: 600,
-                      color: margenVisible !== null && margenVisible < 0 ? 'var(--status-critico-dot)' : 'var(--text)',
-                    }}
-                  >
-                    {margenVisible === null ? '—' : money(margenVisible)}
-                  </div>
+            <div style={grilla}>
+              {texto('costo_clp', 'Precio al cliente *', monto)}
+              {texto('costo_despacho_clp', 'Costo de despacho', monto)}
+              {texto('costo_douglas_clp', 'Costo pagado a Douglas', monto)}
+              <div>
+                <div style={fieldLabel}>Margen</div>
+                <div
+                  aria-live="polite"
+                  style={{
+                    fontSize: 14,
+                    marginTop: 4,
+                    padding: '8px 0',
+                    fontWeight: 600,
+                    color: margenVisible !== null && margenVisible < 0 ? 'var(--status-critico-dot)' : 'var(--text)',
+                  }}
+                >
+                  {margenVisible === null ? '—' : money(margenVisible)}
                 </div>
               </div>
-              <div style={{ ...grilla, marginTop: 10, alignItems: 'end' }}>
-                <label htmlFor={`${id}-pagado`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text)', cursor: 'pointer', padding: '8px 0' }}>
-                  <input id={`${id}-pagado`} type="checkbox" checked={f.pagado} onChange={(e) => set('pagado', e.target.checked)} style={{ width: 18, height: 18, margin: 0 }} />
-                  Pagado
-                </label>
-                {f.pagado && texto('fecha_pago', 'Fecha de pago', { type: 'date' })}
-              </div>
+              <label htmlFor={`${id}-pagado`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text)', cursor: 'pointer', padding: '8px 0', alignSelf: 'end' }}>
+                <input id={`${id}-pagado`} type="checkbox" checked={f.pagado} onChange={(e) => set('pagado', e.target.checked)} style={{ width: 18, height: 18, margin: 0 }} />
+                Pagado
+              </label>
+              {f.pagado && texto('fecha_pago', 'Fecha de pago', { type: 'date' })}
             </div>
+          </div>
 
-            <div style={bloque}>
-              <h3 style={seccion}>Nota interna</h3>
-              <div style={grilla}>{area('nota_interna', 'No la ve el cliente', 500)}</div>
-            </div>
-          </fieldset>
-        </div>
+          <div style={bloque}>
+            <div style={grilla}>{area('nota_interna', 'Nota interna (no la ve el cliente)', 500)}</div>
+          </div>
+        </fieldset>
+      </div>
 
-        {/* Pie fijo: Guardar y Eliminar siempre a la vista, y el error del
-            servidor junto a ellos, no al final de 21 campos. */}
-        <div
-          style={{
-            borderTop: '1px solid var(--border)',
-            background: 'var(--white)',
-            padding: `12px ${lado}px calc(12px + env(safe-area-inset-bottom))`,
-          }}
-        >
+      {/* Pie fijo: Guardar y Eliminar siempre a la vista, y el error del
+          servidor junto a ellos, no al final de 22 campos. */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: isDesktop ? 0 : BARRA_MOVIL,
+          marginTop: 'var(--space-8)',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--white)',
+        }}
+      >
+        <div style={{ maxWidth: ANCHO_PAGINA, margin: '0 auto', padding: `12px ${lado}px` }}>
           {error && !errorCampo && (
             <div role="alert" style={{ fontSize: 13, color: 'var(--status-critico-text)', marginBottom: 10 }}>
               {error}
@@ -632,11 +615,9 @@ export function GarantiaFicha({
             )}
             <span style={{ flex: 1 }} />
             {cambiado && !eliminada && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{isDesktop ? 'Cambios sin guardar' : 'Sin guardar'}</span>}
-            {isDesktop && (
-              <button type="button" className="crm-btn crm-btn-text" onClick={cerrar} disabled={ocupado !== null}>
-                {eliminada ? 'Cerrar' : 'Cancelar'}
-              </button>
-            )}
+            <button type="button" className="crm-btn crm-btn-text" onClick={cerrar} disabled={ocupado !== null}>
+              {eliminada ? 'Volver' : 'Cancelar'}
+            </button>
             {eliminada ? (
               onRestaurar && (
                 <button type="button" className="crm-btn crm-btn-primary" onClick={() => void restaurar()} disabled={ocupado !== null}>

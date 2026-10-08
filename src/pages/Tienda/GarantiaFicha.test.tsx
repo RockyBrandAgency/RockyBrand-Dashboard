@@ -8,8 +8,9 @@ import type { StoreGarantia, StoreGarantiaDatos } from '../../types';
 // formulario COMPLETO y bien convertido (montos en pesos enteros, opcionales
 // vacíos como null o ""), que no deja guardar lo que el backend rechazaría, y
 // que al editar manda el valor del bloqueo optimista que tenía cargado.
-// Y que la ficha lateral elimina, restaura y ofrece traer lo actual tras un
-// 409 (2026-10-07).
+// Y que la página elimina, restaura y ofrece traer lo actual tras un 409
+// (2026-10-07). Desde 2026-10-08 lleva RUT (validado y con formato) y la
+// región es una lista.
 
 const { crear, editar, handleUnauthorized } = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -35,6 +36,7 @@ const WEB: StoreGarantia = {
   created_at: '2026-10-01T15:00:00+00:00',
   actualizada_en: '2026-10-02T10:00:00+00:00',
   nombre: 'Pedro Web',
+  rut: '12.345.678-5',
   email: 'web@example.cl',
   telefono: '912345678',
   direccion: 'Calle 1, Puerto Varas, Los Lagos',
@@ -152,6 +154,7 @@ describe('GarantiaFicha — agregar', () => {
 
     const esperado: StoreGarantiaDatos = {
       nombre: 'Ana Pérez',
+      rut: '',
       email: '',
       telefono: '+56 9 1234 5678',
       direccion: '',
@@ -181,6 +184,7 @@ describe('GarantiaFicha — agregar', () => {
     crear.mockResolvedValue({ ok: true, solicitud_id: 'GAR-NUEVA00002' });
     render();
     llenarMinimo();
+    escribir('RUT', '12345678-5');
     escribir('Correo', ' ana@example.cl ');
     escribir('Dirección de despacho', 'Av. Siempre Viva 123');
     escribir('Comuna', 'Coyhaique');
@@ -201,6 +205,7 @@ describe('GarantiaFicha — agregar', () => {
     expect(crear).toHaveBeenCalledTimes(1);
     const datos = crear.mock.calls[0][0] as StoreGarantiaDatos;
     expect(datos).toMatchObject({
+      rut: '12.345.678-5',
       email: 'ana@example.cl',
       direccion: 'Av. Siempre Viva 123',
       comuna: 'Coyhaique',
@@ -224,6 +229,7 @@ describe('GarantiaFicha — agregar', () => {
     ['Caña', '', 'Falta la caña.'],
     ['Tramo', '', 'Elige el tramo.'],
     ['Correo', 'ana@', 'El correo no tiene un formato válido.'],
+    ['RUT', '12.345.678-9', 'El RUT no es válido'],
     ['Precio al cliente', '', 'Falta el precio al cliente.'],
     ['Precio al cliente', '45.000,5', 'El precio al cliente debe ser un monto en pesos'],
     ['Costo de despacho', '-100', 'El costo de despacho debe ser un monto en pesos'],
@@ -289,6 +295,7 @@ describe('GarantiaFicha — editar', () => {
     expect(esperado).toBe('2026-10-02T10:00:00+00:00');
     expect(datos).toEqual({
       nombre: 'Pedro Web',
+      rut: '12.345.678-5',
       email: '',
       telefono: '912345678',
       direccion: 'Calle 1',

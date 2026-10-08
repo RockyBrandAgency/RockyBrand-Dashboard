@@ -1453,6 +1453,8 @@ export interface StoreGarantia {
   /** Para el bloqueo optimista al editar. "" = nunca se editó. */
   actualizada_en: string;
   nombre: string;
+  /** "12.345.678-5" o "" (las del formulario web no lo traen). */
+  rut: string;
   /** Puede venir vacío en una garantía agregada a mano. */
   email: string;
   telefono: string;
@@ -1494,6 +1496,7 @@ export interface StoreGarantia {
  *  backend exige todas las claves: una ausente no se lee como vacía. */
 export interface StoreGarantiaDatos {
   nombre: string;
+  rut: string;
   email: string;
   telefono: string;
   direccion: string;

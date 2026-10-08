@@ -15,6 +15,31 @@ muestra botones que no guardan.
 
 ---
 
+## 3.0.0
+
+**2026-10-08** · mayor (la ficha lateral se reemplaza por una página) · requiere
+backend: arquitectura 1.10.0 de AI_Agency (`store-admin-api` con el campo `rut`)
+desplegada **antes** de publicar el panel. Con la Lambda anterior, guardar una
+garantía responde «Campos desconocidos: rut».
+
+Tienda → Garantías (pedido de Mato):
+
+- **Página propia** para agregar y editar: ocupa el área de contenido en lugar
+  de abrirse a la derecha. Al guardar vuelve al listado con el aviso de éxito;
+  «← Garantías» y Cancelar vuelven sin guardar y preguntan si hay cambios.
+- **Orden de los datos** en cuatro pasos numerados: 1 Cliente (nombre, RUT,
+  teléfono, correo), 2 Despacho (dirección, comuna, región, empresa de
+  transporte, seguimiento, fechas), 3 Caña (caña, modelo, tramo, qué pasó) y
+  4 Estado y pago. La nota interna cierra.
+- **RUT**, nuevo y opcional: se valida el dígito verificador y se guarda
+  siempre como `12.345.678-5`. Va en los datos de envío que se copian.
+- **Región** pasa a ser una lista con las 16 regiones (una escrita a mano desde
+  la web se conserva como opción). Empresa de transporte sugiere Starken,
+  Chilexpress, Correos de Chile y Blue Express.
+- **Filtros** del listado por año, región y caña, con la cantidad de cada
+  opción; los indicadores siguen al filtro. Así se ve a qué región se despacha
+  más, en qué año hubo más casos y qué caña pide más garantías.
+
 ## 2.0.0
 
 **2026-10-07** · mayor (cambia cómo se edita una garantía) · requiere backend:
