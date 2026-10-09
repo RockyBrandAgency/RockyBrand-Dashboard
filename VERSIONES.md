@@ -15,6 +15,31 @@ muestra botones que no guardan.
 
 ---
 
+## 3.1.0
+
+**2026-10-08** · menor (capacidad nueva) · requiere backend: arquitectura
+1.11.0 de AI_Agency, con `chile-fly-fishing-store-stack`,
+`rockybrand-dashboard-stack`, `rockybrand-crm-worker-stack` y
+`rockybrand-whatsapp-stack` desplegados **antes** de publicar el panel. Con la
+Lambda anterior el bloque no aparece (la lista no trae `aviso`), así que
+publicarlo antes no rompe nada, pero tampoco sirve.
+
+Tienda → Garantías: aviso de despacho por WhatsApp (pedido de Mato).
+
+- En la página de la garantía, dentro de **2 Despacho**, el bloque **Aviso al
+  cliente por WhatsApp**: en qué va el aviso (sin avisar, enviado, llegó, lo
+  leyó, no salió con el motivo, o «no sabemos si salió»), la **vista previa
+  exacta** del mensaje con sus dos botones y el enlace al seguimiento del
+  courier, y si el cliente ya tocó «Lo recibí».
+- **Notificar al cliente** sale solo con ese botón y una confirmación con el
+  teléfono de destino. Con cambios sin guardar espera: el aviso sale con lo
+  guardado. Si ya hubo un aviso, el botón es **Reenviar aviso** y vuelve a
+  preguntar; si cambiaron datos desde el último, lo dice.
+- Ante un corte no afirma nada: dice que no se sabe si salió y trae el estado
+  guardado. Volver a apretar no duplica, porque el backend exige «Reenviar».
+- En el listado, bajo el estado: «Sin avisar» en una despachada, «El aviso no
+  salió», «Aviso enviado / entregado / leído» y «Confirmó que lo recibió».
+
 ## 3.0.0
 
 **2026-10-08** · mayor (la ficha lateral se reemplaza por una página) · requiere

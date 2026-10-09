@@ -37,6 +37,7 @@ import type {
   StoreProduct,
   StoreOrder,
   StoreGarantia,
+  StoreGarantiaAviso,
   StoreGarantiaEstado,
   StoreGarantiaDatos,
   Agencia,
@@ -555,6 +556,22 @@ export function eliminarTiendaGarantia(solicitud_id: string): Promise<RespuestaP
 
 export function restaurarTiendaGarantia(solicitud_id: string): Promise<RespuestaPapelera> {
   return request(`/dashboard/tienda/garantias/${encodeURIComponent(solicitud_id)}/restaurar`, 'POST', {});
+}
+
+// Aviso de despacho por WhatsApp (2026-10-08). Es lo ÚNICO que le manda esa
+// plantilla al cliente: sale solo cuando Mato aprieta el botón, sin cola ni
+// reintento (es POST: request() no lo repite). `actualizada_en_esperada` es
+// el valor de la página: si la garantía cambió, 409 y no sale lo que Mato no
+// vio. `reenviar` va en true solo después de preguntarle si quiere otro.
+export function notificarTiendaGarantia(
+  solicitud_id: string,
+  actualizada_en_esperada: string,
+  reenviar: boolean,
+): Promise<{ ok: boolean; solicitud_id: string; aviso: StoreGarantiaAviso }> {
+  return request(`/dashboard/tienda/garantias/${encodeURIComponent(solicitud_id)}/notificar`, 'POST', {
+    actualizada_en_esperada,
+    reenviar,
+  });
 }
 
 // ------------------------------------------------------------- agencias --

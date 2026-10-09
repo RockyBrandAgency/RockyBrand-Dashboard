@@ -7,7 +7,7 @@ import { eliminarTiendaGarantia, getTiendaGarantias, restaurarTiendaGarantia, Un
 import { useAuth } from '../../context/AuthContext';
 import type { StoreGarantia } from '../../types';
 import { GarantiaFicha } from './GarantiaFicha';
-import { ESTADOS_GARANTIA as ESTADOS, SIN_FILTROS, TRAMO_NOMBRE, anioDe, filtrarGarantias, fmtMomento, hayFiltros, money, opcionesDe, type FiltrosGarantias, type OpcionFiltro } from './garantias';
+import { COLOR_TONO, ESTADOS_GARANTIA as ESTADOS, SIN_FILTROS, TRAMO_NOMBRE, anioDe, filtrarGarantias, fmtMomento, hayFiltros, lineaAviso, money, opcionesDe, type FiltrosGarantias, type OpcionFiltro } from './garantias';
 
 type Vista = 'activas' | 'eliminadas';
 
@@ -228,6 +228,18 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     );
   }
 
+  // Bajo el estado: qué despachada falta avisar por WhatsApp y qué aviso no
+  // salió (2026-10-08).
+  function avisoLinea(g: StoreGarantia) {
+    const l = lineaAviso(g);
+    if (!l) return null;
+    return (
+      <span style={{ display: 'block', marginTop: isDesktop ? 4 : 0, fontSize: 11, fontWeight: l.tono === 'neutro' ? 500 : 600, color: COLOR_TONO[l.tono], whiteSpace: 'nowrap' }}>
+        {l.texto}
+      </span>
+    );
+  }
+
   function vecesBadge(g: StoreGarantia) {
     const repite = g.veces_usada > 1;
     return (
@@ -266,7 +278,10 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
         <span style={col(120, { fontSize: 13, color: 'var(--text-sub)' })}>
           {g.tramo} · {TRAMO_NOMBRE[g.tramo] ?? '—'}
         </span>
-        <span style={col(130)}>{pastillaEstado(g)}</span>
+        <span style={col(130)}>
+          {pastillaEstado(g)}
+          {avisoLinea(g)}
+        </span>
       </>
     );
   }
@@ -284,9 +299,10 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
           {g.cana}
           {g.modelo ? ` · ${g.modelo}` : ''} · Tramo {g.tramo} ({TRAMO_NOMBRE[g.tramo] ?? '—'})
         </span>
-        <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+        <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 2 }}>
           {pastillaEstado(g)}
           {extra}
+          {avisoLinea(g)}
         </span>
       </>
     );
@@ -417,6 +433,11 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
           onEliminar={eliminar}
           onRestaurar={(g) => restaurar(g, 'ficha')}
           onVerActual={() => void verActual()}
+          onAvisoCambiado={(id, a) => setGarantias((prev) => (prev ?? []).map((x) => (x.solicitud_id === id ? { ...x, aviso: a } : x)))}
+          onRecargarAviso={async (id) => {
+            const r = await recargarEnSilencio();
+            return r?.garantias.find((x) => x.solicitud_id === id)?.aviso ?? null;
+          }}
         />
         {aviso && <AvisoFlotante key={aviso.id} aviso={aviso} isDesktop={isDesktop} onCerrar={cerrarAviso} />}
       </>

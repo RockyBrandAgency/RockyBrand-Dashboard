@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StoreGarantia } from '../../types';
-import { SIN_FILTROS, anioDe, filtrarGarantias, formatearRut, opcionesDe, rutValido } from './garantias';
+import { SIN_FILTROS, anioDe, filtrarGarantias, formatearRut, lineaAviso, opcionesDe, rutValido } from './garantias';
 
 // Qué afirma este archivo: que el RUT se valida con el dígito verificador y
 // se guarda siempre con puntos y guion, y que los filtros del listado agrupan
@@ -88,5 +88,33 @@ describe('filtros del listado', () => {
     expect(ids({ anio: '2025', cana: 'dxf' })).toEqual(['GAR-3']);
     expect(ids({ soloReincidentes: true })).toEqual(['GAR-2']);
     expect(ids({ anio: '2026', cana: 'sky g' })).toEqual(['GAR-1']);
+  });
+});
+
+describe('lineaAviso', () => {
+  const base = { estado: 'despachada' } as StoreGarantia;
+  const aviso = (extra: Partial<NonNullable<StoreGarantia['aviso']>>) =>
+    ({ ...base, aviso: { accion: 'notificar', estado: '', cambio_desde_aviso: false, recepcion: null, ...extra } }) as StoreGarantia;
+
+  it('sin aviso del backend no dice nada', () => {
+    expect(lineaAviso(base)).toBeNull();
+  });
+
+  it('una despachada sin avisar se marca', () => {
+    expect(lineaAviso(aviso({}))).toEqual({ texto: 'Sin avisar', tono: 'alerta' });
+  });
+
+  it('una sin despachar no se marca', () => {
+    expect(lineaAviso({ ...aviso({ accion: '' }), estado: 'recibida' })).toBeNull();
+  });
+
+  it('el rechazo, la duda y lo desactualizado se distinguen', () => {
+    expect(lineaAviso(aviso({ estado: 'fallido' }))?.tono).toBe('critico');
+    expect(lineaAviso(aviso({ estado: 'incierto', accion: 'reenviar' }))?.texto).toBe('Aviso sin confirmar');
+    expect(lineaAviso(aviso({ estado: 'leido', accion: 'reenviar', cambio_desde_aviso: true }))?.texto).toBe('Aviso desactualizado');
+  });
+
+  it('la recepción manda sobre todo lo demás', () => {
+    expect(lineaAviso(aviso({ estado: 'leido', accion: '', recepcion: { confirmada_en: 'x', via: 'whatsapp' } }))).toEqual({ texto: 'Confirmó que lo recibió', tono: 'bien' });
   });
 });

@@ -121,6 +121,43 @@ export const REGIONES = [
 // Sugerencias para «Empresa de transporte»; se puede escribir otra.
 export const COURIERS = ['Starken', 'Chilexpress', 'Correos de Chile', 'Blue Express'];
 
+// --- Aviso por WhatsApp (2026-10-08) ----------------------------------------
+// La línea corta que va bajo el estado en el listado, para ver de un vistazo
+// qué despachada falta avisar y qué aviso no salió. null = nada que decir
+// (una garantía sin despachar, o un backend sin el aviso).
+
+export type TonoAviso = 'neutro' | 'bien' | 'alerta' | 'critico';
+
+export function lineaAviso(g: StoreGarantia): { texto: string; tono: TonoAviso } | null {
+  const a = g.aviso;
+  if (!a) return null;
+  if (a.recepcion) return { texto: 'Confirmó que lo recibió', tono: 'bien' };
+  if (a.cambio_desde_aviso && a.accion === 'reenviar') return { texto: 'Aviso desactualizado', tono: 'alerta' };
+  switch (a.estado) {
+    case 'fallido':
+      return { texto: 'El aviso no salió', tono: 'critico' };
+    case 'incierto':
+      return { texto: 'Aviso sin confirmar', tono: 'alerta' };
+    case 'enviando':
+      return { texto: 'Enviando aviso…', tono: 'neutro' };
+    case 'leido':
+      return { texto: 'Aviso leído', tono: 'neutro' };
+    case 'entregado':
+      return { texto: 'Aviso entregado', tono: 'neutro' };
+    case 'enviado':
+      return { texto: 'Aviso enviado', tono: 'neutro' };
+    default:
+      return g.estado === 'despachada' ? { texto: 'Sin avisar', tono: 'alerta' } : null;
+  }
+}
+
+export const COLOR_TONO: Record<TonoAviso, string> = {
+  neutro: 'var(--text-muted)',
+  bien: 'var(--status-bien-text)',
+  alerta: 'var(--status-atencion-text)',
+  critico: 'var(--status-critico-text)',
+};
+
 // --- Filtros del listado (2026-10-08, pedido de Mato) ----------------------
 // Año, región y caña, para ver a qué región se despacha más, en qué año hubo
 // más casos y qué caña pide más garantías. `region` y `cana` guardan la

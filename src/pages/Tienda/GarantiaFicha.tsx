@@ -1,7 +1,8 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { ConflictError, crearTiendaGarantia, editarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
-import type { StoreGarantia, StoreGarantiaDatos, StoreGarantiaEstado } from '../../types';
+import type { StoreGarantia, StoreGarantiaAviso, StoreGarantiaDatos, StoreGarantiaEstado } from '../../types';
+import { GarantiaAviso } from './GarantiaAviso';
 import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMBRE, fmtMomento, formatearRut, money, rutValido } from './garantias';
 
 // Página de una garantía (2026-10-08, decisión de Mato): reemplaza a la ficha
@@ -15,6 +16,9 @@ import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMB
 //
 // Una garantía eliminada (está en la papelera) se abre en solo lectura, con
 // Restaurar en vez de Guardar. Nada de esto le manda un correo al cliente.
+//
+// El aviso por WhatsApp (2026-10-08) va en «2 Despacho» (GarantiaAviso): es
+// lo único de la página que le escribe al cliente, y solo con su botón.
 
 const ANCHO_PAGINA = 880;
 // Alto de la barra inferior del celular (MobileBar): el pie fijo va encima.
@@ -191,6 +195,8 @@ export function GarantiaFicha({
   onEliminar,
   onRestaurar,
   onVerActual,
+  onAvisoCambiado,
+  onRecargarAviso,
 }: {
   /** Sin garantía = agregar una nueva. */
   garantia?: StoreGarantia;
@@ -203,11 +209,15 @@ export function GarantiaFicha({
   onRestaurar?: (g: StoreGarantia) => Promise<void>;
   /** Tras un 409: trae la versión guardada y vuelve a abrir la página con ella. */
   onVerActual?: () => void;
+  /** El listado se queda con el aviso nuevo, sin recargar. */
+  onAvisoCambiado?: (solicitudId: string, aviso: StoreGarantiaAviso) => void;
+  /** El aviso como quedó guardado; null si no se pudo traer. */
+  onRecargarAviso?: (solicitudId: string) => Promise<StoreGarantiaAviso | null>;
 }) {
   const { handleUnauthorized } = useAuth();
   const inicial = useMemo(() => desdeGarantia(garantia), [garantia]);
   const [f, setF] = useState<Formulario>(inicial);
-  const [ocupado, setOcupado] = useState<'guardar' | 'eliminar' | 'restaurar' | null>(null);
+  const [ocupado, setOcupado] = useState<'guardar' | 'eliminar' | 'restaurar' | 'notificar' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [conflicto, setConflicto] = useState(false);
   // El campo que no pasó la validación: el error se muestra bajo él y no al
@@ -497,6 +507,17 @@ export function GarantiaFicha({
               {texto('fecha_despacho', 'Fecha de despacho', { type: 'date' })}
               {texto('fecha_entrega', 'Recibida por el cliente el', { type: 'date', min: f.fecha_despacho || undefined })}
             </div>
+            {garantia?.aviso && (
+              <GarantiaAviso
+                garantia={garantia}
+                aviso={garantia.aviso}
+                cambiado={cambiado}
+                onEnviando={(si) => setOcupado(si ? 'notificar' : null)}
+                onAvisoCambiado={(a) => onAvisoCambiado?.(garantia.solicitud_id, a)}
+                onRecargar={() => (onRecargarAviso ? onRecargarAviso(garantia.solicitud_id) : Promise.resolve(null))}
+                onVerActual={onVerActual}
+              />
+            )}
           </div>
 
           <div style={bloque}>

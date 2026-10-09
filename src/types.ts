@@ -1490,6 +1490,42 @@ export interface StoreGarantia {
   /** Cuándo se mandó a la papelera. "" (o ausente, con un backend anterior a
    *  la arquitectura 1.9.0) = no está eliminada. */
   eliminada_en?: string;
+  /** El aviso de despacho por WhatsApp. Ausente con un backend anterior a la
+   *  arquitectura 1.11.0: el panel no muestra el bloque. */
+  aviso?: StoreGarantiaAviso;
+}
+
+/** Estado del AVISO (masculino a propósito: no confundir con la garantía
+ *  `entregada`, que es el tramo en la mano del cliente). Espejo de
+ *  RANGO_AVISO en garantias_aviso.py. "" = nunca se avisó.
+ *  `incierto`: la llamada a WhatsApp se cortó y no se sabe si salió. */
+export type StoreGarantiaAvisoEstado = '' | 'enviando' | 'incierto' | 'enviado' | 'entregado' | 'leido' | 'fallido';
+
+/** Lo que el panel ve del aviso (garantias_aviso.resumen_para_panel). Qué se
+ *  puede hacer lo decide el backend, con la misma regla con que envía: el
+ *  panel no la repite. Nunca trae el token del botón «Lo recibí». */
+export interface StoreGarantiaAviso {
+  /** "" = no se puede, y `motivo` dice por qué. `reenviar` = ya hay un aviso
+   *  que pudo llegar: mandar otro se pide a sabiendas. */
+  accion: '' | 'notificar' | 'reenviar';
+  motivo: string;
+  estado: StoreGarantiaAvisoEstado;
+  enviado_en: string;
+  entregado_en: string;
+  leido_en: string;
+  fallido_en: string;
+  /** `detalle` ya viene explicado en castellano. */
+  error: { codigo: number | string | null; detalle: string } | null;
+  envios: number;
+  /** Teléfono al que salió el último aviso, legible. */
+  destino_avisado: string;
+  /** Algo de lo que el cliente leyó ya no es cierto. */
+  cambio_desde_aviso: boolean;
+  /** El mensaje EXACTO que saldría ahora, armado por la misma función que
+   *  envía. null = faltan datos (ver `motivo`). */
+  vista_previa: { texto: string; botones: string[]; destino: string; url: string } | null;
+  /** El cliente tocó «Lo recibí». */
+  recepcion: { confirmada_en: string; via: string } | null;
 }
 
 /** El formulario completo de una garantía, igual al crear que al editar. El
