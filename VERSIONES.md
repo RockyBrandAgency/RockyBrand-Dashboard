@@ -15,6 +15,26 @@ muestra botones que no guardan.
 
 ---
 
+## 3.1.1
+
+**2026-10-08** · parche (se ordena sin capacidad nueva) · no requiere backend.
+
+Todas las pantallas: sin margen a los costados cuando sobra espacio (pedido de
+Mato: `padding: 36px 0px 72px` en vez de `36px 40px 72px`).
+
+- El contenedor de las 23 pantallas vive ahora en un solo lugar,
+  `src/lib/contenedorPagina.ts`: antes cada pantalla lo escribía a mano y
+  cambiarlo en una sola dejaba un salto de ancho al navegar.
+- El margen lateral es `clamp(0px, calc(1160px - 100%), 40px)`: 0 con un área
+  de contenido de 1160px o más (ventana de 1440px con la barra de 280px) y
+  40px con 1120px o menos, para que el texto no toque la barra ni el borde en
+  un notebook chico o una tablet. Medido en Chromium: con ventana de 1440px o
+  más, 0px; con 1280px, 1024px y la tablet de 834px, el texto queda a 40px
+  del borde, como antes. En el celular no cambia (`20px 16px 88px`).
+- Llegadas (detalle) conserva su margen inferior propio (60px y 80px).
+
+---
+
 ## 3.1.0
 
 **2026-10-08** · menor (capacidad nueva) · requiere backend: arquitectura

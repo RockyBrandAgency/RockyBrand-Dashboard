@@ -5,6 +5,7 @@ import { KpiRow } from '../../components/KpiRow';
 import { getTiendaResumen, getTiendaPedidos, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { StoreDashboardResumen, StoreOrder, StoreOrderStatus } from '../../types';
+import { contenedorPagina } from '../../lib/contenedorPagina';
 
 function money(clp: number | undefined): string {
   return (clp ?? 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
@@ -80,7 +81,7 @@ export function TiendaVentas({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={contenedorPagina(isDesktop)}>
         <div
           style={{
             display: 'flex',

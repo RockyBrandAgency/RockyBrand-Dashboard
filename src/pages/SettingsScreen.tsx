@@ -4,6 +4,7 @@ import { ToggleRow } from '../components/ToggleRow';
 import { useAuth } from '../context/AuthContext';
 import { uploadClientLogo } from '../api/dashboardApi';
 import { CLIENT_LOCATION } from '../branding';
+import { contenedorPagina } from '../lib/contenedorPagina';
 
 // Redimensiona/comprime la imagen ANTES de mandarla - el backend acepta
 // hasta ~300KB de data URL (agent_core.MAX_LOGO_DATA_URL_LEN), y un logo
@@ -150,7 +151,7 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={contenedorPagina(isDesktop)}>
         <div
           style={{
             display: 'flex',

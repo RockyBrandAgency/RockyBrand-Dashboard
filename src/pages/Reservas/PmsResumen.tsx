@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import { fechasImportantesProximas, semanaDe, isoLocal, type FechaImportante } from '../../lib/fechasImportantes';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
+import { contenedorPagina } from '../../lib/contenedorPagina';
 
 const STATUS_LABEL: Record<string, string> = { CONFIRMED: 'Confirmada', PENDING: 'Pendiente', CANCELLED: 'Cancelada' };
 const STATUS_COLOR: Record<string, { bg: string; dot: string }> = {
@@ -150,7 +151,7 @@ export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={contenedorPagina(isDesktop)}>
         <div style={{ paddingBottom: 'var(--space-7)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-8)' }}>
           <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
             Resumen

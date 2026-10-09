@@ -13,6 +13,7 @@ import { CLIENT_LOCATION } from '../../branding';
 import { temporadaActualCff, CFF_CLIENT_ID } from '../../lib/temporadaCff';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import type { ReservaResumenItem } from '../../types';
+import { contenedorPagina } from '../../lib/contenedorPagina';
 
 const STATUS_LABEL: Record<string, string> = {
   CONFIRMED: 'Confirmada',
@@ -143,7 +144,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={contenedorPagina(isDesktop)}>
         <div
           style={{
             display: 'flex',

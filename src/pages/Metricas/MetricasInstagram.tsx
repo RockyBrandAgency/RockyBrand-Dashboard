@@ -11,6 +11,7 @@ import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
 import type { InstagramPost, InstagramInsightPost } from '../../types';
+import { contenedorPagina } from '../../lib/contenedorPagina';
 
 function formatDateShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -246,7 +247,7 @@ export function MetricasInstagram({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={contenedorPagina(isDesktop)}>
         <MetricsPageHeader
           breadcrumb="Métricas > Instagram"
           title="Métricas Instagram"

@@ -20,6 +20,7 @@ import { TemplatesEmail } from './Email/Templates';
 import { MetricasEmail } from './Email/Metricas';
 import { AutomatizacionesEmail } from './Email/Automatizaciones';
 import type { EmailContact, EmailFeatureKey } from '../../types';
+import { contenedorPagina } from '../../lib/contenedorPagina';
 
 // Plataforma de Email Marketing dentro del panel propio del cliente.
 //
@@ -143,7 +144,7 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 72px' : '20px 16px 88px' }}>
+      <div style={contenedorPagina(isDesktop)}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, marginBottom: 'var(--space-6)' }}>
           <div>
             <div className="crm-desc-label">Email Marketing</div>

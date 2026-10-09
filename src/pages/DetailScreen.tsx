@@ -6,6 +6,7 @@ import { getLlegadas, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { useClientContextLabel } from '../hooks/useClientContextLabel';
 import type { LlegadaGuest } from '../types';
+import { contenedorPagina } from '../lib/contenedorPagina';
 
 export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
@@ -38,7 +39,7 @@ export function DetailScreen({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: isDesktop ? '36px 40px 60px' : '20px 16px 80px' }}>
+      <div style={contenedorPagina(isDesktop, { abajoDesktop: 60, abajoMobile: 80 })}>
         <div
           style={{
             display: 'flex',
