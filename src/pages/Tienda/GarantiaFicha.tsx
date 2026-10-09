@@ -3,7 +3,7 @@ import { ConflictError, crearTiendaGarantia, editarTiendaGarantia, UnauthorizedE
 import { useAuth } from '../../context/AuthContext';
 import type { StoreGarantia, StoreGarantiaAviso, StoreGarantiaDatos, StoreGarantiaEstado } from '../../types';
 import { GarantiaAviso } from './GarantiaAviso';
-import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMBRE, fmtMomento, formatearRut, money, rutValido } from './garantias';
+import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMBRE, fmtMomento, formatearRut, money, preguntaBorrado, rutValido } from './garantias';
 
 // Página de una garantía (2026-10-08, decisión de Mato): reemplaza a la ficha
 // lateral. Ocupa el área de contenido en lugar del listado y, al guardar, el
@@ -15,7 +15,7 @@ import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMB
 // 4 estado y pago. La nota interna cierra.
 //
 // Una garantía eliminada (está en la papelera) se abre en solo lectura, con
-// Restaurar en vez de Guardar. Nada de esto le manda un correo al cliente.
+// Restaurar en vez de Guardar y «Eliminar permanentemente» en vez de Eliminar. Nada de esto le manda un correo al cliente.
 //
 // El aviso por WhatsApp (2026-10-08) va en «2 Despacho» (GarantiaAviso): es
 // lo único de la página que le escribe al cliente, y solo con su botón.
@@ -36,6 +36,23 @@ const inputStyle: React.CSSProperties = {
   background: 'var(--white)',
   color: 'var(--text)',
 };
+// Safari dibuja el <select> nativo más bajo que los demás campos y con sus
+// flechas pegadas al borde derecho (2026-10-08, pedido de Mato). Acá se dibuja
+// propio: mismo alto y borde que un campo de texto, y la flecha a 12px del
+// borde. En una eliminada (solo lectura) el fondo de `.solo-lectura` la tapa,
+// y está bien: no se puede cambiar.
+const FLECHA_SELECT =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+const selectStyle: React.CSSProperties = {
+  ...inputStyle,
+  background: `var(--white) ${FLECHA_SELECT} no-repeat right 12px center / 12px 12px`,
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  paddingRight: 34,
+};
+// Las fechas dejan el mismo aire a la derecha: el ícono del calendario que
+// dibuja el navegador no queda pegado al borde.
+const fechaStyle: React.CSSProperties = { ...inputStyle, paddingRight: 12 };
 const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' };
 const tituloSeccion: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0 };
 const numeroSeccion: React.CSSProperties = {
@@ -194,6 +211,7 @@ export function GarantiaFicha({
   onGuardado,
   onEliminar,
   onRestaurar,
+  onBorrar,
   onVerActual,
   onAvisoCambiado,
   onRecargarAviso,
@@ -207,6 +225,8 @@ export function GarantiaFicha({
   /** Hace la llamada y vuelve al listado. Si lanza, la página muestra el error. */
   onEliminar?: (g: StoreGarantia) => Promise<void>;
   onRestaurar?: (g: StoreGarantia) => Promise<void>;
+  /** Borra para siempre una eliminada; la página pregunta antes. */
+  onBorrar?: (g: StoreGarantia) => Promise<void>;
   /** Tras un 409: trae la versión guardada y vuelve a abrir la página con ella. */
   onVerActual?: () => void;
   /** El listado se queda con el aviso nuevo, sin recargar. */
@@ -217,7 +237,7 @@ export function GarantiaFicha({
   const { handleUnauthorized } = useAuth();
   const inicial = useMemo(() => desdeGarantia(garantia), [garantia]);
   const [f, setF] = useState<Formulario>(inicial);
-  const [ocupado, setOcupado] = useState<'guardar' | 'eliminar' | 'restaurar' | 'notificar' | null>(null);
+  const [ocupado, setOcupado] = useState<'guardar' | 'eliminar' | 'restaurar' | 'borrar' | 'notificar' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [conflicto, setConflicto] = useState(false);
   // El campo que no pasó la validación: el error se muestra bajo él y no al
@@ -247,9 +267,9 @@ export function GarantiaFicha({
     ) : null;
   }
 
-  function invalido(clave: keyof Formulario) {
+  function invalido(clave: keyof Formulario, base: React.CSSProperties = inputStyle) {
     return errorCampo === clave
-      ? { 'aria-invalid': true as const, 'aria-describedby': `${id}-${clave}-error`, style: { ...inputStyle, border: '1px solid var(--status-critico-dot)' } }
+      ? { 'aria-invalid': true as const, 'aria-describedby': `${id}-${clave}-error`, style: { ...base, border: '1px solid var(--status-critico-dot)' } }
       : {};
   }
 
@@ -335,6 +355,20 @@ export function GarantiaFicha({
     }
   }
 
+  // Sin «Deshacer»: por eso, a diferencia de Eliminar, siempre pregunta.
+  async function borrar() {
+    if (!garantia || !onBorrar) return;
+    if (!window.confirm(preguntaBorrado(garantia))) return;
+    setOcupado('borrar');
+    setError(null);
+    try {
+      await onBorrar(garantia);
+    } catch (e) {
+      fallo(e, 'No se pudo eliminar permanentemente la garantía.');
+      setOcupado(null);
+    }
+  }
+
   // Lo que hay que escribir en la etiqueta del envío, listo para pegar.
   async function copiarDespacho() {
     const direccion = [f.direccion, f.comuna, f.region].map((s) => s.trim()).filter(Boolean).join(', ');
@@ -365,6 +399,7 @@ export function GarantiaFicha({
   // las pruebas para encontrar cada campo por su nombre visible.
   function texto(clave: keyof Formulario, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}, caja?: React.CSSProperties) {
     const campoId = `${id}-${clave}`;
+    const base = extra.type === 'date' ? fechaStyle : inputStyle;
     return (
       <div style={caja}>
         <label htmlFor={campoId} style={fieldLabel}>
@@ -374,9 +409,9 @@ export function GarantiaFicha({
           id={campoId}
           value={f[clave] as string}
           onChange={(e) => set(clave, e.target.value as never)}
-          style={inputStyle}
+          style={base}
           {...extra}
-          {...invalido(clave)}
+          {...invalido(clave, base)}
         />
         {errorBajo(clave)}
       </div>
@@ -485,7 +520,7 @@ export function GarantiaFicha({
                 <label htmlFor={`${id}-region`} style={fieldLabel}>
                   Región
                 </label>
-                <select id={`${id}-region`} value={f.region} onChange={(e) => set('region', e.target.value)} style={inputStyle}>
+                <select id={`${id}-region`} value={f.region} onChange={(e) => set('region', e.target.value)} style={selectStyle}>
                   <option value="">Elige…</option>
                   {/* Una región escrita a mano en el formulario web se conserva
                       como opción: editar no la borra. */}
@@ -529,7 +564,7 @@ export function GarantiaFicha({
                 <label htmlFor={`${id}-tramo`} style={fieldLabel}>
                   Tramo *
                 </label>
-                <select id={`${id}-tramo`} value={f.tramo} onChange={(e) => set('tramo', e.target.value)} style={inputStyle} {...invalido('tramo')}>
+                <select id={`${id}-tramo`} value={f.tramo} onChange={(e) => set('tramo', e.target.value)} style={selectStyle} {...invalido('tramo', selectStyle)}>
                   <option value="">Elige…</option>
                   {Object.entries(TRAMO_NOMBRE).map(([n, nombre]) => (
                     <option key={n} value={n}>
@@ -634,11 +669,20 @@ export function GarantiaFicha({
                 {ocupado === 'eliminar' ? 'Eliminando…' : 'Eliminar'}
               </button>
             )}
+            {eliminada && onBorrar && (
+              <button type="button" className="crm-btn crm-btn-danger" style={{ paddingInline: 12, marginLeft: -12 }} onClick={() => void borrar()} disabled={ocupado !== null}>
+                {ocupado === 'borrar' ? 'Eliminando…' : 'Eliminar permanentemente'}
+              </button>
+            )}
             <span style={{ flex: 1 }} />
             {cambiado && !eliminada && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{isDesktop ? 'Cambios sin guardar' : 'Sin guardar'}</span>}
-            <button type="button" className="crm-btn crm-btn-text" onClick={cerrar} disabled={ocupado !== null}>
-              {eliminada ? 'Volver' : 'Cancelar'}
-            </button>
+            {/* En el celular, con «Eliminar permanentemente», los tres botones
+                no caben: Volver ya está arriba como «← Garantías». */}
+            {!(eliminada && onBorrar && !isDesktop) && (
+              <button type="button" className="crm-btn crm-btn-text" onClick={cerrar} disabled={ocupado !== null}>
+                {eliminada ? 'Volver' : 'Cancelar'}
+              </button>
+            )}
             {eliminada ? (
               onRestaurar && (
                 <button type="button" className="crm-btn crm-btn-primary" onClick={() => void restaurar()} disabled={ocupado !== null}>

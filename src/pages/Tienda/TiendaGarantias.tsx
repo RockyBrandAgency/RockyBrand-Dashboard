@@ -3,18 +3,20 @@ import { AsyncState } from '../../components/AsyncState';
 import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { KpiRow } from '../../components/KpiRow';
-import { eliminarTiendaGarantia, getTiendaGarantias, restaurarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
+import { borrarTiendaGarantia, eliminarTiendaGarantia, getTiendaGarantias, restaurarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { StoreGarantia } from '../../types';
 import { GarantiaFicha } from './GarantiaFicha';
-import { COLOR_TONO, ESTADOS_GARANTIA as ESTADOS, SIN_FILTROS, TRAMO_NOMBRE, anioDe, filtrarGarantias, fmtMomento, hayFiltros, lineaAviso, money, opcionesDe, type FiltrosGarantias, type OpcionFiltro } from './garantias';
+import { COLOR_TONO, ESTADOS_GARANTIA as ESTADOS, SIN_FILTROS, TRAMO_NOMBRE, anioDe, filtrarGarantias, fmtMomento, hayFiltros, lineaAviso, money, opcionesDe, preguntaBorrado, type FiltrosGarantias, type OpcionFiltro } from './garantias';
 import { contenedorPagina } from '../../lib/contenedorPagina';
 
 type Vista = 'activas' | 'eliminadas';
 
-// Ancho fijo para que «Restaurando…» no mueva la fila y el encabezado
-// reserve el mismo espacio.
-const ANCHO_RESTAURAR = 120;
+// Ancho fijo de los botones de una eliminada, para que «Restaurando…» y
+// «Eliminando…» no muevan la fila y el encabezado reserve el mismo espacio.
+// En escritorio van uno sobre otro: lado a lado le quitaban al cliente más de
+// la mitad de su columna.
+const ANCHO_ACCIONES = 184;
 
 const porFecha = (a: StoreGarantia, b: StoreGarantia) => b.created_at.localeCompare(a.created_at);
 
@@ -39,6 +41,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   const [ficha, setFicha] = useState<{ garantia?: StoreGarantia; n: number } | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [restaurando, setRestaurando] = useState<string | null>(null);
+  const [borrando, setBorrando] = useState<string | null>(null);
   const contador = useRef(0);
 
   const avisar = (texto: string, extra?: Omit<Aviso, 'id' | 'texto'>) => setAviso({ id: ++contador.current, texto, ...extra });
@@ -131,6 +134,28 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
       avisar(`No se pudo restaurar: ${e instanceof Error ? e.message : 'error de red'}.`, { tono: 'error' });
     } finally {
       setRestaurando(null);
+    }
+  }
+
+  // «Eliminar permanentemente» (2026-10-08, pedido de Mato): solo en
+  // Eliminadas y después de confirmar, porque no tiene «Deshacer». La
+  // confirmación la hace quien llama: la fila o la página de la eliminada.
+  async function borrar(g: StoreGarantia, desde: 'lista' | 'ficha') {
+    if (desde === 'lista') setBorrando(g.solicitud_id);
+    try {
+      await borrarTiendaGarantia(g.solicitud_id);
+      setEliminadas((prev) => prev.filter((x) => x.solicitud_id !== g.solicitud_id));
+      if (desde === 'ficha') setFicha(null);
+      avisar(`Eliminaste permanentemente la garantía de ${g.nombre || g.solicitud_id}.`);
+      void recargarEnSilencio();
+    } catch (e) {
+      // Desde la ficha, el error lo muestra la ficha.
+      if (desde === 'ficha') throw e;
+      if (e instanceof UnauthorizedError) return handleUnauthorized();
+      avisar(`No se pudo eliminar: ${e instanceof Error ? e.message : 'error de red'}.`, { tono: 'error' });
+      void recargarEnSilencio();
+    } finally {
+      setBorrando(null);
     }
   }
 
@@ -367,7 +392,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     ) : (
       <>
         <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 'var(--space-5)' }}>
-          No cuentan en los indicadores ni en las veces de cada persona. Restaura una y vuelve a la lista tal como estaba.
+          No cuentan en los indicadores ni en las veces de cada persona. Restaura una y vuelve a la lista tal como estaba; elimínala permanentemente y se borra para siempre.
         </div>
         <div style={tabla}>
           {isDesktop && (
@@ -377,16 +402,18 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
               <span style={col(120)}>Tramo</span>
               <span style={col(130)}>Estado</span>
               <span style={col(130)}>Eliminada</span>
-              {/* El hueco de Restaurar en cada fila: botón + separación + margen
-                  derecho. Sin él, el cliente flexible del encabezado se estira
-                  más que el de la fila y las columnas no calzan. */}
-              <span style={col(ANCHO_RESTAURAR + 8 + 16)} />
+              {/* El hueco de los botones de cada fila: botones + separaciones +
+                  margen derecho. Sin él, el cliente flexible del encabezado se
+                  estira más que el de la fila y las columnas no calzan. */}
+              <span style={col(ANCHO_ACCIONES + 8 + 16)} />
             </div>
           )}
           {eliminadas.map((g) => (
             <div
               key={g.solicitud_id}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: isDesktop ? 16 : 12, borderBottom: '1px solid var(--border-soft)' }}
+              // En el celular los botones bajan a su propia línea: al lado no
+              // le dejan espacio al nombre.
+              style={{ display: 'flex', flexWrap: isDesktop ? 'nowrap' : 'wrap', alignItems: 'center', columnGap: 8, paddingRight: isDesktop ? 16 : 12, paddingBottom: isDesktop ? 0 : 12, borderBottom: '1px solid var(--border-soft)' }}
             >
               <button onClick={() => abrir(g)} style={{ ...fila, flex: 1, minWidth: 0 }}>
                 {isDesktop ? (
@@ -398,15 +425,30 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                   filaMovil(g, '', <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>Eliminada {fmtMomento(g.eliminada_en)}</span>)
                 )}
               </button>
-              <button
-                className="crm-btn crm-btn-ghost crm-btn-sm"
-                style={{ width: ANCHO_RESTAURAR, flexShrink: 0 }}
-                onClick={() => void restaurar(g, 'lista')}
-                disabled={restaurando === g.solicitud_id}
-                aria-label={`Restaurar la garantía de ${g.nombre || g.solicitud_id}`}
+              <span
+                style={{ display: 'flex', flexDirection: isDesktop ? 'column' : 'row', gap: isDesktop ? 4 : 8, flexShrink: 0, marginLeft: 'auto', paddingLeft: isDesktop ? 0 : 12, paddingBlock: isDesktop ? 8 : 0 }}
               >
-                {restaurando === g.solicitud_id ? 'Restaurando…' : 'Restaurar'}
-              </button>
+                <button
+                  className="crm-btn crm-btn-ghost crm-btn-sm"
+                  style={isDesktop ? { width: ANCHO_ACCIONES } : undefined}
+                  onClick={() => void restaurar(g, 'lista')}
+                  disabled={restaurando === g.solicitud_id || borrando === g.solicitud_id}
+                  aria-label={`Restaurar la garantía de ${g.nombre || g.solicitud_id}`}
+                >
+                  {restaurando === g.solicitud_id ? 'Restaurando…' : 'Restaurar'}
+                </button>
+                <button
+                  className="crm-btn crm-btn-danger crm-btn-sm"
+                  style={isDesktop ? { width: ANCHO_ACCIONES } : undefined}
+                  onClick={() => {
+                    if (window.confirm(preguntaBorrado(g))) void borrar(g, 'lista');
+                  }}
+                  disabled={restaurando === g.solicitud_id || borrando === g.solicitud_id}
+                  aria-label={`Eliminar permanentemente la garantía de ${g.nombre || g.solicitud_id}`}
+                >
+                  {borrando === g.solicitud_id ? 'Eliminando…' : 'Eliminar permanentemente'}
+                </button>
+              </span>
             </div>
           ))}
         </div>
@@ -433,6 +475,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
           }}
           onEliminar={eliminar}
           onRestaurar={(g) => restaurar(g, 'ficha')}
+          onBorrar={(g) => borrar(g, 'ficha')}
           onVerActual={() => void verActual()}
           onAvisoCambiado={(id, a) => setGarantias((prev) => (prev ?? []).map((x) => (x.solicitud_id === id ? { ...x, aviso: a } : x)))}
           onRecargarAviso={async (id) => {

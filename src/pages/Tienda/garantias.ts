@@ -121,6 +121,12 @@ export const REGIONES = [
 // Sugerencias para «Empresa de transporte»; se puede escribir otra.
 export const COURIERS = ['Starken', 'Chilexpress', 'Correos de Chile', 'Blue Express'];
 
+// «Eliminar permanentemente» no tiene «Deshacer»: la misma pregunta en la
+// fila de Eliminadas y en la página de una eliminada.
+export function preguntaBorrado(g: { nombre: string; solicitud_id: string }): string {
+  return `¿Eliminar permanentemente la garantía de ${g.nombre || g.solicitud_id}? Se borra para siempre y no se puede restaurar.`;
+}
+
 // --- Aviso por WhatsApp (2026-10-08) ----------------------------------------
 // La línea corta que va bajo el estado en el listado, para ver de un vistazo
 // qué despachada falta avisar y qué aviso no salió. null = nada que decir

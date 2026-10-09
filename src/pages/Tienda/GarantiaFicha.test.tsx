@@ -391,6 +391,31 @@ describe('GarantiaFicha — eliminar, restaurar y conflicto', () => {
     expect(onRestaurar).toHaveBeenCalledWith(expect.objectContaining({ solicitud_id: 'GAR-ABC1234567' }));
   });
 
+  it('una viva no tiene Eliminar permanentemente', () => {
+    render(WEB, { onEliminar: vi.fn(), onBorrar: vi.fn() });
+    expect(() => boton('Eliminar permanentemente')).toThrow();
+  });
+
+  it('una eliminada se borra para siempre solo si se confirma', async () => {
+    const onBorrar = vi.fn().mockResolvedValue(undefined);
+    render({ ...WEB, eliminada_en: '2026-10-07T20:00:00+00:00' }, { onRestaurar: vi.fn(), onBorrar });
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    await click(boton('Eliminar permanentemente'));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('no se puede restaurar'));
+    expect(onBorrar).not.toHaveBeenCalled();
+    await click(boton('Eliminar permanentemente'));
+    expect(onBorrar).toHaveBeenCalledWith(expect.objectContaining({ solicitud_id: 'GAR-ABC1234567' }));
+  });
+
+  it('si borrar falla, muestra el error y sigue en la página', async () => {
+    const onBorrar = vi.fn().mockRejectedValue(new Error('La garantía se restauró mientras la borrabas. No se borró.'));
+    render({ ...WEB, eliminada_en: '2026-10-07T20:00:00+00:00' }, { onRestaurar: vi.fn(), onBorrar });
+    await click(boton('Eliminar permanentemente'));
+    expect(alerta()).toContain('se restauró');
+    expect(boton('Eliminar permanentemente').disabled).toBe(false);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('tras un 409 ofrece descartar y ver la versión actual', async () => {
     editar.mockRejectedValue(new ConflictError('Esta garantía cambió desde que abriste el formulario.'));
     const onVerActual = vi.fn();

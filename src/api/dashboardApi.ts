@@ -540,8 +540,9 @@ export function editarTiendaGarantia(
 }
 
 // Papelera (2026-10-07, decisión de Mato). Eliminar la saca de la lista y de
-// los indicadores, pero queda guardada: restaurar la devuelve tal cual. Nada
-// se borra de verdad. Repetir cualquiera de las dos no es un error.
+// los indicadores, pero queda guardada: restaurar la devuelve tal cual.
+// Repetir cualquiera de las dos no es un error. Lo único que borra de verdad
+// es borrarTiendaGarantia, y solo sobre una que ya está en la papelera.
 export interface RespuestaPapelera {
   ok: boolean;
   solicitud_id: string;
@@ -556,6 +557,13 @@ export function eliminarTiendaGarantia(solicitud_id: string): Promise<RespuestaP
 
 export function restaurarTiendaGarantia(solicitud_id: string): Promise<RespuestaPapelera> {
   return request(`/dashboard/tienda/garantias/${encodeURIComponent(solicitud_id)}/restaurar`, 'POST', {});
+}
+
+// «Eliminar permanentemente» (2026-10-08, pedido de Mato): el backend solo la
+// borra si ya está en la papelera, y no se deshace. Repetirlo no es un error;
+// si otra persona la restauró entre medio, 409 y no se borra.
+export function borrarTiendaGarantia(solicitud_id: string): Promise<{ ok: boolean; solicitud_id: string; borrada: boolean }> {
+  return request(`/dashboard/tienda/garantias/${encodeURIComponent(solicitud_id)}/borrar`, 'POST', {});
 }
 
 // Aviso de despacho por WhatsApp (2026-10-08). Es lo ÚNICO que le manda esa

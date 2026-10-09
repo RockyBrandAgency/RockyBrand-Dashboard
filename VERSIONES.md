@@ -15,6 +15,33 @@ muestra botones que no guardan.
 
 ---
 
+## 3.2.0
+
+**2026-10-08** · menor (capacidad nueva) · requiere backend: arquitectura
+1.12.0 de AI_Agency, con `chile-fly-fishing-store-stack` y
+`rockybrand-dashboard-stack` desplegados **antes** de publicar el panel. Con la
+Lambda anterior, «Eliminar permanentemente» responde error y no borra nada.
+Incluye la 3.1.1, que no alcanzó a publicarse.
+
+Tienda → Garantías (pedido de Mato):
+
+- **Eliminar permanentemente**, solo en **Eliminadas**: un botón en cada fila,
+  bajo Restaurar (lado a lado le quitaban más de la mitad de su columna al
+  cliente), y en el pie de la página de una eliminada, donde una viva tiene
+  Eliminar. Siempre pregunta antes («Se borra para siempre y no se puede
+  restaurar»); cancelar no hace nada. Una garantía viva no lo tiene: primero se
+  elimina, y ese paso sigue teniendo «Deshacer». En el celular, el pie de una
+  eliminada no muestra Volver (no cabían los tres botones; arriba está
+  «← Garantías»).
+- Si otra persona la restauró mientras tanto, no se borra y lo dice.
+- **Selectores de la página** (Región y Tramo): Safari los dibujaba nativos,
+  más bajos que los demás campos y con las flechas pegadas al borde derecho.
+  Ahora tienen el mismo alto y borde que un campo de texto, y la flecha a 12px
+  del borde.
+- **Fechas:** Safari las dibujaba 4px más altas que los demás campos; ahora
+  miden lo mismo (35px, medido en WebKit) y dejan el mismo aire a la derecha.
+  Con el motor de Safari 26.5, en reposo, no muestran flechas propias.
+
 ## 3.1.1
 
 **2026-10-08** · parche (se ordena sin capacidad nueva) · no requiere backend.
