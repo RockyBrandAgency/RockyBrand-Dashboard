@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
+import { useAnchoContenido } from '../../hooks/useAnchoContenido';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { KpiRow } from '../../components/KpiRow';
 import { borrarTiendaGarantia, eliminarTiendaGarantia, getTiendaGarantias, restaurarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
@@ -16,6 +17,18 @@ type Vista = 'activas' | 'eliminadas';
 // En escritorio van uno sobre otro: lado a lado le quitaban al cliente más de
 // la mitad de su columna.
 const ANCHO_ACCIONES = 184;
+
+// Columnas fijas de la tabla; el cliente se queda con lo que sobra.
+const COL = { cana: 190, tramo: 120, estado: 130, veces: 95, fecha: 130, flecha: 24, eliminada: 130 };
+
+// Ancho que necesita cada tabla para que el cliente tenga al menos 180px:
+// columnas, padding de la fila (24 + 24), borde (1 + 1) y, en Eliminadas,
+// los botones con su separación y su margen. Con menos espacio el listado va
+// en tarjetas, como en el celular (pedido de Mato, 2026-10-12): entre 768 y
+// 1299px de ventana la tabla no cabía y la página se salía por la derecha.
+const ANCHO_CLIENTE_MIN = 180;
+const ANCHO_TABLA_ACTIVAS = ANCHO_CLIENTE_MIN + COL.cana + COL.tramo + COL.estado + COL.veces + COL.fecha + COL.flecha + 48 + 2;
+const ANCHO_TABLA_ELIMINADAS = ANCHO_CLIENTE_MIN + COL.cana + COL.tramo + COL.estado + COL.eliminada + 48 + 8 + ANCHO_ACCIONES + 16 + 2;
 
 const porFecha = (a: StoreGarantia, b: StoreGarantia) => b.created_at.localeCompare(a.created_at);
 
@@ -38,6 +51,8 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   // reemplaza a propósito (al restaurarla, o al traer la versión actual tras
   // un 409).
   const [ficha, setFicha] = useState<{ garantia?: StoreGarantia; n: number } | null>(null);
+  // El espacio real del listado decide entre tabla y tarjetas (2026-10-12).
+  const [contenedorRef, anchoListado] = useAnchoContenido<HTMLDivElement>();
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [restaurando, setRestaurando] = useState<string | null>(null);
   const [borrando, setBorrando] = useState<string | null>(null);
@@ -212,7 +227,13 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     fontWeight: 600,
     color: 'var(--text-sub)',
   };
-  const tabla: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' };
+  // contain: un nombre o un correo largo, que no se parte, ya no ensancha la
+  // página: la tabla toma el ancho del contenedor y lo que no cabe se corta
+  // con «…».
+  const tabla: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', contain: 'inline-size' };
+  // Tabla o tarjetas: hasta medir, lo que diga el tamaño de pantalla.
+  const anchoTabla = vista === 'eliminadas' ? ANCHO_TABLA_ELIMINADAS : ANCHO_TABLA_ACTIVAS;
+  const filas = isDesktop && (anchoListado === null || anchoListado >= anchoTabla);
   const conPapelera = eliminadas.length > 0 || vista === 'eliminadas';
 
   function filtroSelect(clave: 'anio' | 'region' | 'cana', label: string, lista: OpcionFiltro[], todos: string) {
@@ -259,7 +280,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     const l = lineaAviso(g);
     if (!l) return null;
     return (
-      <span style={{ display: 'block', marginTop: isDesktop ? 4 : 0, fontSize: 11, fontWeight: l.tono === 'neutro' ? 500 : 600, color: COLOR_TONO[l.tono], whiteSpace: 'nowrap' }}>
+      <span style={{ display: 'block', marginTop: filas ? 4 : 0, fontSize: 11, fontWeight: l.tono === 'neutro' ? 500 : 600, color: COLOR_TONO[l.tono], whiteSpace: 'nowrap' }}>
         {l.texto}
       </span>
     );
@@ -296,14 +317,14 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
             {g.email || g.telefono || 'Sin correo'}
           </span>
         </span>
-        <span style={col(190, { ...unaLinea, paddingRight: 12, boxSizing: 'border-box', fontSize: 13, color: 'var(--text-sub)' })}>
+        <span style={col(COL.cana, { ...unaLinea, paddingRight: 12, boxSizing: 'border-box', fontSize: 13, color: 'var(--text-sub)' })}>
           {g.cana}
           {g.modelo ? ` · ${g.modelo}` : ''}
         </span>
-        <span style={col(120, { fontSize: 13, color: 'var(--text-sub)' })}>
+        <span style={col(COL.tramo, { fontSize: 13, color: 'var(--text-sub)' })}>
           {g.tramo} · {TRAMO_NOMBRE[g.tramo] ?? '—'}
         </span>
-        <span style={col(130)}>
+        <span style={col(COL.estado)}>
           {pastillaEstado(g)}
           {avisoLinea(g)}
         </span>
@@ -339,34 +360,34 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
     cursor: 'pointer',
     width: '100%',
     display: 'flex',
-    flexDirection: isDesktop ? 'row' : 'column',
-    alignItems: isDesktop ? 'center' : 'flex-start',
-    gap: isDesktop ? 0 : 4,
-    padding: isDesktop ? '14px 24px' : '14px 16px',
+    flexDirection: filas ? 'row' : 'column',
+    alignItems: filas ? 'center' : 'flex-start',
+    gap: filas ? 0 : 4,
+    padding: filas ? '14px 24px' : '14px 16px',
   };
 
   const listaActivas = (
     <div style={tabla}>
-      {isDesktop && (
+      {filas && (
         <div style={encabezado}>
           <span style={{ flex: '1 1 210px', minWidth: 0 }}>Cliente</span>
-          <span style={col(190)}>Caña</span>
-          <span style={col(120)}>Tramo</span>
-          <span style={col(130)}>Estado</span>
-          <span style={col(95, { textAlign: 'center' })}>Veces</span>
-          <span style={col(130, { textAlign: 'right' })}>Fecha</span>
-          <span style={col(24)} />
+          <span style={col(COL.cana)}>Caña</span>
+          <span style={col(COL.tramo)}>Tramo</span>
+          <span style={col(COL.estado)}>Estado</span>
+          <span style={col(COL.veces, { textAlign: 'center' })}>Veces</span>
+          <span style={col(COL.fecha, { textAlign: 'right' })}>Fecha</span>
+          <span style={col(COL.flecha)} />
         </div>
       )}
       {filtradas.map((g) => (
         // La fila entera abre la página de la garantía.
         <button key={g.solicitud_id} onClick={() => abrir(g)} style={{ ...fila, borderBottom: '1px solid var(--border-soft)' }}>
-          {isDesktop ? (
+          {filas ? (
             <>
               {celdasComunes(g)}
-              <span style={col(95, { textAlign: 'center' })}>{vecesBadge(g)}</span>
-              <span style={col(130, { textAlign: 'right', fontSize: 13, color: 'var(--text-sub)' })}>{fmtMomento(g.created_at)}</span>
-              <span aria-hidden="true" style={col(24, { textAlign: 'right', fontSize: 18, color: 'var(--text-faint)' })}>
+              <span style={col(COL.veces, { textAlign: 'center' })}>{vecesBadge(g)}</span>
+              <span style={col(COL.fecha, { textAlign: 'right', fontSize: 13, color: 'var(--text-sub)' })}>{fmtMomento(g.created_at)}</span>
+              <span aria-hidden="true" style={col(COL.flecha, { textAlign: 'right', fontSize: 18, color: 'var(--text-faint)' })}>
                 ›
               </span>
             </>
@@ -394,13 +415,13 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
           No cuentan en los indicadores ni en las veces de cada persona. Restaura una y vuelve a la lista tal como estaba; elimínala permanentemente y se borra para siempre.
         </div>
         <div style={tabla}>
-          {isDesktop && (
+          {filas && (
             <div style={encabezado}>
               <span style={{ flex: '1 1 210px', minWidth: 0 }}>Cliente</span>
-              <span style={col(190)}>Caña</span>
-              <span style={col(120)}>Tramo</span>
-              <span style={col(130)}>Estado</span>
-              <span style={col(130)}>Eliminada</span>
+              <span style={col(COL.cana)}>Caña</span>
+              <span style={col(COL.tramo)}>Tramo</span>
+              <span style={col(COL.estado)}>Estado</span>
+              <span style={col(COL.eliminada)}>Eliminada</span>
               {/* El hueco de los botones de cada fila: botones + separaciones +
                   margen derecho. Sin él, el cliente flexible del encabezado se
                   estira más que el de la fila y las columnas no calzan. */}
@@ -410,26 +431,28 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
           {eliminadas.map((g) => (
             <div
               key={g.solicitud_id}
-              // En el celular los botones bajan a su propia línea: al lado no
-              // le dejan espacio al nombre.
-              style={{ display: 'flex', flexWrap: isDesktop ? 'nowrap' : 'wrap', alignItems: 'center', columnGap: 8, paddingRight: isDesktop ? 16 : 12, paddingBottom: isDesktop ? 0 : 12, borderBottom: '1px solid var(--border-soft)' }}
+              // En tarjetas los botones bajan a su propia línea, bajo el texto:
+              // al lado no le dejan espacio al nombre. Para eso la fila ocupa
+              // la línea entera (base 100%); con flex: 1 su base era 0 y los
+              // botones se quedaban al lado (2026-10-12).
+              style={{ display: 'flex', flexWrap: filas ? 'nowrap' : 'wrap', alignItems: 'center', columnGap: 8, paddingRight: filas ? 16 : 12, paddingBottom: filas ? 0 : 12, borderBottom: '1px solid var(--border-soft)' }}
             >
-              <button onClick={() => abrir(g)} style={{ ...fila, flex: 1, minWidth: 0 }}>
-                {isDesktop ? (
+              <button onClick={() => abrir(g)} style={{ ...fila, flex: filas ? 1 : '1 1 100%', minWidth: 0 }}>
+                {filas ? (
                   <>
                     {celdasComunes(g)}
-                    <span style={col(130, { fontSize: 13, color: 'var(--text-sub)' })}>{fmtMomento(g.eliminada_en)}</span>
+                    <span style={col(COL.eliminada, { fontSize: 13, color: 'var(--text-sub)' })}>{fmtMomento(g.eliminada_en)}</span>
                   </>
                 ) : (
                   filaMovil(g, '', <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>Eliminada {fmtMomento(g.eliminada_en)}</span>)
                 )}
               </button>
               <span
-                style={{ display: 'flex', flexDirection: isDesktop ? 'column' : 'row', gap: isDesktop ? 4 : 8, flexShrink: 0, marginLeft: 'auto', paddingLeft: isDesktop ? 0 : 12, paddingBlock: isDesktop ? 8 : 0 }}
+                style={{ display: 'flex', flexDirection: filas ? 'column' : 'row', flexWrap: filas ? 'nowrap' : 'wrap', gap: filas ? 4 : 8, flex: filas ? '0 0 auto' : '1 1 100%', marginLeft: filas ? 'auto' : 0, paddingLeft: filas ? 0 : 16, paddingBlock: filas ? 8 : 0 }}
               >
                 <button
                   className="crm-btn crm-btn-ghost crm-btn-sm"
-                  style={isDesktop ? { width: ANCHO_ACCIONES } : undefined}
+                  style={filas ? { width: ANCHO_ACCIONES } : undefined}
                   onClick={() => void restaurar(g, 'lista')}
                   disabled={restaurando === g.solicitud_id || borrando === g.solicitud_id}
                   aria-label={`Restaurar la garantía de ${g.nombre || g.solicitud_id}`}
@@ -438,7 +461,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                 </button>
                 <button
                   className="crm-btn crm-btn-danger crm-btn-sm"
-                  style={isDesktop ? { width: ANCHO_ACCIONES } : undefined}
+                  style={filas ? { width: ANCHO_ACCIONES } : undefined}
                   onClick={() => {
                     if (window.confirm(preguntaBorrado(g))) void borrar(g, 'lista');
                   }}
@@ -489,7 +512,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div className="contenedor-pagina">
+      <div className="contenedor-pagina" ref={contenedorRef}>
         <div
           style={{
             display: 'flex',

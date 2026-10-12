@@ -34,6 +34,24 @@ Contenedor de página como clase (pedido de Mato):
   que ya no tenía consumidores, y `SettingsScreen` deja de recibir
   `isDesktop`, que sólo usaba para el contenedor.
 
+Garantías: tabla o tarjetas según el espacio (pedido de Mato):
+
+- **Qué.** El listado mide el ancho que le queda
+  (`hooks/useAnchoContenido.ts`). Si la tabla no cabe con al menos 180px
+  para el cliente, se ve en tarjetas, como en el celular: Activas necesita
+  919px y Eliminadas 1008px. En las tarjetas de Eliminadas los botones van
+  en su propia línea, bajo el texto.
+- **Por qué.** Entre 768 y 1299px de ventana la tabla no cabía y la página
+  se salía por la derecha, entre 3 y 258px; un nombre o un correo largo la
+  empujaba más. Así el listado no podía calzar con la ficha. En las tarjetas
+  de Eliminadas, los botones se quedaban al lado y le dejaban al nombre
+  unos pocos píxeles.
+- **Beneficio.** Sin desborde en ningún ancho, ni con nombres o correos
+  largos: la tabla ya no ensancha la página (`contain: inline-size`) y lo
+  que no cabe se corta con «…».
+- **Errores.** Ninguno conocido. Probado de 320 a 1920px con datos ficticios
+  en Chromium; no probado en Safari ni con el panel real.
+
 ## 3.2.0
 
 **2026-10-08** · menor (capacidad nueva) · requiere backend: arquitectura
