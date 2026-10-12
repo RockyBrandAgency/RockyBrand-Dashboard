@@ -8,7 +8,6 @@ import { terminologiaPms } from '../../lib/terminologiaPms';
 import { telefonoDe, enlaceWhatsapp } from '../../lib/contactoHuesped';
 import { AcompanantesReserva } from '../../components/AcompanantesReserva';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 const PAGE_SIZE = 20;
 
@@ -124,7 +123,7 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div
           style={{
             paddingBottom: 'var(--space-7)',

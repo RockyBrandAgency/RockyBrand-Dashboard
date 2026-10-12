@@ -4,7 +4,6 @@ import { ToggleRow } from '../components/ToggleRow';
 import { useAuth } from '../context/AuthContext';
 import { uploadClientLogo } from '../api/dashboardApi';
 import { CLIENT_LOCATION } from '../branding';
-import { contenedorPagina } from '../lib/contenedorPagina';
 
 // Redimensiona/comprime la imagen ANTES de mandarla - el backend acepta
 // hasta ~300KB de data URL (agent_core.MAX_LOGO_DATA_URL_LEN), y un logo
@@ -139,7 +138,7 @@ function LogoCard() {
 // que no existen. Ahora las dos lo dicen (2026-09-08). Layout y copy siguen el Figma real (frame
 // "05 — Configuración"); el logo es la única sección que sí es 100% real
 // de punta a punta (pedido explícito de Mato, 2026-08-03).
-export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
+export function SettingsScreen() {
   const { logout, clientId } = useAuth();
   const [sw, setSw] = useState({ newBooking: true, cancellation: true, inquiry: false, syncError: true });
   const [horario, setHorario] = useState({ desde: '08:00', hasta: '22:00' });
@@ -151,7 +150,7 @@ export function SettingsScreen({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div
           style={{
             display: 'flex',

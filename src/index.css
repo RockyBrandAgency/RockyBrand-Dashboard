@@ -124,6 +124,33 @@ body,
   -webkit-font-smoothing: antialiased;
 }
 
+/* Contenedor de cada pantalla, uno solo para todas, también para las
+   páginas que se abren desde un listado (la ficha de una garantía): si cada
+   una escribe su ancho a mano, al navegar se nota el salto (pedido de Mato,
+   2026-10-12).
+
+   A los costados, 0 cuando sobra espacio (pedido de Mato, 2026-10-08) y
+   hasta 40px cuando no. El % se mide sobre el área de contenido (la ventana
+   menos la barra lateral): con 1160px o más queda en 0 (una ventana de
+   1440px con la barra de 280px) y con 1120px o menos vuelve a 40px. Así el
+   texto nunca queda a menos de 40px del borde en un notebook chico o una
+   tablet.
+
+   768px es el corte de isDesktop (useBreakpoint: tablet y escritorio).
+   Abajo, el celular deja lugar a la barra inferior (MobileBar). Quien
+   necesite otro espacio arriba o abajo lo cambia con paddingTop o
+   paddingBottom en línea, nunca el ancho. */
+.contenedor-pagina {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 16px 88px;
+}
+@media (min-width: 768px) {
+  .contenedor-pagina {
+    padding: 36px clamp(0px, calc(1160px - 100%), 40px) 72px;
+  }
+}
+
 /* Foco de accesibilidad — spec 36-37: borde de 2px del color primario del
    cliente, nunca un outline genérico del browser.
 

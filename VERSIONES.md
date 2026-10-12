@@ -15,6 +15,25 @@ muestra botones que no guardan.
 
 ---
 
+## 3.2.1
+
+**2026-10-12** · parche (se ordena sin capacidad nueva) · no requiere backend.
+
+Contenedor de página como clase (pedido de Mato):
+
+- **Qué.** El ancho de cada pantalla vive en una clase, `.contenedor-pagina`
+  de `src/index.css`, en vez de un estilo en línea por pantalla. La ficha de
+  una garantía (al abrir una o al agregarla) y su pie fijo usan la misma
+  clase.
+- **Por qué.** La ficha tenía su propio ancho, 880px con 40px fijos a los
+  costados, y el listado 1080px con el margen que se achica cuando sobra
+  espacio: al abrir una garantía el contenido se angostaba.
+- **Beneficio.** Listado y ficha miden lo mismo en todo ancho de ventana, y
+  un cambio de ancho se hace en un solo lugar para todas las pantallas.
+- **Errores.** Ninguno conocido. Se retira `src/lib/contenedorPagina.ts`,
+  que ya no tenía consumidores, y `SettingsScreen` deja de recibir
+  `isDesktop`, que sólo usaba para el contenedor.
+
 ## 3.2.0
 
 **2026-10-08** · menor (capacidad nueva) · requiere backend: arquitectura

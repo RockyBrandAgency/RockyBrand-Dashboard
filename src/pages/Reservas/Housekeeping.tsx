@@ -5,7 +5,6 @@ import { CalendarRangeIcon } from '../../components/icons/RockyIcons';
 import { getHousekeeping, setRoomState, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { HousekeepingHabitacion, RoomState } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 // Los 4 estados son los del backend (pms_frontdesk.VALID_ROOM_STATES), no
 // una lista propia: mandar uno inventado devuelve 400. El ciclo estándar
@@ -125,7 +124,7 @@ export function Housekeeping({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div
           style={{
             display: 'flex',

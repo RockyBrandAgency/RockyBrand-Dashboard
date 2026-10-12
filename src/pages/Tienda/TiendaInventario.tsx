@@ -4,7 +4,6 @@ import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { getTiendaProductos, actualizarTiendaProducto, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { StoreProduct } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 function money(clp: number): string {
   return clp.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
@@ -173,7 +172,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div
           style={{
             display: 'flex',

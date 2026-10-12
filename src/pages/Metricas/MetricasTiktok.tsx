@@ -9,7 +9,6 @@ import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
 import type { TiktokMes, TiktokMetrics, TiktokVideo } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 // Detalle real de TikTok (tiktok_snapshot#), conectado el 2026-09-14 via
 // Display API. Hasta esa fecha esta pagina era un estado vacío honesto: no
@@ -282,7 +281,7 @@ export function MetricasTiktok({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <MetricsPageHeader
           breadcrumb="Métricas > TikTok"
           title="Métricas TikTok"

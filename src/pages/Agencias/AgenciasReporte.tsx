@@ -5,7 +5,6 @@ import { KpiRow } from '../../components/KpiRow';
 import { getAgenciasReporte, UnauthorizedError } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { AgenciaFila } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 /**
  * Producción por agencia — la respuesta a "cuál agencia rinde más".
@@ -84,7 +83,7 @@ export function AgenciasReporte({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div
           style={{
             display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end',

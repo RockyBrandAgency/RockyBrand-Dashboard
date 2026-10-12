@@ -12,7 +12,6 @@ import {
 } from '../../api/dashboardApi';
 import { useAuth } from '../../context/AuthContext';
 import type { Agencia, AgenciaAcceso } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 /**
  * Agencias y tarifas.
@@ -129,7 +128,7 @@ export function AgenciasLista({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div
           style={{
             display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end',

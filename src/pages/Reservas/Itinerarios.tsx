@@ -9,7 +9,6 @@ import { useAuth } from '../../context/AuthContext';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import { isoLocal } from '../../lib/fechasImportantes';
 import type { ItinerarioDia, ItinerarioReserva, TipoDeAgua } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 const AGUA_LABEL: Record<TipoDeAgua, string> = { '': '', rio: 'Río', lago: 'Lago', laguna: 'Laguna' };
 
@@ -116,7 +115,7 @@ export function Itinerarios({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div style={{ paddingBottom: 'var(--space-7)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-8)' }}>
           <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
             Itinerarios

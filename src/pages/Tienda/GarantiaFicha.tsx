@@ -20,7 +20,6 @@ import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMB
 // El aviso por WhatsApp (2026-10-08) va en «2 Despacho» (GarantiaAviso): es
 // lo único de la página que le escribe al cliente, y solo con su botón.
 
-const ANCHO_PAGINA = 880;
 // Alto de la barra inferior del celular (MobileBar): el pie fijo va encima.
 const BARRA_MOVIL = 60;
 
@@ -445,11 +444,10 @@ export function GarantiaFicha({
   }
 
   const monto = { inputMode: 'numeric' as const, placeholder: '0' };
-  const lado = isDesktop ? 40 : 16;
 
   return (
     <div className="garantia-ficha" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: ANCHO_PAGINA, margin: '0 auto', padding: isDesktop ? `28px ${lado}px 0` : `16px ${lado}px ${BARRA_MOVIL}px` }}>
+      <div className="contenedor-pagina" style={{ paddingTop: isDesktop ? 28 : 16, paddingBottom: isDesktop ? 0 : BARRA_MOVIL }}>
         <button type="button" className="crm-btn crm-btn-text crm-btn-sm" onClick={cerrar} disabled={ocupado !== null} style={{ marginLeft: -12 }}>
           ← Garantías
         </button>
@@ -650,7 +648,7 @@ export function GarantiaFicha({
           background: 'var(--white)',
         }}
       >
-        <div style={{ maxWidth: ANCHO_PAGINA, margin: '0 auto', padding: `12px ${lado}px` }}>
+        <div className="contenedor-pagina" style={{ paddingTop: 12, paddingBottom: 12 }}>
           {error && !errorCampo && (
             <div role="alert" style={{ fontSize: 13, color: 'var(--status-critico-text)', marginBottom: 10 }}>
               {error}

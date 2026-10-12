@@ -13,7 +13,6 @@ import type {
   PublicacionesResponse, PublicacionEnCola, PublicacionHistorial,
   DestinoPublicado, HorarioSugerido,
 } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 // Publicación de Reels — la pantalla de Berry (`publisher`), el octavo agente.
 //
@@ -297,7 +296,7 @@ export function PublicacionReels({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div style={{
           display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end',
           gap: 12, paddingBottom: 'var(--space-7)', borderBottom: '1px solid var(--border)',

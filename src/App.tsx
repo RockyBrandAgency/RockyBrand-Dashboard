@@ -169,7 +169,7 @@ function AuthenticatedShell() {
             {screen === 'tienda-garantias' && <TiendaGarantias isDesktop={isDesktop} />}
             {screen === 'agencias-lista' && <AgenciasLista isDesktop={isDesktop} />}
             {screen === 'agencias-reporte' && <AgenciasReporte isDesktop={isDesktop} />}
-            {screen === 'settings' && <SettingsScreen isDesktop={isDesktop} />}
+            {screen === 'settings' && <SettingsScreen />}
           </>
         )}
       </div>

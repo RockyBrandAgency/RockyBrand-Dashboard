@@ -10,7 +10,6 @@ import { CLIENT_LOCATION } from '../../branding';
 import type {
   ContentPiece, Adaptacion, HorarioSugerido, EstadoPieza, AdvertenciaPieza,
 } from '../../types';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 // Revisión y aprobación de contenido de redes. Solo cubre lo que producen
 // Dave (estratega) y Jimi (director de arte): los reportes de Neil, Slash y
@@ -424,7 +423,7 @@ export function RevisionContenido({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <div
           style={{
             display: 'flex',

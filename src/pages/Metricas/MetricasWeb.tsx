@@ -7,7 +7,6 @@ import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 // Tráfico del sitio según GA4 (2026-09-09). Hasta hoy lo único que el panel
 // sabía de Google Analytics era "visitas desde Estados Unidos, 7 días": un
@@ -88,7 +87,7 @@ export function MetricasWeb({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <MetricsPageHeader
           breadcrumb="Métricas > Sitio web"
           title="Tráfico del sitio"

@@ -12,7 +12,6 @@ import { CLIENT_LOCATION } from '../branding';
 import { terminologiaPms } from '../lib/terminologiaPms';
 import { temporadaActualCff, CFF_CLIENT_ID } from '../lib/temporadaCff';
 import type { SemaforoResponse, ReservaResumenItem } from '../types';
-import { contenedorPagina } from '../lib/contenedorPagina';
 
 function formatMonto(montoPorMoneda: Record<string, number>): string {
   const entries = Object.entries(montoPorMoneda);
@@ -93,7 +92,7 @@ export function Overview({ onDetail, isDesktop }: { onDetail: () => void; isDesk
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <AsyncState loading={loading} error={error} onRetry={load}>
           {s && (
             <>

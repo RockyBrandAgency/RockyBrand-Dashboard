@@ -7,7 +7,6 @@ import { MetricNotAvailable } from '../../components/MetricNotAvailable';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 function formatDateShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -69,7 +68,7 @@ export function MetricasFacebook({ isDesktop }: { isDesktop: boolean }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <MetricsPageHeader
           breadcrumb="Métricas > Facebook"
           title={fb?.nombre_pagina ? `Facebook — ${fb.nombre_pagina}` : 'Métricas Facebook'}

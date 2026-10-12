@@ -14,7 +14,6 @@ import { METRICS_SERVICE_KEYS } from '../../screens';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { SemaforoResponse } from '../../types';
 import type { Screen } from '../../screens';
-import { contenedorPagina } from '../../lib/contenedorPagina';
 
 function ChannelCard({
   icon,
@@ -151,7 +150,7 @@ export function MetricasResumen({ isDesktop, onNavigate }: { isDesktop: boolean;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={contenedorPagina(isDesktop)}>
+      <div className="contenedor-pagina">
         <MetricsPageHeader
           breadcrumb="Métricas"
           title="Rendimiento de Canales"
