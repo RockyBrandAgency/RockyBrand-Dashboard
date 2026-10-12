@@ -15,6 +15,44 @@ muestra botones que no guardan.
 
 ---
 
+## 4.0.0
+
+**2026-10-12** · mayor (Publicación de Reels cambia de lugar y de nombre en el
+menú) · requiere backend: las rutas `/dashboard/berry/*` de la API del panel y
+el bucket `rockybrand-berry-medios`, con CORS que deje leer el `ETag`,
+desplegados **antes** de publicar el panel. Con la Lambda anterior, Studio
+muestra un error al cargar y ninguna subida parte.
+
+Berry Studio, fase 1 (pedido de Mato):
+
+- **Qué.** Berry pasa a ser una sección del menú con dos accesos:
+  **Publicación** (la pantalla que se llamaba «Publicación de Reels», igual
+  por dentro) y **Studio**, nueva. En Studio se suben clips, fotos y audio,
+  con el botón o arrastrando a la página: cada archivo va directo a S3 en
+  partes de 16 MB, cuatro a la vez, con barra, porcentaje, MB/s y tiempo
+  restante, y se puede pausar, reanudar o cancelar. La biblioteca muestra
+  miniatura, estado, detalle (resolución del original, fps, duración, HDR)
+  y peso, en pestañas Todo, Videos, Fotos y Audio; lo listo se abre en un
+  visor donde un clip vertical cabe entero. Una subida que quedó a medias en
+  otra pestaña o equipo se ve como «Subida a medias» y se puede quitar. Las
+  fotos HEIC todavía no: el navegador las rechaza con el mismo texto que el
+  servidor.
+- **Por qué.** El material crudo llegaba a Berry por fuera del panel. Con dos
+  pantallas, Berry deja «Servicios Contratados» y sube a sección, como antes
+  PMS y Tienda: listarlo en los dos lados duplicaba la entrada.
+- **Beneficio.** El cliente sube archivos de hasta 20 GB desde el navegador y
+  ve en qué va cada uno. Si se corta, vuelve a elegir el mismo archivo en el
+  mismo navegador y sigue donde quedó. Si el servidor ya cerró la subida
+  pero la respuesta no llegó (un 409 o sin red al completar), Studio lo ve
+  en la biblioteca y la da por terminada en vez de subirla de nuevo. Ir a
+  otra pantalla no corta la subida; cerrar o recargar la pestaña pregunta
+  antes.
+- **Errores.** Ninguno conocido. Probado con pruebas del motor de subida (XHR
+  falso: lotes, vencimiento, reintentos, retomar, completar ya cerrado,
+  pausar, cancelar) y en
+  Chromium a 390, 820 y 1440 px con datos ficticios. No probado contra el
+  backend real, en Safari ni con un archivo de varios GB.
+
 ## 3.2.1
 
 **2026-10-12** · parche (se ordena sin capacidad nueva) · no requiere backend.

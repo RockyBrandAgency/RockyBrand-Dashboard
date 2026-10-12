@@ -1561,3 +1561,89 @@ export interface StoreDashboardResumen {
   despachos_pendientes: StoreOrder[];
   en_revision_monto: StoreOrder[];
 }
+
+// ── Berry Studio (fase 1, 2026-10-12) ──────────────────────────────────────
+// Contrato: rutas /dashboard/berry/* de crm_dashboard_api_lambda.py. Los
+// archivos suben directo a S3 por partes con URLs firmadas; el panel nunca
+// ve el bucket ni sus credenciales.
+
+export type BerryTipo = 'video' | 'foto' | 'audio';
+export type BerryEstado = 'subiendo' | 'preparando' | 'listo' | 'error';
+
+// Lo arma 04-codigo/berry_preparar_lambda.py al dejar un medio listo. Un
+// campo que no se pudo medir no se guarda: cualquiera puede faltar.
+export interface BerryDetalle {
+  /** Video y audio, en segundos. */
+  duracion_s?: number;
+  /** Video: px del proxy. Foto: px del JPEG para ver. Ya con el giro aplicado. */
+  ancho?: number;
+  alto?: number;
+  /** Video y foto: px del original, con el giro aplicado. */
+  ancho_original?: number;
+  alto_original?: number;
+  /** Video. */
+  fps?: number;
+  /** Video: ausente si es SDR. */
+  hdr?: 'hlg' | 'pq';
+  /** Video y audio, el de ffprobe (p. ej. "hevc", "aac"). */
+  codec?: string;
+  /** Video: en cuántos tramos se preparó. */
+  tramos?: number;
+  /** Foto: orientación EXIF del original (1 a 8). */
+  orientacion?: number;
+  /** Audio. */
+  canales?: number;
+  frecuencia_hz?: number;
+}
+
+export interface BerryMedio {
+  id: string;
+  tipo: BerryTipo;
+  /** Nombre original del archivo. */
+  nombre: string;
+  /** Bytes del original. */
+  tamano: number;
+  estado: BerryEstado;
+  /** Texto ya redactado por el backend, p. ej. «Preparando: 2 de 4 tramos». */
+  etiqueta: string;
+  /** ISO 8601 UTC. */
+  creado: string;
+  actualizado: string;
+  detalle: BerryDetalle | null;
+  /** JPEG ~480 px de lado largo; null en audio y mientras prepara. */
+  miniatura_url: string | null;
+  /** Video: proxy MP4 1080p SDR; foto: JPEG; audio: el original. */
+  ver_url: string | null;
+  error: string | null;
+  /** Solo en `subiendo`: con esto se quita una subida que quedó a medias. */
+  upload_id: string | null;
+}
+
+export interface BerryBibliotecaResponse {
+  /** Más nuevo primero. */
+  medios: BerryMedio[];
+  parte_bytes: number;
+  /** Segundos que duran las URLs firmadas. */
+  vence_en: number;
+}
+
+export interface BerrySubidaIniciada {
+  id: string;
+  upload_id: string;
+  tipo: BerryTipo;
+  parte_bytes: number;
+  partes: number;
+}
+
+export interface BerryParteSubida {
+  numero: number;
+  etag: string;
+}
+
+export interface BerryPartesFirmadas {
+  /** Número de parte (como texto) → URL firmada para el PUT. */
+  urls: Record<string, string>;
+  vence_en: number;
+  /** Solo con `listar: true`: las partes que S3 ya tiene. */
+  subidas?: BerryParteSubida[];
+}

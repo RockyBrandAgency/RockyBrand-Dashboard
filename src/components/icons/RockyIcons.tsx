@@ -212,3 +212,30 @@ export function UsersIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }
     </svg>
   );
 }
+
+// Berry Studio (2026-10-12): "film", "upload" y "audio-lines" de lucide,
+// escalados x1.5 al viewBox 0 0 36 36, igual que UsersIcon. El archivo de
+// Figma no trae íconos de video, subida ni audio.
+export function FilmIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7.5 4.5H28.5C30.1569 4.5 31.5 5.84315 31.5 7.5V28.5C31.5 30.1569 30.1569 31.5 28.5 31.5H7.5C5.84315 31.5 4.5 30.1569 4.5 28.5V7.5C4.5 5.84315 5.84315 4.5 7.5 4.5ZM10.5 4.5V31.5M25.5 4.5V31.5M4.5 18H31.5M4.5 11.25H10.5M4.5 24.75H10.5M25.5 11.25H31.5M25.5 24.75H31.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function UploadIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M31.5 22.5V28.5C31.5 30.1569 30.1569 31.5 28.5 31.5H7.5C5.84315 31.5 4.5 30.1569 4.5 28.5V22.5M25.5 12L18 4.5L10.5 12M18 4.5V22.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function AudioLinesIcon({ size = 18, color = 'currentColor', strokeWidth = 2 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 15V19.5M9 9V25.5M15 4.5V31.5M21 12V22.5M27 7.5V27M33 15V19.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

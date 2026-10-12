@@ -46,6 +46,11 @@ import type {
   AgenciaFila,
   AgenciasResponse,
   PublicacionesResponse,
+  BerryBibliotecaResponse,
+  BerryMedio,
+  BerryParteSubida,
+  BerryPartesFirmadas,
+  BerrySubidaIniciada,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -77,7 +82,9 @@ export class TimeoutError extends Error {
 }
 
 // Falla que puede no repetirse: red caída, throttling o un 5xx de pasada.
-class ErrorTransitorio extends Error {}
+// Exportada desde 2026-10-12: la subida de Berry Studio la usa para decidir
+// si reintenta o si la subida ya no existe y hay que empezar de cero.
+export class ErrorTransitorio extends Error {}
 
 // 409: lo que se quería guardar se armó sobre datos que otra persona ya
 // cambió. Es un Error común con su mensaje, para que las pantallas que no lo
@@ -647,4 +654,27 @@ export function getAgenciasReporte(desde?: string, hasta?: string): Promise<{ ag
 // publisher_lambda y nadie más.
 export function getPublicaciones(): Promise<PublicacionesResponse> {
   return request<PublicacionesResponse>('/dashboard/publicaciones', 'GET');
+}
+
+// Berry Studio (fase 1, 2026-10-12). Estas cinco rutas hablan con el panel;
+// los bytes NO pasan por acá: cada parte va directo a S3 con su URL firmada
+// (pages/BerryStudio/motorSubida.ts, con XHR y sin el JWT).
+export function getBerryBiblioteca(): Promise<BerryBibliotecaResponse> {
+  return request<BerryBibliotecaResponse>('/dashboard/berry/biblioteca', 'GET');
+}
+
+export function iniciarBerrySubida(body: { nombre: string; tamano: number; tipo_mime: string }): Promise<BerrySubidaIniciada> {
+  return request<BerrySubidaIniciada>('/dashboard/berry/subidas', 'POST', body);
+}
+
+export function firmarBerryPartes(body: { id: string; upload_id: string; numeros: number[]; listar?: boolean }): Promise<BerryPartesFirmadas> {
+  return request<BerryPartesFirmadas>('/dashboard/berry/subidas/partes', 'POST', body);
+}
+
+export function completarBerrySubida(body: { id: string; upload_id: string; partes: BerryParteSubida[] }): Promise<{ medio: BerryMedio }> {
+  return request<{ medio: BerryMedio }>('/dashboard/berry/subidas/completar', 'POST', body);
+}
+
+export function cancelarBerrySubida(body: { id: string; upload_id: string }): Promise<{ ok: true }> {
+  return request<{ ok: true }>('/dashboard/berry/subidas/cancelar', 'POST', body);
 }

@@ -25,7 +25,9 @@ const SERVICE_META: Record<ServiceKey, { label: string; icon: string }> = {
 // Sin 'pms' desde 2026-08-11: dejo de tener una entrada unica en
 // SERVICE_ENTRY_SCREEN (ahora es una seccion con dos accesos), asi que
 // listarlo aca no agregaba nada.
-const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'publicacion', 'crm', 'email_marketing', 'store'];
+// Sin 'publicacion' desde 2026-10-12: Berry es una sección de NAV_SECTIONS
+// (Publicación y Studio) y sus dos pantallas ya entran por el bucle de arriba.
+const SERVICE_ORDER: ServiceKey[] = ['agents', 'content_approval', 'crm', 'email_marketing', 'store'];
 
 // Rediseño 2026-08-03 contra Figma (frames "21 — Mobile: Overview" y
 // hermanos): el mockup muestra exactamente 4 tabs fijos (Inicio/Métricas/

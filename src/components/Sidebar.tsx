@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { labelNav, labelSeccion } from '../lib/terminologiaPms';
 import { startSkeletonPulse } from '../lib/skeletonGsap';
 import type { ServiceKey } from '../types';
-import { LayoutGridIcon, ChartColumnIcon, SettingsIcon, ShoppingBagIcon, CalendarRangeIcon } from './icons/RockyIcons';
+import { LayoutGridIcon, ChartColumnIcon, SettingsIcon, ShoppingBagIcon, CalendarRangeIcon, FilmIcon } from './icons/RockyIcons';
 
 // Icono por seccion de NAV_SECTIONS (screens.ts) - por label porque
 // NavSection.icon hoy es un emoji sin uso real en el desktop/tablet (solo
@@ -14,6 +14,7 @@ const SECTION_ICON: Record<string, (size: number) => import('react').ReactElemen
   PMS: (size) => <CalendarRangeIcon size={size} />,
   Tienda: (size) => <ShoppingBagIcon size={size} />,
   Métricas: (size) => <ChartColumnIcon size={size} />,
+  Berry: (size) => <FilmIcon size={size} />,
 };
 import { ClientLogo } from './ClientLogo';
 
@@ -43,7 +44,9 @@ const SERVICE_META: Record<ServiceKey, { label: string }> = {
 // desde que tiene sus dos accesos propios en NAV_SECTIONS, listarlo
 // tambien aca dejaba un "PMS" duplicado y no clickeable debajo del PMS
 // real.
-const SERVICE_ORDER: ServiceKey[] = ['email_marketing', 'content_approval', 'publicacion', 'agents', 'crm'];
+// 'publicacion' sale por el mismo motivo (2026-10-12): Berry es ahora una
+// sección de NAV_SECTIONS con Publicación y Studio.
+const SERVICE_ORDER: ServiceKey[] = ['email_marketing', 'content_approval', 'agents', 'crm'];
 
 const activeTint = 'color-mix(in srgb, var(--primary) 8%, transparent)';
 

@@ -17,6 +17,7 @@ import { PmsResumen } from './pages/Reservas/PmsResumen';
 import { Itinerarios } from './pages/Reservas/Itinerarios';
 import { RevisionContenido } from './pages/Contenido/RevisionContenido';
 import { PublicacionReels } from './pages/Publicacion/PublicacionReels';
+import { BerryStudio } from './pages/BerryStudio/BerryStudio';
 import { EmailCampanas } from './pages/Servicios/EmailCampanas';
 import { MetricasResumen } from './pages/Metricas/MetricasResumen';
 import { MetricasFacebook } from './pages/Metricas/MetricasFacebook';
@@ -56,7 +57,7 @@ function isScreenVisible(screen: Screen, gate: NavGate): boolean {
     const item = section.items.find((i) => i.id === screen);
     if (item) return isNavLeafVisible(item, gate);
   }
-  if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas' || screen === 'servicio-contenido-revision' || screen === 'publicacion-reels') return isServiceEntryVisible(screen, gate.services);
+  if (screen === 'servicio-pms-reservas' || screen === 'servicio-email-campanas' || screen === 'servicio-contenido-revision') return isServiceEntryVisible(screen, gate.services);
   return true;
 }
 
@@ -68,7 +69,6 @@ function firstVisibleScreen(gate: NavGate): Screen | null {
   }
   if (isServiceEntryVisible('servicio-pms-reservas', gate.services)) return 'servicio-pms-reservas';
   if (isServiceEntryVisible('servicio-email-campanas', gate.services)) return 'servicio-email-campanas';
-  if (isServiceEntryVisible('publicacion-reels', gate.services)) return 'publicacion-reels';
   return null;
 }
 
@@ -87,8 +87,7 @@ function AuthenticatedShell() {
     isNavLeafVisible(OVERVIEW, gate) ||
     NAV_SECTIONS.some((section) => section.items.some((item) => isNavLeafVisible(item, gate))) ||
     isServiceEntryVisible('servicio-pms-reservas', clientServices) ||
-    isServiceEntryVisible('servicio-email-campanas', clientServices) ||
-    isServiceEntryVisible('publicacion-reels', clientServices);
+    isServiceEntryVisible('servicio-email-campanas', clientServices);
   // clientServices ya cargó y este cliente no tiene ningún servicio de los
   // que arma este dashboard - en vez de caer a una pantalla vacía o un 403
   // crudo, mostramos un estado explícito. Avisos sigue siendo accesible:
@@ -164,6 +163,7 @@ function AuthenticatedShell() {
             {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}
             {screen === 'servicio-contenido-revision' && <RevisionContenido isDesktop={isDesktop} />}
             {screen === 'publicacion-reels' && <PublicacionReels isDesktop={isDesktop} />}
+            {screen === 'berry-studio' && <BerryStudio isDesktop={isDesktop} />}
             {screen === 'tienda-inventario' && <TiendaInventario isDesktop={isDesktop} />}
             {screen === 'tienda-ventas' && <TiendaVentas isDesktop={isDesktop} />}
             {screen === 'tienda-garantias' && <TiendaGarantias isDesktop={isDesktop} />}
