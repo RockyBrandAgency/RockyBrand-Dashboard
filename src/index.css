@@ -59,6 +59,38 @@
   --status-info-bg: #eff6ff;
   --status-info-text: #1e40af;
 
+  /* Programas de CFF (17-oct, pedido de Mato). Cian y violeta: distintos
+     entre sí y de los estados (verde/rojo/ámbar/azul info). Contraste medido
+     con la fórmula de WCAG 2.2: texto/fondo 6,49:1 (FD) y 7,57:1 (AI); el
+     borde fuerte contra blanco 3,68:1 y 5,70:1 (1.4.11 pide 3:1). */
+  --programa-fd-text: #155e75;
+  --programa-fd-bg: #cffafe;
+  --programa-fd-borde: #0891b2;
+  --programa-ai-text: #5b21b6;
+  --programa-ai-bg: #ede9fe;
+  --programa-ai-borde: #7c3aed;
+
+  /* Ventas por período (18-oct, spec-ventas-cajas §8.4). Colores de mercado
+     para barras, sectores y muestras, nunca para texto. Contra blanco (WCAG
+     2.2, fórmula de luminancia): USA 10,4:1, BR 5,48:1, CL 3,56:1, sin
+     4,83:1; contra el riel --surface-2 el mínimo es CL ≈ 3,26:1 (1.4.11). */
+  --mercado-usa: #1e3a8a;
+  --mercado-br: #047857;
+  --mercado-cl: #ea580c;
+  --mercado-sin: #71717a;
+
+  /* Tarjetas de Ventas y de la ficha del pescador (spec §15.1). Nuevas: no
+     se toca --shadow-card, que usan .crm-card y .crm-mini-card en todos los
+     clientes. */
+  --tarjeta-fondo: var(--white);
+  --tarjeta-borde: 1px solid var(--border);
+  --tarjeta-radio: var(--radius-lg);
+  --tarjeta-sombra: 0 1px 2px rgba(9, 9, 11, 0.04), 0 4px 12px rgba(9, 9, 11, 0.06);
+  /* Ventas y ficha de CFF (spec §16, 18-oct). */
+  --resultado-fondo: #f1f6f2;
+  --segmentado-fondo: #f4f4f5;
+  --tarjeta-sombra-activa: 0 2px 4px rgba(9, 9, 11, 0.06), 0 10px 24px rgba(9, 9, 11, 0.09);
+
   --danger: #ef4444;
   --danger-hover: #dc2626;
   --danger-active: #b91c1c;
@@ -114,13 +146,25 @@
   box-sizing: border-box;
 }
 
+/* Reserva métrica de Inter mientras llega de Google (display=swap): Arial
+   ajustada al ancho y al alto de Inter, para que el cambio de fuente no mueva
+   la página (CLS de carga en Reservas, QA 19-oct). size-adjust = ancho de
+   Inter / Arial medido con canvas por peso; ascent y descent = los de Inter
+   (0,96875 y 0,2412 del em) divididos por size-adjust, afinados para que
+   la caja de línea calce con Inter de 11 a 32 px (medido en Chromium).
+   web.dev/articles/css-size-adjust */
+@font-face{ font-family:'Inter reserva'; src:local('Arial'), local('ArialMT'); font-weight:100 450; size-adjust:105.5%; ascent-override:92%; descent-override:23%; line-gap-override:0%; }
+@font-face{ font-family:'Inter reserva'; src:local('Arial'), local('ArialMT'); font-weight:451 550; size-adjust:106.68%; ascent-override:91%; descent-override:23%; line-gap-override:0%; }
+@font-face{ font-family:'Inter reserva'; src:local('Arial Bold'), local('Arial-BoldMT'); font-weight:551 650; size-adjust:101.33%; ascent-override:95.7%; descent-override:23.8%; line-gap-override:0%; }
+@font-face{ font-family:'Inter reserva'; src:local('Arial Bold'), local('Arial-BoldMT'); font-weight:651 900; size-adjust:102.43%; ascent-override:94.7%; descent-override:23.8%; line-gap-override:0%; }
+
 html,
 body,
 #root {
   margin: 0;
   padding: 0;
   background-color: var(--bg);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', 'Inter reserva', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -458,16 +502,37 @@ button.crm-seg-item{ box-sizing:border-box; width:100%; border:none; background:
   all: unset;
   box-sizing: border-box;
   display: flex;
+  flex-wrap: wrap; /* a 320 px el estado baja de línea en vez de salirse */
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
   font-size: 13px;
   cursor: pointer;
   border-radius: var(--radius-sm);
+  min-height: 44px; /* control táctil (17-oct) */
   padding: 4px 6px;
   margin: 0 -6px;
   transition: background 0.12s;
 }
 /* El hover lo pone la state layer global (es un <button> real). */
+
+/* Ficha del pescador: todo botón, también los chicos (Sí/No, volver,
+   acompañantes), mide 44 px de alto como mínimo (QA 5.0.0). */
+.ficha-pescador .crm-btn{ min-height:48px; }
+
+/* Fila de lista que abre la ficha del pescador (5.0.0): era un div con
+   onClick, sin teclado. Ahora es un <button> real con el mismo aspecto; el
+   padding y los bordes van inline en cada lista. 44 px de alto como mínimo
+   (WCAG 2.5.8 pide 24). */
+.fila-lista {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  cursor: pointer;
+  text-align: left;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .cal-dia { transition: none; }
@@ -504,3 +569,324 @@ fieldset:disabled .garantia-chip{ cursor:default; }
   .garantia-ficha, .aviso-flotante{ animation:none; }
   .garantia-chip{ transition:none; }
 }
+
+/* Badge de programa (BadgePrograma.tsx). El nombre va dentro: el color no es
+   la única señal (WCAG 2.2 1.4.1). */
+.badge-programa{ display:inline-block; padding:1px 8px; border-radius:var(--radius-pill); font-size:12px; font-weight:600; line-height:18px; white-space:nowrap; vertical-align:baseline; border:1px solid transparent; text-transform:none; letter-spacing:normal; }
+.badge-programa--fd{ color:var(--programa-fd-text); background:var(--programa-fd-bg); border-color:var(--programa-fd-borde); }
+.badge-programa--ai{ color:var(--programa-ai-text); background:var(--programa-ai-bg); border-color:var(--programa-ai-borde); }
+
+/* Banderas: el emoji es decorativo (aria-hidden); el país va como texto visible
+   o, junto al nombre del pescador, como texto para lectores de pantalla. */
+.con-bandera > .bandera{ margin-right:0.3em; }
+.pais-pescador{ display:inline-flex; align-items:baseline; max-width:100%; min-width:0; vertical-align:bottom; }
+.pais-pescador > .bandera{ margin-right:.3em; flex-shrink:0; }
+.pais-pescador__nombre{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bandera--pescador{ margin-right:0.35em; }
+.solo-lector{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+/* «Qué se vende» (QueSeVende.tsx, 17-oct). Barras neutras y decorativas:
+   --text-sub sobre --status-neutro-bg (7,7:1 contra blanco). El color de
+   programa vive solo en el badge. */
+.mix-tarjeta{ background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; }
+.mix-grid{ display:grid; grid-template-columns:minmax(0,1fr); gap:24px; }
+@media (min-width:1024px){ .mix-grid{ grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:32px; } .mix-tarjeta{ padding:20px 24px; } }
+.mix-h3{ margin:0 0 8px; font-size:13px; font-weight:600; color:var(--text-sub); text-transform:uppercase; letter-spacing:0.04em; }
+.mix-h4{ margin:0; font-size:14px; font-weight:600; color:var(--text); }
+.mix-grupo + .mix-grupo{ margin-top:16px; padding-top:16px; border-top:1px solid var(--border-soft); }
+.mix-lista{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.mix-cabeza{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:14px; color:var(--text); }
+.mix-cifra{ white-space:nowrap; font-variant-numeric:tabular-nums; }
+.mix-riel{ display:block; height:8px; margin-top:4px; border-radius:var(--radius-pill); background:var(--status-neutro-bg); overflow:hidden; }
+.mix-barra{ display:block; height:100%; border-radius:var(--radius-pill); background:var(--text-sub); }
+.mix-detalle{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin-top:4px; font-size:13px; color:var(--text-sub); }
+.mix-chip{ display:inline-block; padding:1px 8px; border-radius:var(--radius-pill); background:var(--status-neutro-bg); color:var(--text); font-size:12px; font-weight:600; }
+.mix-tenue{ font-size:13px; color:var(--text-sub); }
+
+/* ==========================================================================
+   Tarjetas (spec-ventas-cajas §15.1, 18-oct): cajas y gráficos de Ventas,
+   fila de venta y ficha del pescador. Una sola familia. Las sombras son
+   estilo, no norma; lo medible es contraste, orden y ancho.
+   ========================================================================== */
+.tarjeta{ background:var(--tarjeta-fondo); border:var(--tarjeta-borde); border-radius:var(--tarjeta-radio); box-shadow:var(--tarjeta-sombra); padding:18px; min-width:0; transition:box-shadow .15s ease; }
+.tarjeta--plana{ box-shadow:none; }
+.tarjeta--boton{ cursor:pointer; }
+@media (hover:hover){ .tarjeta--boton:hover{ box-shadow:var(--tarjeta-sombra-activa); } }
+.tarjeta--boton:focus-visible{ outline:2px solid var(--text); outline-offset:2px; box-shadow:var(--tarjeta-sombra-activa); }
+.dato{ display:block; min-width:0; }
+.dato__etiqueta{ display:block; font-size:12px; font-weight:500; color:var(--text-sub); }
+.dato__valor{ display:block; font-size:14px; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.dato__valor--cifra{ font-size:20px; font-weight:700; }
+@media (prefers-reduced-motion: reduce){ .tarjeta{ transition:none; } }
+
+/* ==========================================================================
+   Regla de 6 px, íconos y orden badge → título → detalle (spec §16, 18-oct).
+   Solo en el alcance de Ventas y la ficha de CFF: [data-resumen-periodo],
+   [data-grafico], [data-fila] y .ficha-pescador. Espacios en múltiplos de 6;
+   altos de línea fijos en px (18/24/30/36) para CLS cero; ningún contenedor
+   de texto con height fijo ni overflow:hidden (WCAG 2.2 1.4.12).
+   ========================================================================== */
+.icono{ flex-shrink:0; display:block; color:var(--text-sub); }
+.ranura-bandera{ flex-shrink:0; display:inline-block; width:18px; font-size:16px; line-height:18px; text-align:center; }
+:where([data-resumen-periodo], [data-grafico], [data-fila], .ficha-pescador) .con-bandera .bandera{ margin-right:6px !important; }
+:where([data-resumen-periodo], [data-grafico], [data-fila], .ficha-pescador) .badge-programa{ display:inline-flex; align-items:center; box-sizing:border-box; min-height:24px; padding:0 6px; border-radius:6px; font-size:12px; line-height:18px; font-weight:600; vertical-align:middle; }
+.chip, .chip-mas-vendido{ display:inline-flex; align-items:center; box-sizing:border-box; min-height:24px; padding:0 6px; border:1px solid transparent; font-size:12px; font-weight:600; line-height:18px; white-space:nowrap; vertical-align:middle; }
+.chip{ border-radius:999px; border-color:var(--status-neutro-dot); background:var(--status-neutro-bg); color:var(--status-neutro-text); }
+.chip--critico{ border-color:#fecaca; background:var(--status-critico-bg); color:var(--status-critico-text); }
+.chip-mas-vendido{ border-radius:999px; background:var(--primary); color:#fff; }
+
+/* Partes de una tarjeta (CA-U3). */
+.parte-badge{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; min-width:0; }
+.parte-badge__programa{ display:inline-flex; }
+.parte-titulo{ display:flex; align-items:center; gap:6px; margin:0; padding-top:6px; min-width:0; }
+
+/* Grupos de detalle: filas pegadas; entre grupos, divisor + 12 / 12. */
+.grupo{ margin:0; padding:0; min-width:0; }
+.grupo--div{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+.fila-dato{ display:flex; align-items:center; gap:6px; min-height:30px; box-sizing:border-box; padding:6px 0; min-width:0; font-size:14px; line-height:18px; }
+.lista-datos{ margin:0; padding:0; }
+.fila-dato__etiqueta{ display:flex; align-items:center; gap:6px; flex:1 1 auto; margin:0; min-width:0; color:var(--text-sub); }
+.fila-dato__valor{ margin:0 0 0 6px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:500; color:var(--text); }
+.fila-dato__valor--fuerte{ font-size:18px; line-height:24px; font-weight:700; }
+
+/* Caja (spec §16.4 y valores aprobados del 18-oct). */
+.caja{ display:flex; flex-direction:column; container-type:inline-size; padding:18px; }
+.caja__titulo{ font-size:18px; line-height:24px; font-weight:700; color:var(--text); }
+/* Badge → título de la caja: 30 px medidos de borde a borde (pedido de Mato,
+   19-oct). El título pierde su padding-top de 6 para que no se sume. */
+[data-resumen-periodo] .caja > .parte-badge{ margin-bottom:30px; }
+[data-resumen-periodo] .caja > .caja__titulo{ padding-top:0; }
+.caja__conteo{ padding-top:12px; }
+.caja__conteo .fila-dato[data-fila-dato="reservas"] .fila-dato__valor, .caja__conteo .fila-dato[data-fila-dato="jornadas"] .fila-dato__valor{ font-size:14px; line-height:18px; font-weight:500; }
+.caja__rotulo{ margin:0; padding-bottom:6px; font-size:12px; line-height:18px; font-weight:600; color:var(--text-sub); }
+/* margin-inline -12 + padding 12: el fondo sale 12 px a cada lado y la columna de íconos queda alineada con las filas de arriba. */
+.resultado{ margin-top:6px; margin-inline:-12px; padding:6px 12px; border-radius:6px; background:var(--resultado-fondo); }
+.resultado .icono{ color:var(--primary); }
+.resultado .fila-dato__etiqueta{ font-weight:500; color:var(--text); }
+.resultado .fila-dato--perdida .icono{ color:var(--status-critico-text); }
+.caja__lista{ display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:6px; padding-bottom:6px; font-size:12px; line-height:18px; font-weight:400; color:var(--text-sub); }
+.caja__parcial{ font-size:12px; line-height:18px; font-weight:600; color:var(--status-atencion-text); }
+.caja__perdida{ color:var(--status-critico-text); }
+.caja__avisos{ display:flex; flex-direction:column; align-items:flex-start; }
+.caja__aviso-fila{ display:flex; align-items:flex-start; gap:6px; padding:6px 0; }
+/* Ranura de 24 de alto: el ícono (18x18) queda centrado en la primera línea de 24, sin márgenes. */
+.ranura-24{ display:flex; align-items:center; height:24px; flex-shrink:0; }
+.caja__aviso-fila--atencion .icono{ color:var(--status-atencion-text); }
+.caja__aviso{ margin:0; font-size:14px; line-height:24px; color:var(--text); }
+/* Caja angosta (< 240 px por dentro, 4 cajas a 1440): el valor baja a su
+   propia línea, con sangría de 24 (18 + 6). */
+@container (max-width: 239px){
+  .fila-dato{ flex-wrap:wrap; row-gap:0; }
+  .fila-dato__valor{ flex:1 0 100%; margin-left:0; padding-left:24px; box-sizing:border-box; text-align:left; }
+  .caja__lista{ justify-content:flex-start; padding-left:24px; }
+}
+
+/* Caja ancha (18-oct): el detalle va en columnas para que cada etiqueta quede
+   junto a su valor. Medido por dentro de la caja (@container), no por la
+   pantalla: desde 480 (~768 de pantalla) conteo | plata; desde 768 (~1200)
+   conteo | moneda | resultado. Con 3 columnas bajo 768 «Ganancia CLP 60.000»
+   (~211 px) no cabe en la columna. */
+@container (min-width: 480px){
+  .caja__cuerpo{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:36px; align-items:start; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .caja__cuerpo > .caja__conteo{ padding-top:0; }
+  .caja__plata > .grupo--div:first-child{ margin-top:0; padding-top:0; border-top:0; }
+  .caja__aviso{ max-width:576px; }
+}
+@container (min-width: 768px){
+  .caja__cuerpo{ grid-template-columns:minmax(0,1fr) minmax(0,2fr); }
+  .caja__plata > :not(.caja__moneda){ max-width:calc(50% - 18px); }
+  /* «En USD» queda sobre venta y costo; el resultado sube a la par del rótulo.
+     Filas `auto 1fr`: el resultado (más alto) abarca las dos, y el alto que le
+     sobra va a la fila 2, no se reparte entre ambas. Con `auto auto` la fila
+     del rótulo crecía de 24 a 36 px y «En USD» quedaba 15 px sobre «Venta»
+     (QA, 19-oct, a 1440). */
+  .caja__moneda{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:auto 1fr; column-gap:36px; align-items:start; }
+  .caja__moneda > .caja__rotulo{ grid-column:1; grid-row:1; }
+  .caja__moneda > .lista-datos{ grid-column:1; grid-row:2; }
+  .caja__moneda > .resultado{ grid-column:2; grid-row:1 / span 2; margin-top:0; }
+}
+
+/* Secciones de Ventas (CA-U11): 36 px en el teléfono, 48 desde 768. */
+.ventas-seccion{ margin-top:36px; }
+@media (min-width:768px){ .ventas-seccion{ margin-top:48px; } }
+
+/* Filtro de período: control segmentado con radios nativos (spec §5; sin
+   role=tab: el navegador da Tab y flechas del patrón APG Radio Group). */
+.periodo{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; border:0; margin:0; padding:0; min-width:0; }
+.periodo__legend{ float:left; padding:0; margin:0; font-size:12px; line-height:18px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-sub); }
+.periodo__grupo{ display:flex; gap:6px; flex:1 1 auto; max-width:480px; box-sizing:border-box; padding:6px; border:1px solid var(--border); border-radius:12px; background:var(--segmentado-fondo); }
+.periodo__opcion{ position:relative; flex:1 1 0; display:flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:48px; padding:0 18px; border-radius:6px; font-size:14px; line-height:18px; font-weight:500; color:var(--text-sub); cursor:pointer; text-align:center; white-space:nowrap; }
+.periodo__opcion input{ position:absolute; inset:0; width:100%; height:100%; margin:0; padding:0; opacity:0; cursor:pointer; }
+.periodo__opcion:has(input:checked){ background:var(--primary); color:#fff; font-weight:600; box-shadow:0 1px 2px rgba(9,9,11,.12); }
+.periodo__opcion:has(input:focus-visible){ outline:2px solid var(--text); outline-offset:2px; z-index:1; }
+@media (max-width: 519px){ .periodo__opcion{ padding:0 12px; } }
+
+/* Bloque del filtro y su resumen. */
+/* La pantalla de CFF termina aquí (Mato, 19-oct): sin divisor ni aire final
+   propio; el aire de abajo es el de .contenedor-pagina. Entre grupos (filtro,
+   cajas, gráficos) 36 en el teléfono y 48 desde 768; dentro de un grupo, 12. */
+.resumen-periodo{ display:flex; flex-direction:column; gap:0; }
+/* Encabezado de Ventas, escala de 6 (criterio de Mato, 18-oct): 12 dentro y,
+   alrededor del divisor, 18 + 18 en el teléfono y 24 + 24 desde 768 (los 36
+   y 48 entre grupos de .resumen-periodo). */
+.ventas-encabezado{ display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:space-between; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--border); }
+@media (min-width: 768px){ .ventas-encabezado{ padding-bottom:24px; margin-bottom:24px; } }
+.resumen-periodo__filtro{ display:flex; flex-direction:column; gap:12px; margin-bottom:36px; }
+.resumen-periodo__rango{ display:flex; align-items:flex-start; gap:6px; margin:0; font-size:14px; line-height:24px; color:var(--text-sub); }
+.resumen-periodo__aviso{ display:flex; flex-wrap:wrap; align-items:center; gap:0 12px; }
+.resumen-periodo__texto{ margin:0; font-size:14px; line-height:24px; color:var(--text); }
+/* La frase cambiaba de 3 a 4 líneas a 390 px al entrar Inter (CLS 0,0104): mientras Inter
+   carga se dibuja con Arial ajustado al ancho de Inter 400 (medido en Chromium: 1,0545), así
+   no cambia de líneas. Solo esta frase; la carga global de Inter no cambia. web.dev/articles/css-size-adjust */
+@font-face{ font-family:'Inter reserva frase'; src:local('Arial'), local('ArialMT'); font-weight:400; size-adjust:105.45%; }
+.resumen-periodo__frase{ margin:0; font-family:'Inter', 'Inter reserva frase', system-ui, sans-serif; font-size:16px; line-height:24px; color:var(--text); max-width:576px; }
+.resumen-periodo__nota{ margin:12px 0 0; font-size:14px; line-height:24px; color:var(--text-sub); }
+.resumen-periodo__vacio{ display:flex; flex-wrap:wrap; align-items:center; gap:0 12px; margin-top:36px; }
+.resumen-periodo__graficos{ margin-top:36px; }
+.resumen-periodo__graficos > .resumen-periodo__nota:first-child{ margin:0 0 12px; }
+@media (min-width: 768px){ .resumen-periodo__filtro{ margin-bottom:48px; } .resumen-periodo__graficos, .resumen-periodo__vacio{ margin-top:48px; } }
+
+/* Botón de texto de 48 px («Ver temporada» del resumen por período). */
+.boton-texto{ all:unset; box-sizing:border-box; display:inline-flex; align-items:center; min-height:48px; font-size:14px; line-height:18px; font-weight:700; color:var(--text); text-decoration:underline; cursor:pointer; }
+.boton-texto:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
+
+/* Cajas por programa y mercado (spec §7). align-items:start: cada caja termina donde termina su contenido (sin blanco dentro de las más cortas). */
+.cajas{ display:grid; gap:18px; align-items:start; margin:0; padding:0; list-style:none; }
+
+/* Cifra animada (spec §9.4): el molde invisible fija el ancho con el valor
+   final; la vista (aria-hidden) se anima encima desde la izquierda, sin
+   mover nada; el valor final para el lector va en .solo-lector. */
+.cifra-anim{ position:relative; display:inline-block; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.cifra-anim__molde{ visibility:hidden; }
+.cifra-anim__vista{ position:absolute; left:0; top:0; white-space:nowrap; }
+
+/* Gráficos (spec §8): filas HTML para las barras, SVG decorativo en la dona. */
+.graficos{ display:grid; grid-template-columns:minmax(0,1fr); gap:18px; }
+/* Cada gráfico al 100 % (18-oct). Con la tarjeta ancha, la lista de barras y la
+   leyenda de la dona se topan para que el nombre quede cerca de su cifra. */
+.grafico__lista{ max-width:672px; }
+.dona--lado .leyenda{ max-width:432px; }
+/* Tendencia por fecha de confirmación: columnas apiladas en un SVG de ancho %. */
+.tendencia__leyenda{ list-style:none; display:flex; flex-wrap:wrap; gap:6px 18px; margin:12px 0 0; padding:0; font-size:12px; line-height:18px; color:var(--text-sub); }
+.tendencia__leyenda li{ display:flex; align-items:center; gap:6px; }
+.tendencia__lienzo{ margin-top:12px; }
+.tendencia__svg{ display:block; overflow:visible; }
+.tendencia__guia{ stroke:var(--border); stroke-dasharray:2 4; }
+.tendencia__base{ stroke:var(--border); }
+.tendencia__muestra{ display:block; flex-shrink:0; overflow:visible; }
+.tendencia__eje-y, .tendencia__eje-x{ font-size:12px; fill:var(--text-sub); font-variant-numeric:tabular-nums; }
+.tendencia__nota{ margin:6px 0 0; font-size:12px; line-height:18px; color:var(--text-sub); }
+.grafico{ margin:0; min-width:0; }
+.grafico__titulo{ margin:0; padding-top:0; font-size:16px; line-height:24px; font-weight:600; color:var(--text); }
+.grafico__bajada{ display:block; margin:0 0 12px; font-size:12px; line-height:18px; color:var(--text-sub); }
+.grafico__grupo{ margin-top:12px; }
+.grafico__grupo + .grafico__grupo{ padding-top:12px; border-top:1px solid var(--border); }
+.grafico__cabeza{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:24px; font-size:12px; line-height:18px; color:var(--text-sub); }
+.grafico__lista{ list-style:none; margin:6px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.barra{ all:unset; box-sizing:border-box; display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:'nombre valor' 'riel riel'; align-items:center; gap:6px 12px; width:100%; min-height:48px; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:14px; line-height:18px; color:var(--text); }
+.barra--linea{ grid-template-columns:144px minmax(0,1fr) 84px; grid-template-areas:'nombre riel valor'; }
+.barra[aria-pressed="true"], .barra--activa{ outline:2px solid var(--text); outline-offset:-2px; }
+.barra:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
+/* Nombre y valor en líneas de 24 (el alto del chip «Más vendido»), y el valor
+   en la última línea del nombre: así, con o sin chip y aunque el nombre se
+   parta en dos (320 px), valor → riel da 6 px y no 9 o 21 (barrido, 19-oct). */
+.barra__nombre{ grid-area:nombre; display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; min-height:24px; }
+.barra__valor{ grid-area:valor; align-self:end; line-height:24px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.barra--linea .barra__valor{ align-self:center; }
+.barra__riel{ grid-area:riel; display:block; width:100%; height:12px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+.barra__pieza{ display:block; height:100%; border-radius:999px; }
+.grafico__detalle{ display:flex; align-items:center; box-sizing:border-box; min-height:48px; margin:12px 0 0; padding:6px 0; border-top:1px solid var(--border); font-size:14px; line-height:18px; color:var(--text); }
+.dona{ display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:12px; }
+.dona--lado{ flex-direction:row; align-items:center; gap:24px; }
+.dona__lienzo{ position:relative; flex-shrink:0; }
+.dona__centro{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; }
+.dona__centro-cifra{ font-size:30px; font-weight:700; line-height:36px; color:var(--text); font-variant-numeric:tabular-nums; }
+.dona__centro-texto{ font-size:12px; line-height:18px; color:var(--text-sub); max-width:90px; }
+.dona__sector{ cursor:pointer; }
+.leyenda{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; width:100%; min-width:0; }
+.leyenda__boton{ all:unset; box-sizing:border-box; display:flex; align-items:center; gap:12px; width:100%; min-height:48px; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:14px; line-height:18px; color:var(--text); }
+.leyenda__boton[aria-pressed="true"], .leyenda__boton--activa{ outline:2px solid var(--text); outline-offset:-2px; }
+.leyenda__boton:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
+.leyenda__muestra{ flex-shrink:0; width:12px; height:12px; border-radius:2px; }
+.leyenda__nombre{ flex:1 1 auto; min-width:0; }
+.leyenda__valor{ white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+/* Fila de «Sin calcular» (§16.4): badge → nombre → motivo con ícono. */
+.fila-sin{ display:flex !important; flex-direction:column; align-items:stretch; gap:0; min-height:48px; padding:12px 0 !important; text-align:left; }
+.fila-sin__motivo{ display:flex; align-items:flex-start; gap:6px; padding-top:6px; font-size:14px; line-height:18px; color:var(--text-sub); }
+.fila-sin__motivo .icono{ color:var(--status-atencion-text); }
+
+/* Fila de venta en «Por mes» (spec §16.4, solo Ventas de CFF): badge y país,
+   nombre, meta en línea con íconos, divisor y plata con ícono + etiqueta +
+   valor; ganancia y margen en el bloque «resultado». */
+.fila-venta{ display:flex; flex-direction:column; align-items:stretch; min-height:48px; padding:18px; text-align:left; }
+.fila-venta__marca{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; }
+.fila-venta__pais{ display:inline-flex; align-items:center; gap:6px; font-size:14px; line-height:18px; color:var(--text); }
+.fila-venta__chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.fila-venta__nombre{ font-size:16px; line-height:24px; font-weight:600; color:var(--text); overflow-wrap:anywhere; }
+.fila-venta__meta{ display:flex; flex-wrap:wrap; gap:0 12px; padding-top:6px; font-size:14px; line-height:18px; color:var(--text-sub); }
+.fila-venta__meta-item{ display:inline-flex; align-items:center; gap:6px; min-height:30px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.fila-venta__plata{ display:flex; flex-direction:column; gap:6px; }
+.fila-venta__datos{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+.fila-venta__grupos{ display:flex; flex-direction:column; gap:6px; }
+.fila-venta__grupos--cuatro{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; align-items:start; }
+.fila-venta__grupos--cuatro > .fila-venta__datos:first-child{ padding:6px 0; }
+.fila-venta__datos.resultado{ margin-top:0; }
+/* La plata de la fila se mide a sí misma: angosta, el valor pierde la
+   sangría; más angosta, un dato por línea (sin desborde, CA-U13). */
+.fila-venta__plata{ display:block; container-type:inline-size; }
+@container (max-width:339px){ .dato-icono__valor{ padding-left:0; } }
+@container (max-width:263px){ .fila-venta__datos{ grid-template-columns:minmax(0,1fr); } }
+.resultado .dato-icono .icono{ color:var(--primary); }
+.dato-icono{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.dato-icono__etiqueta{ display:flex; align-items:center; gap:6px; font-size:14px; line-height:18px; color:var(--text-sub); }
+.dato-icono__valor{ padding-left:24px; font-size:14px; line-height:18px; font-weight:500; color:var(--text); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.dato-icono--fuerte .dato-icono__valor{ font-size:16px; line-height:24px; font-weight:700; }
+.resultado .dato-icono__etiqueta{ color:var(--text); font-weight:500; }
+.dato-icono--perdida .icono{ color:var(--status-critico-text) !important; }
+.dato-icono--perdida .dato-icono__valor{ color:var(--status-critico-text); }
+.fila-venta__nota{ display:flex; align-items:flex-start; gap:6px; padding-top:6px; font-size:12px; line-height:18px; color:var(--text-sub); }
+.fila-venta__ver{ align-self:flex-end; padding-top:6px; font-size:12px; line-height:18px; font-weight:600; color:var(--primary); }
+
+/* Ficha del pescador en tarjetas (§16.4, 18-oct): título con ícono, grupos
+   de filas ícono · etiqueta · valor con divisor y bloque «resultado». */
+.ficha-tarjeta{ margin-top:18px; }
+.ficha-tarjeta.tarjeta{ padding:18px; }
+@media (min-width:1000px){ .ficha-tarjeta{ margin-top:24px; } .ficha-tarjeta.tarjeta{ padding:24px; } }
+.ficha-tarjeta > .parte-titulo{ padding-top:0; }
+.ficha-cabecera > .parte-titulo{ padding-top:6px; }
+.ficha-grupo:first-of-type, .ficha-tarjeta > .parte-titulo + .grupo{ margin-top:12px; }
+.ficha-estado{ border-color:transparent; }
+.ranura-icono{ display:inline-block; width:18px; height:18px; flex-shrink:0; }
+.fila-dato--resumen{ flex-wrap:wrap; align-items:flex-start; }
+.fila-dato--resumen .dato__etiqueta{ display:block; font-size:14px; font-weight:400; }
+.fila-dato--resumen .dato__valor{ display:block; font-size:14px; line-height:18px; }
+.fila-dato--resumen .dato__valor--cifra{ font-size:18px; line-height:24px; }
+.fila-dato--resumen > .fila-dato__extra{ flex-basis:100%; margin:0; text-align:right; }
+.fila-dato--resumen .dato__etiqueta{ display:flex; }
+/* Etiqueta y valor en una línea de 24: «Programa» (con badge) y «Llega – Se va» quedan en el mismo y. */
+.fila-dato--resumen > .fila-dato__etiqueta, .fila-dato--resumen > .fila-dato__valor{ display:flex; align-items:center; min-height:24px; }
+.fila-dato--resumen > .fila-dato__valor{ justify-content:flex-end; }
+/* Desde 1000 px: pares en dos columnas de hasta 480 con 48 entre ellas; cada dl
+   sigue en orden de lectura (fila por fila) y el bloque teñido ocupa las dos. */
+@media (min-width:1000px){
+  .ficha-resumen__grupos{ max-width:1008px; }
+  .ficha-resumen__grupos dl.grupo, .ficha-resumen__grupos .lista-datos{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:48px; align-items:start; }
+}
+.ficha-resumen__grupos{ min-width:0; }
+.ficha-resumen__grupos > .grupo:first-child{ margin-top:12px; }
+.ficha-resumen__sub{ display:block; font-size:12px; line-height:18px; color:var(--text-sub); }
+.ficha-resumen__chip{ display:block; padding-top:6px; }
+.ficha-resumen__motivo{ margin:6px 0 0; font-size:12px; line-height:18px; color:var(--text-sub); }
+.resultado--perdida .icono{ color:var(--status-critico-text); }
+.ficha-control{ min-height:48px; }
+.ficha-pescador [data-tarjeta] .crm-btn{ gap:6px; padding:0 18px; font-size:14px; line-height:18px; }
+.ficha-pescador [data-tarjeta] option{ gap:6px; padding:0 6px; line-height:18px; }
+/* AcompanantesReserva trae su propio borde y margen (lo usa también la
+   tarjeta del huésped): dentro de la tarjeta de la ficha se anulan. */
+.ficha-pescador [data-tarjeta="acompanantes"] > div{ border-top:0 !important; padding-top:0 !important; margin:0 !important; }
+/* Cancelar en la ficha (CA-F10, 18-oct): --danger (#ef4444) sobre blanco da
+   3,76:1. Solo dentro de la ficha se usa el rojo de texto crítico (#b91c1c,
+   6,5:1); .crm-btn-danger global no cambia (lo usa Alto Castillo). */
+.ficha-pescador .crm-btn-danger:not(:disabled){ color:var(--status-critico-text); }
+.ficha-pescador .crm-btn-danger-filled:not(:disabled){ background:var(--status-critico-text); }

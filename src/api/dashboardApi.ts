@@ -6,6 +6,7 @@ import type {
   DisponibilidadResponse,
   MeResponse,
   ReservasResumenResponse,
+  VentasResponse,
   Acompanante,
   BorradorAcompanante,
   NuevaReservaPayload,
@@ -51,6 +52,7 @@ import type {
   BerryParteSubida,
   BerryPartesFirmadas,
   BerrySubidaIniciada,
+  FishingExperience,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -84,12 +86,27 @@ export class TimeoutError extends Error {
 // Falla que puede no repetirse: red caída, throttling o un 5xx de pasada.
 // Exportada desde 2026-10-12: la subida de Berry Studio la usa para decidir
 // si reintenta o si la subida ya no existe y hay que empezar de cero.
-export class ErrorTransitorio extends Error {}
+export class ErrorTransitorio extends Error {
+  /** true si el servidor respondió con su propio mensaje (p. ej. el 503
+   *  «No pudimos leer la configuración»); false en un corte de red. */
+  readonly delServidor: boolean;
+  constructor(mensaje: string, delServidor = false) {
+    super(mensaje);
+    this.delServidor = delServidor;
+  }
+}
 
 // 409: lo que se quería guardar se armó sobre datos que otra persona ya
 // cambió. Es un Error común con su mensaje, para que las pantallas que no lo
 // distinguen sigan mostrándolo igual; las que sí, ofrecen traer lo actual.
 export class ConflictError extends Error {}
+/** 400: la petición está mal formada (p. ej., una temporada mal escrita). Es
+ *  un Error común con el mensaje del servidor: quien ya atrapa Error no cambia. */
+export class SolicitudInvalidaError extends Error {}
+/** 403: la cuenta no tiene activa esa sección. */
+export class SinPermisoError extends Error {}
+/** 404: lo pedido no existe (p. ej., una reserva por booking_id). */
+export class NoEncontradoError extends Error {}
 
 interface Respuesta {
   status: number;
@@ -148,9 +165,13 @@ async function requestUnaVez<T>(path: string, method: string, body: unknown): Pr
   if (res.status === 401) throw new UnauthorizedError();
 
   if (!res.ok) {
-    const mensaje = (res.data as { error?: string }).error || 'Error de conexión con el dashboard.';
-    if (ESTADOS_TRANSITORIOS.has(res.status)) throw new ErrorTransitorio(mensaje);
+    const delServidor = (res.data as { error?: string }).error;
+    const mensaje = delServidor || 'Error de conexión con el dashboard.';
+    if (ESTADOS_TRANSITORIOS.has(res.status)) throw new ErrorTransitorio(mensaje, Boolean(delServidor));
     if (res.status === 409) throw new ConflictError(mensaje);
+    if (res.status === 400) throw new SolicitudInvalidaError(mensaje);
+    if (res.status === 403) throw new SinPermisoError(mensaje);
+    if (res.status === 404) throw new NoEncontradoError(mensaje);
     throw new Error(mensaje);
   }
   return res.data as T;
@@ -202,17 +223,29 @@ export function getDisponibilidad(): Promise<DisponibilidadResponse> {
   return request('/dashboard/disponibilidad');
 }
 
-export function getReservasResumen(): Promise<ReservasResumenResponse> {
-  return request('/dashboard/reservas-resumen');
+// Con `bookingId` devuelve solo esa reserva, sin la ventana de fechas y
+// aunque esté cancelada; si no existe, 404 (NoEncontradoError).
+export function getReservasResumen(opciones?: { bookingId?: string }): Promise<ReservasResumenResponse> {
+  const q = opciones?.bookingId ? `?booking_id=${encodeURIComponent(opciones.bookingId)}` : '';
+  return request(`/dashboard/reservas-resumen${q}`);
+}
+
+// Lodge → Ventas (5.0.0, 16-oct). Sin temporada, el servidor usa la vigente.
+export function getVentas(temporada?: string): Promise<VentasResponse> {
+  return request(`/dashboard/ventas${temporada ? `?temporada=${encodeURIComponent(temporada)}` : ''}`);
 }
 
 // Edita fecha/notas de una reserva desde el detalle (2026-08-06, pedido
 // explícito de Mato: click en una reserva → detalle → poder cambiar
 // fechas). Solo manda los campos que cambiaron.
+//
+// Licencia y equipo (5.0.0): la respuesta trae de vuelta el valor guardado.
+// Si no lo trae, la Lambda desplegada es anterior e ignoró el campo, igual
+// que con guardarAcompanantes.
 export function actualizarReserva(
   bookingId: string,
-  cambios: { CheckIn?: string; CheckOut?: string; BookingNotes?: string }
-): Promise<{ BookingID: string; message: string }> {
+  cambios: { CheckIn?: string; CheckOut?: string; BookingNotes?: string; FishingLicensePurchased?: boolean; BringsOwnGear?: boolean }
+): Promise<{ BookingID: string; message: string; FishingLicensePurchased?: boolean; BringsOwnGear?: boolean }> {
   return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'PUT', cambios);
 }
 
@@ -288,11 +321,12 @@ export function setRoomState(
 }
 
 // Fechas importantes del huésped (2026-08-11). Mandar '' borra la fecha;
-// no mandar el campo lo deja como está.
+// no mandar el campo lo deja como está. FishingExperience en null la borra
+// (5.0.0); la respuesta la trae de vuelta si el backend la guardó.
 export function actualizarHuesped(
   guestId: string,
-  cambios: { BirthDate?: string; AnniversaryDate?: string }
-): Promise<{ GuestID: string; message: string }> {
+  cambios: { BirthDate?: string; AnniversaryDate?: string; FishingExperience?: FishingExperience | null }
+): Promise<{ GuestID: string; message: string; FishingExperience?: FishingExperience | null }> {
   return request(`/dashboard/huespedes/${encodeURIComponent(guestId)}`, 'PUT', cambios);
 }
 

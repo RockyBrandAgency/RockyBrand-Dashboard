@@ -1,11 +1,14 @@
 import { useCallback, useState } from 'react';
+import { BadgePrograma, PaisConBandera } from './BadgePrograma';
 import { actualizarReserva, cancelarReserva, confirmarReserva, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { telefonoDe, enlaceWhatsapp } from '../lib/contactoHuesped';
 import { AcompanantesReserva } from './AcompanantesReserva';
 import { OriginBadge } from './OriginBadge';
 import { fmtSelloUtc } from '../lib/selloUtc';
+import { notasEnBullets } from '../lib/fichaPescador';
 import type { ReservaResumenItem } from '../types';
+import { personasDe } from '../lib/personas';
 
 const STATUS_LABEL: Record<string, string> = { CONFIRMED: 'Confirmada', PENDING: 'Pendiente', CANCELLED: 'Cancelada' };
 const STATUS_COLOR: Record<string, { bg: string; dot: string }> = {
@@ -45,18 +48,8 @@ function nights(checkIn: string, checkOut: string): number {
 const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' };
 const fieldValue: React.CSSProperties = { fontSize: 14, color: 'var(--text)', marginTop: 4 };
 
-// Las notas llegan como texto libre desde el PMS/la web. Se parten por
-// salto de línea y por los separadores que la gente escribe a mano (·, ;,
-// viñetas tipeadas) para poder listarlas - 2026-08-11, pedido de Mato:
-// "las notas deben quedar en bullets, fácil de leer". Una nota de un solo
-// párrafo sigue siendo un bullet: el formato no cambia según el contenido,
-// así siempre se lee igual.
-function notasEnBullets(texto: string): string[] {
-  return texto
-    .split(/\r?\n|·|;/)
-    .map((n) => n.replace(/^\s*[-*•]\s*/, '').trim())
-    .filter(Boolean);
-}
+// notasEnBullets vive en lib/fichaPescador.ts: la usa también la ficha del
+// pescador de CFF (5.0.0).
 
 // Detalle real al hacer click en una reserva (2026-08-06, pedido explícito
 // de Mato) — quién es, contacto, fechas, y edición real de fechas. Este
@@ -156,14 +149,14 @@ export function BookingDetailModal({
         'y ya pagada por fuera, que solo estás registrando.'
       : 'SE LE AVISA: le llega el correo "tu reserva está confirmada" y arranca ' +
         'la secuencia previa al viaje. Si es una reserva vieja que ya tenía todo ' +
-        'arreglado, marcá "No avisar al pescador" antes de seguir.';
+        'arreglado, marca "No avisar al pescador" antes de seguir.';
     if (
       !confirm(
         `¿Confirmar la reserva de ${reserva.GuestName}?\n\n` +
           'Queda como Confirmada y su pago como Pagado. Con eso se le bloquea la fecha ' +
           'y deja de correr el plazo que la cancela sola por falta de pago.\n\n' +
           `${aviso}\n\n` +
-          'Hacelo solo si la plata ya entró.'
+          'Hazlo solo si el pago ya entró.'
       )
     )
       return;
@@ -289,15 +282,19 @@ export function BookingDetailModal({
           </div>
           <div>
             <div style={fieldLabel}>País de origen</div>
-            <div style={fieldValue}>{reserva.GuestOriginCountry || '—'}</div>
+            <div style={fieldValue}>
+              <PaisConBandera pais={reserva.GuestOriginCountry} />
+            </div>
           </div>
           <div>
             <div style={fieldLabel}>Personas</div>
-            <div style={fieldValue}>{reserva.PartyMembers ?? '—'}</div>
+            <div style={fieldValue}>{personasDe(reserva) ?? '—'}</div>
           </div>
           <div>
             <div style={fieldLabel}>{roomViews ? 'Habitación' : 'Programa'}</div>
-            <div style={fieldValue}>{reserva.RoomID}</div>
+            <div style={fieldValue}>
+              <BadgePrograma codigo={reserva.RoomID} />
+            </div>
           </div>
           <div>
             <div style={fieldLabel}>Monto total</div>
@@ -478,7 +475,7 @@ export function BookingDetailModal({
                   cursor: confirmando ? 'default' : 'pointer',
                   userSelect: 'none',
                 }}
-                title="Marcala cuando estés registrando una reserva ya acordada y ya pagada por fuera: se confirma igual, pero al pescador no le llega el correo de confirmación ni la secuencia previa al viaje."
+                title="Márcala cuando estés registrando una reserva ya acordada y ya pagada por fuera: se confirma igual, pero al pescador no le llega el correo de confirmación ni la secuencia previa al viaje."
               >
                 <input
                   type="checkbox"

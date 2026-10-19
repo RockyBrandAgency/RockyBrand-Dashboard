@@ -1,0 +1,1780 @@
+{
+ "client_id": "lodge-qa-ficha",
+ "periodo": {
+  "temporada": "2026-27",
+  "desde": "2026-10-12",
+  "hasta": "2027-04-30"
+ },
+ "temporadas": [
+  "2026-27"
+ ],
+ "resumen": {
+  "full_day": {
+   "reservas": 7,
+   "jornadas": 8,
+   "pescadores": 9,
+   "jornadas_incompletas": 0
+  },
+  "all_inclusive": {
+   "reservas": 3,
+   "pescadores": 4
+  },
+  "pendientes": {
+   "reservas": 1
+  }
+ },
+ "totales": {
+  "CLP": {
+   "venta": 360000.0,
+   "costo": 300000.0,
+   "utilidad": 60000.0,
+   "porcentaje": 16.7
+  },
+  "USD": {
+   "venta": 22620.0,
+   "costo": 12966.47,
+   "utilidad": 9653.53,
+   "porcentaje": 42.7
+  }
+ },
+ "meses": [
+  {
+   "mes": "2026-10",
+   "full_day": {
+    "reservas": 4,
+    "jornadas": 5
+   },
+   "all_inclusive": {
+    "reservas": 0,
+    "pescadores": 0
+   },
+   "por_moneda": {
+    "CLP": {
+     "venta": 360000.0,
+     "costo": 300000.0,
+     "utilidad": 60000.0,
+     "porcentaje": 16.7
+    },
+    "USD": {
+     "venta": 2520.0,
+     "costo": 1876.47,
+     "utilidad": 643.53,
+     "porcentaje": 25.5
+    }
+   },
+   "reservas": [
+    {
+     "BookingID": "bkg_390f82ba79d7",
+     "GuestID": "gst_us",
+     "GuestName": "Pescador Estados Unidos",
+     "Programa": "FULL_DAY",
+     "Mercado": "USA",
+     "CheckIn": "2026-10-22",
+     "CheckOut": "2026-10-23",
+     "Pescadores": 1,
+     "Jornadas": 1,
+     "Moneda": "USD",
+     "Venta": 690.0,
+     "Costo": 490.0,
+     "Utilidad": 200.0,
+     "Porcentaje": 29.0,
+     "Reason": null,
+     "PrecioLista": 690.0,
+     "BajoLista": false,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2026-10-14"
+    },
+    {
+     "BookingID": "bkg_03f8e3cde1e0",
+     "GuestID": "gst_us",
+     "GuestName": "Pescador Estados Unidos",
+     "Programa": "FULL_DAY",
+     "Mercado": "USA",
+     "CheckIn": "2026-10-24",
+     "CheckOut": "2026-10-25",
+     "Pescadores": 3,
+     "Jornadas": 2,
+     "Moneda": "USD",
+     "Venta": 1380.0,
+     "Costo": 980.0,
+     "Utilidad": 400.0,
+     "Porcentaje": 29.0,
+     "Reason": null,
+     "PrecioLista": 1380.0,
+     "BajoLista": false,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2026-10-14"
+    },
+    {
+     "BookingID": "bkg_9e9f72c1b792",
+     "GuestID": "gst_br",
+     "GuestName": "Pescador Brasil",
+     "Programa": "FULL_DAY",
+     "Mercado": "BR",
+     "CheckIn": "2026-10-26",
+     "CheckOut": "2026-10-27",
+     "Pescadores": 1,
+     "Jornadas": 1,
+     "Moneda": "USD",
+     "Venta": 450.0,
+     "Costo": 406.47,
+     "Utilidad": 43.53,
+     "Porcentaje": 9.7,
+     "Reason": null,
+     "PrecioLista": 450.0,
+     "BajoLista": false,
+     "CostoOriginal": {
+      "moneda": "CLP",
+      "monto": 400000.0
+     },
+     "Dolar": {
+      "valor": 984.09,
+      "fecha": "2026-10-16",
+      "fuente": "Banco Central de Chile vía mindicador.cl"
+     },
+     "FechaConfirmacion": "2026-10-17"
+    },
+    {
+     "BookingID": "bkg_9962cb4572a5",
+     "GuestID": "gst_cl",
+     "GuestName": "Pescador Chile",
+     "Programa": "FULL_DAY",
+     "Mercado": "CL",
+     "CheckIn": "2026-10-28",
+     "CheckOut": "2026-10-29",
+     "Pescadores": 1,
+     "Jornadas": 1,
+     "Moneda": "CLP",
+     "Venta": 360000.0,
+     "Costo": 300000.0,
+     "Utilidad": 60000.0,
+     "Porcentaje": 16.7,
+     "Reason": null,
+     "PrecioLista": 360000.0,
+     "BajoLista": false,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2026-09-18"
+    }
+   ],
+   "segmentos": [
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 2,
+     "pescadores": 4,
+     "unidades": 3,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 1,
+     "unidades": 1,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 1,
+     "pescadores": 1,
+     "unidades": 1,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ],
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 2,
+     "pescadores": 4
+    },
+    {
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 1
+    },
+    {
+     "mercado": "CL",
+     "reservas": 1,
+     "pescadores": 1
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 4,
+     "pescadores": 6,
+     "unidades": 5,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ]
+  },
+  {
+   "mes": "2026-11",
+   "full_day": {
+    "reservas": 1,
+    "jornadas": 1
+   },
+   "all_inclusive": {
+    "reservas": 3,
+    "pescadores": 4
+   },
+   "por_moneda": {
+    "CLP": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    },
+    "USD": {
+     "venta": 20100.0,
+     "costo": 11090.0,
+     "utilidad": 9010.0,
+     "porcentaje": 44.8
+    }
+   },
+   "reservas": [
+    {
+     "BookingID": "bkg_acea39ee3d6b",
+     "GuestID": "gst_us",
+     "GuestName": "Pescador Estados Unidos",
+     "Programa": "ALL_INCLUSIVE",
+     "Mercado": "USA",
+     "CheckIn": "2026-11-02",
+     "CheckOut": "2026-11-09",
+     "Pescadores": 1,
+     "Jornadas": null,
+     "Moneda": "USD",
+     "Venta": 6500.0,
+     "Costo": 4200.0,
+     "Utilidad": 2300.0,
+     "Porcentaje": 35.4,
+     "Reason": null,
+     "PrecioLista": 6500.0,
+     "BajoLista": false,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2026-08-20"
+    },
+    {
+     "BookingID": "bkg_b7ef58800e8a",
+     "GuestID": "gst_br",
+     "GuestName": "Pescador Brasil",
+     "Programa": "ALL_INCLUSIVE",
+     "Mercado": "BR",
+     "CheckIn": "2026-11-12",
+     "CheckOut": "2026-11-19",
+     "Pescadores": 2,
+     "Jornadas": null,
+     "Moneda": "USD",
+     "Venta": 13000.0,
+     "Costo": 6400.0,
+     "Utilidad": 6600.0,
+     "Porcentaje": 50.8,
+     "Reason": null,
+     "PrecioLista": 13000.0,
+     "BajoLista": false,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2026-06-15"
+    },
+    {
+     "BookingID": "bkg_a6b0cafd9ebb",
+     "GuestID": "gst_cl",
+     "GuestName": "Pescador Chile",
+     "Programa": "ALL_INCLUSIVE",
+     "Mercado": "CL",
+     "CheckIn": "2026-11-22",
+     "CheckOut": "2026-11-29",
+     "Pescadores": 1,
+     "Jornadas": null,
+     "Moneda": "USD",
+     "Venta": 6500.0,
+     "Costo": null,
+     "Utilidad": null,
+     "Porcentaje": null,
+     "Reason": "SIN_TARIFA",
+     "PrecioLista": null,
+     "BajoLista": null,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2026-10-13"
+    },
+    {
+     "BookingID": "bkg_2ffcc37dd623",
+     "GuestID": "gst_us",
+     "GuestName": "Pescador Estados Unidos",
+     "Programa": "FULL_DAY",
+     "Mercado": "USA",
+     "CheckIn": "2026-11-30",
+     "CheckOut": "2026-12-01",
+     "Pescadores": 1,
+     "Jornadas": 1,
+     "Moneda": "USD",
+     "Venta": 600.0,
+     "Costo": 490.0,
+     "Utilidad": 110.0,
+     "Porcentaje": 18.3,
+     "Reason": null,
+     "PrecioLista": 690.0,
+     "BajoLista": true,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2026-09-19"
+    }
+   ],
+   "segmentos": [
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 1,
+     "pescadores": 1,
+     "unidades": 1,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 1,
+     "pescadores": 1,
+     "unidades": 1,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 2,
+     "unidades": 2,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "CL",
+     "reservas": 1,
+     "pescadores": 1,
+     "unidades": 1,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ],
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 2,
+     "pescadores": 2
+    },
+    {
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 2
+    },
+    {
+     "mercado": "CL",
+     "reservas": 1,
+     "pescadores": 1
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 1,
+     "pescadores": 1,
+     "unidades": 1,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 3,
+     "pescadores": 4,
+     "unidades": 4,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ]
+  },
+  {
+   "mes": "2026-12",
+   "full_day": {
+    "reservas": 2,
+    "jornadas": 2
+   },
+   "all_inclusive": {
+    "reservas": 0,
+    "pescadores": 0
+   },
+   "por_moneda": {
+    "CLP": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    },
+    "USD": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    }
+   },
+   "reservas": [
+    {
+     "BookingID": "bkg_c24b4bd16782",
+     "GuestID": "gst_br",
+     "GuestName": "Pescador Brasil",
+     "Programa": "FULL_DAY",
+     "Mercado": "BR",
+     "CheckIn": "2026-12-02",
+     "CheckOut": "2026-12-03",
+     "Pescadores": 1,
+     "Jornadas": 1,
+     "Moneda": "USD",
+     "Venta": 450.0,
+     "Costo": null,
+     "Utilidad": null,
+     "Porcentaje": null,
+     "Reason": "SIN_FECHA_CONFIRMACION",
+     "PrecioLista": 450.0,
+     "BajoLista": false,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": null
+    },
+    {
+     "BookingID": "bkg_d18c74d09eee",
+     "GuestID": "gst_br",
+     "GuestName": "Pescador Brasil",
+     "Programa": "FULL_DAY",
+     "Mercado": "BR",
+     "CheckIn": "2026-12-08",
+     "CheckOut": "2026-12-09",
+     "Pescadores": 1,
+     "Jornadas": 1,
+     "Moneda": "USD",
+     "Venta": 450.0,
+     "Costo": null,
+     "Utilidad": null,
+     "Porcentaje": null,
+     "Reason": "SIN_DOLAR",
+     "PrecioLista": 450.0,
+     "BajoLista": false,
+     "CostoOriginal": null,
+     "Dolar": null,
+     "FechaConfirmacion": "2025-12-20"
+    }
+   ],
+   "segmentos": [
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 2,
+     "pescadores": 2,
+     "unidades": 2,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ],
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "BR",
+     "reservas": 2,
+     "pescadores": 2
+    },
+    {
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 2,
+     "pescadores": 2,
+     "unidades": 2,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ]
+  },
+  {
+   "mes": "2027-01",
+   "full_day": {
+    "reservas": 0,
+    "jornadas": 0
+   },
+   "all_inclusive": {
+    "reservas": 0,
+    "pescadores": 0
+   },
+   "por_moneda": {
+    "CLP": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    },
+    "USD": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    }
+   },
+   "reservas": [],
+   "segmentos": [
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ],
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ]
+  },
+  {
+   "mes": "2027-02",
+   "full_day": {
+    "reservas": 0,
+    "jornadas": 0
+   },
+   "all_inclusive": {
+    "reservas": 0,
+    "pescadores": 0
+   },
+   "por_moneda": {
+    "CLP": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    },
+    "USD": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    }
+   },
+   "reservas": [],
+   "segmentos": [
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ],
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ]
+  },
+  {
+   "mes": "2027-03",
+   "full_day": {
+    "reservas": 0,
+    "jornadas": 0
+   },
+   "all_inclusive": {
+    "reservas": 0,
+    "pescadores": 0
+   },
+   "por_moneda": {
+    "CLP": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    },
+    "USD": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    }
+   },
+   "reservas": [],
+   "segmentos": [
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ],
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ]
+  },
+  {
+   "mes": "2027-04",
+   "full_day": {
+    "reservas": 0,
+    "jornadas": 0
+   },
+   "all_inclusive": {
+    "reservas": 0,
+    "pescadores": 0
+   },
+   "por_moneda": {
+    "CLP": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    },
+    "USD": {
+     "venta": 0.0,
+     "costo": 0.0,
+     "utilidad": 0.0,
+     "porcentaje": null
+    }
+   },
+   "reservas": [],
+   "segmentos": [
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ],
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0
+    },
+    {
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "jornada",
+     "jornadas_incompletas": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 0,
+     "pescadores": 0,
+     "unidades": 0,
+     "unidad": "pescador",
+     "jornadas_incompletas": 0
+    }
+   ]
+  }
+ ],
+ "sin_calcular": [
+  {
+   "BookingID": "bkg_a6b0cafd9ebb",
+   "GuestName": "Pescador Chile",
+   "Reason": "SIN_TARIFA"
+  },
+  {
+   "BookingID": "bkg_c24b4bd16782",
+   "GuestName": "Pescador Brasil",
+   "Reason": "SIN_FECHA_CONFIRMACION"
+  },
+  {
+   "BookingID": "bkg_d18c74d09eee",
+   "GuestName": "Pescador Brasil",
+   "Reason": "SIN_DOLAR"
+  }
+ ],
+ "tarifas": [
+  {
+   "programa": "FULL_DAY",
+   "mercado": "USA",
+   "unidad": "jornada",
+   "pescadores_por_jornada": 2,
+   "desde": "2026-10-12",
+   "hasta": null,
+   "precio": {
+    "moneda": "USD",
+    "monto": 690
+   },
+   "costo": {
+    "moneda": "USD",
+    "monto": 490
+   },
+   "costo_convertido": null,
+   "dolar": null,
+   "ganancia": 200.0,
+   "margen": 29.0,
+   "dolar_equilibrio": null,
+   "vendidas": {
+    "reservas": 3,
+    "unidades": 4
+   },
+   "reason": null
+  },
+  {
+   "programa": "FULL_DAY",
+   "mercado": "BR",
+   "unidad": "jornada",
+   "pescadores_por_jornada": 2,
+   "desde": "2026-10-12",
+   "hasta": null,
+   "precio": {
+    "moneda": "USD",
+    "monto": 450
+   },
+   "costo": {
+    "moneda": "CLP",
+    "monto": 400000
+   },
+   "costo_convertido": 406.47,
+   "dolar": {
+    "valor": 984.09,
+    "fecha": "2026-10-16",
+    "fuente": "Banco Central de Chile vía mindicador.cl"
+   },
+   "ganancia": 43.53,
+   "margen": 9.7,
+   "dolar_equilibrio": 888.89,
+   "vendidas": {
+    "reservas": 3,
+    "unidades": 3
+   },
+   "reason": null
+  },
+  {
+   "programa": "FULL_DAY",
+   "mercado": "CL",
+   "unidad": "jornada",
+   "pescadores_por_jornada": 2,
+   "desde": "2026-10-12",
+   "hasta": null,
+   "precio": {
+    "moneda": "CLP",
+    "monto": 360000
+   },
+   "costo": {
+    "moneda": "CLP",
+    "monto": 300000
+   },
+   "costo_convertido": null,
+   "dolar": null,
+   "ganancia": 60000.0,
+   "margen": 16.7,
+   "dolar_equilibrio": null,
+   "vendidas": {
+    "reservas": 1,
+    "unidades": 1
+   },
+   "reason": null
+  },
+  {
+   "programa": "ALL_INCLUSIVE",
+   "mercado": "USA",
+   "unidad": "pescador",
+   "pescadores_por_jornada": null,
+   "desde": "2026-10-12",
+   "hasta": null,
+   "precio": {
+    "moneda": "USD",
+    "monto": 6500
+   },
+   "costo": {
+    "moneda": "USD",
+    "monto": 4200
+   },
+   "costo_convertido": null,
+   "dolar": null,
+   "ganancia": 2300.0,
+   "margen": 35.4,
+   "dolar_equilibrio": null,
+   "vendidas": {
+    "reservas": 1,
+    "unidades": 1
+   },
+   "reason": null
+  },
+  {
+   "programa": "ALL_INCLUSIVE",
+   "mercado": "BR",
+   "unidad": "pescador",
+   "pescadores_por_jornada": null,
+   "desde": "2026-10-12",
+   "hasta": null,
+   "precio": {
+    "moneda": "USD",
+    "monto": 6500
+   },
+   "costo": {
+    "moneda": "USD",
+    "monto": 3200
+   },
+   "costo_convertido": null,
+   "dolar": null,
+   "ganancia": 3300.0,
+   "margen": 50.8,
+   "dolar_equilibrio": null,
+   "vendidas": {
+    "reservas": 1,
+    "unidades": 2
+   },
+   "reason": null
+  }
+ ],
+ "segmentos": [
+  {
+   "programa": "FULL_DAY",
+   "mercado": "USA",
+   "reservas": 3,
+   "pescadores": 5,
+   "unidades": 4,
+   "unidad": "jornada",
+   "jornadas_incompletas": 0
+  },
+  {
+   "programa": "FULL_DAY",
+   "mercado": "BR",
+   "reservas": 3,
+   "pescadores": 3,
+   "unidades": 3,
+   "unidad": "jornada",
+   "jornadas_incompletas": 0
+  },
+  {
+   "programa": "FULL_DAY",
+   "mercado": "CL",
+   "reservas": 1,
+   "pescadores": 1,
+   "unidades": 1,
+   "unidad": "jornada",
+   "jornadas_incompletas": 0
+  },
+  {
+   "programa": "ALL_INCLUSIVE",
+   "mercado": "USA",
+   "reservas": 1,
+   "pescadores": 1,
+   "unidades": 1,
+   "unidad": "pescador",
+   "jornadas_incompletas": 0
+  },
+  {
+   "programa": "ALL_INCLUSIVE",
+   "mercado": "BR",
+   "reservas": 1,
+   "pescadores": 2,
+   "unidades": 2,
+   "unidad": "pescador",
+   "jornadas_incompletas": 0
+  },
+  {
+   "programa": "ALL_INCLUSIVE",
+   "mercado": "CL",
+   "reservas": 1,
+   "pescadores": 1,
+   "unidades": 1,
+   "unidad": "pescador",
+   "jornadas_incompletas": 0
+  }
+ ],
+ "mercados": [
+  {
+   "mercado": "USA",
+   "reservas": 4,
+   "pescadores": 6
+  },
+  {
+   "mercado": "BR",
+   "reservas": 4,
+   "pescadores": 5
+  },
+  {
+   "mercado": "CL",
+   "reservas": 2,
+   "pescadores": 2
+  }
+ ],
+ "programas": [
+  {
+   "programa": "FULL_DAY",
+   "reservas": 7,
+   "pescadores": 9,
+   "unidades": 8,
+   "unidad": "jornada",
+   "jornadas_incompletas": 0
+  },
+  {
+   "programa": "ALL_INCLUSIVE",
+   "reservas": 3,
+   "pescadores": 4,
+   "unidades": 4,
+   "unidad": "pescador",
+   "jornadas_incompletas": 0
+  }
+ ],
+ "ventanas": {
+  "hoy": "2026-10-18",
+  "30d": {
+   "desde": "2026-09-19",
+   "hasta": "2026-10-18",
+   "cajas": [
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 0,
+     "pescadores": 0,
+     "jornadas": null,
+     "jornadas_incompletas": 0,
+     "montos": [],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 0,
+     "pescadores": 0,
+     "jornadas": 0,
+     "jornadas_incompletas": 0,
+     "montos": [],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 1,
+     "jornadas": 1,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 1,
+       "venta": 450.0,
+       "costo": 406.47,
+       "ganancia": 43.53,
+       "margen": 9.7
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 3,
+     "pescadores": 5,
+     "jornadas": 4,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 3,
+       "venta": 2670.0,
+       "costo": 1960.0,
+       "ganancia": 710.0,
+       "margen": 26.6
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "jornadas": null,
+     "jornadas_incompletas": 0,
+     "montos": [],
+     "sin_calcular": 0
+    }
+   ],
+   "otros": {
+    "reservas": 1,
+    "pescadores": 1
+   },
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 3,
+     "pescadores": 5
+    },
+    {
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 1
+    },
+    {
+     "mercado": "CL",
+     "reservas": 1,
+     "pescadores": 1
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 4,
+     "pescadores": 6
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 1,
+     "pescadores": 1
+    }
+   ],
+   "sin_fecha_confirmacion": 1
+  },
+  "90d": {
+   "desde": "2026-07-21",
+   "hasta": "2026-10-18",
+   "cajas": [
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 1,
+     "pescadores": 1,
+     "jornadas": null,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 1,
+       "venta": 6500.0,
+       "costo": 4200.0,
+       "ganancia": 2300.0,
+       "margen": 35.4
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 1,
+     "pescadores": 1,
+     "jornadas": 1,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "CLP",
+       "reservas": 1,
+       "venta": 360000.0,
+       "costo": 300000.0,
+       "ganancia": 60000.0,
+       "margen": 16.7
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 1,
+     "jornadas": 1,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 1,
+       "venta": 450.0,
+       "costo": 406.47,
+       "ganancia": 43.53,
+       "margen": 9.7
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 3,
+     "pescadores": 5,
+     "jornadas": 4,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 3,
+       "venta": 2670.0,
+       "costo": 1960.0,
+       "ganancia": 710.0,
+       "margen": 26.6
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 0,
+     "pescadores": 0,
+     "jornadas": null,
+     "jornadas_incompletas": 0,
+     "montos": [],
+     "sin_calcular": 0
+    }
+   ],
+   "otros": {
+    "reservas": 1,
+    "pescadores": 1
+   },
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 4,
+     "pescadores": 6
+    },
+    {
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 1
+    },
+    {
+     "mercado": "CL",
+     "reservas": 2,
+     "pescadores": 2
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 5,
+     "pescadores": 7
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 2,
+     "pescadores": 2
+    }
+   ],
+   "sin_fecha_confirmacion": 1
+  },
+  "temporada": {
+   "desde": null,
+   "hasta": "2026-10-18",
+   "cajas": [
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "USA",
+     "reservas": 1,
+     "pescadores": 1,
+     "jornadas": null,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 1,
+       "venta": 6500.0,
+       "costo": 4200.0,
+       "ganancia": 2300.0,
+       "margen": 35.4
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "CL",
+     "reservas": 1,
+     "pescadores": 1,
+     "jornadas": 1,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "CLP",
+       "reservas": 1,
+       "venta": 360000.0,
+       "costo": 300000.0,
+       "ganancia": 60000.0,
+       "margen": 16.7
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "BR",
+     "reservas": 3,
+     "pescadores": 3,
+     "jornadas": 3,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 1,
+       "venta": 450.0,
+       "costo": 406.47,
+       "ganancia": 43.53,
+       "margen": 9.7
+      }
+     ],
+     "sin_calcular": 2
+    },
+    {
+     "programa": "FULL_DAY",
+     "mercado": "USA",
+     "reservas": 3,
+     "pescadores": 5,
+     "jornadas": 4,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 3,
+       "venta": 2670.0,
+       "costo": 1960.0,
+       "ganancia": 710.0,
+       "margen": 26.6
+      }
+     ],
+     "sin_calcular": 0
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "mercado": "BR",
+     "reservas": 1,
+     "pescadores": 2,
+     "jornadas": null,
+     "jornadas_incompletas": 0,
+     "montos": [
+      {
+       "moneda": "USD",
+       "reservas": 1,
+       "venta": 13000.0,
+       "costo": 6400.0,
+       "ganancia": 6600.0,
+       "margen": 50.8
+      }
+     ],
+     "sin_calcular": 0
+    }
+   ],
+   "otros": {
+    "reservas": 1,
+    "pescadores": 1
+   },
+   "mercados": [
+    {
+     "mercado": "USA",
+     "reservas": 4,
+     "pescadores": 6
+    },
+    {
+     "mercado": "BR",
+     "reservas": 4,
+     "pescadores": 5
+    },
+    {
+     "mercado": "CL",
+     "reservas": 2,
+     "pescadores": 2
+    }
+   ],
+   "programas": [
+    {
+     "programa": "FULL_DAY",
+     "reservas": 7,
+     "pescadores": 9
+    },
+    {
+     "programa": "ALL_INCLUSIVE",
+     "reservas": 3,
+     "pescadores": 4
+    }
+   ],
+   "sin_fecha_confirmacion": 0
+  }
+ },
+ "costos_fijos": [
+  {
+   "desde": "2026-10-12",
+   "hasta": null,
+   "proveedor": "Guía",
+   "programa": "FULL_DAY",
+   "mercado": "USA",
+   "unidad": "jornada",
+   "pescadores_por_jornada": 2,
+   "monto": 490,
+   "moneda": "USD",
+   "incluye_licencia": false,
+   "precio": 690,
+   "moneda_precio": "USD"
+  },
+  {
+   "desde": "2026-10-12",
+   "hasta": null,
+   "proveedor": "Guía",
+   "programa": "FULL_DAY",
+   "mercado": "BR",
+   "unidad": "jornada",
+   "pescadores_por_jornada": 2,
+   "monto": 400000,
+   "moneda": "CLP",
+   "incluye_licencia": false,
+   "precio": 450,
+   "moneda_precio": "USD"
+  },
+  {
+   "desde": "2026-10-12",
+   "hasta": null,
+   "proveedor": "Guía",
+   "programa": "FULL_DAY",
+   "mercado": "CL",
+   "unidad": "jornada",
+   "pescadores_por_jornada": 2,
+   "monto": 300000,
+   "moneda": "CLP",
+   "incluye_licencia": false,
+   "precio": 360000,
+   "moneda_precio": "CLP"
+  },
+  {
+   "desde": "2026-10-12",
+   "hasta": null,
+   "proveedor": "Guía",
+   "programa": "ALL_INCLUSIVE",
+   "mercado": "USA",
+   "unidad": "pescador",
+   "pescadores_por_jornada": null,
+   "monto": 4200,
+   "moneda": "USD",
+   "incluye_licencia": true,
+   "precio": 6500,
+   "moneda_precio": "USD"
+  },
+  {
+   "desde": "2026-10-12",
+   "hasta": null,
+   "proveedor": "Guía",
+   "programa": "ALL_INCLUSIVE",
+   "mercado": "BR",
+   "unidad": "pescador",
+   "pescadores_por_jornada": null,
+   "monto": 3200,
+   "moneda": "USD",
+   "incluye_licencia": false,
+   "precio": 6500,
+   "moneda_precio": "USD"
+  }
+ ],
+ "reglas_descartadas": []
+}

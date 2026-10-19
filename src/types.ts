@@ -212,7 +212,10 @@ export interface MeResponse {
 // allá se agrega una, agregarla acá o el gate no la mira.
 export type PmsFeatureKey =
   | 'pms_resumen' | 'pms_reservas' | 'pms_huespedes' | 'pms_itinerarios'
-  | 'pms_housekeeping' | 'pms_monthly_view' | 'pms_room_views';
+  | 'pms_housekeeping' | 'pms_monthly_view' | 'pms_room_views'
+  // 5.0.0: ficha del pescador (campos de pesca, KPIs, Overview nuevo) y
+  // bloque de utilidad. Apagadas por defecto en el backend.
+  | 'pms_ficha_pesca' | 'pms_utilidad';
 
 export interface EmailConsulta {
   fecha: string;
@@ -316,6 +319,297 @@ export interface ReservaResumenItem {
   TotalAmount: number;
   Currency: string;
   PaymentStatus: string | null;
+  // Ficha del pescador (5.0.0, rama lodge-cff-detalle del backend). Todos
+  // opcionales: la Lambda anterior no los manda y la ficha muestra «—».
+  // Plata de la reserva, siempre que el backend sea el nuevo.
+  PaidAmount?: number | null;
+  BalanceDue?: number | null;
+  AddonsAmount?: number | null;
+  // Solo con la bandera pms_ficha_pesca. Clave ausente = el backend no la
+  // maneja (la ficha no ofrece editarla); null = la maneja pero no hay dato.
+  FishingLicensePurchased?: boolean | null;
+  BringsOwnGear?: boolean | null;
+  GuestFishingExperience?: FishingExperience | null;
+  GuestDietaryRestrictions?: string[] | null;
+  // Solo con la bandera pms_utilidad. Los montos vienen en null, con Reason,
+  // cuando no se puede calcular: nunca un número inventado.
+  Profit?: ReservaProfit | null;
+}
+
+export type FishingExperience = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+
+// Motivos de Profit.Reason: SIN_TARIFA, MONEDA_DISTINTA, CANCELADA, SIN_PRECIO,
+// SIN_PESCADORES, TARIFA_SOLAPADA, SIN_PROGRAMA, SIN_FECHAS, SIN_DOLAR y
+// SIN_FECHA_CONFIRMACION (17-oct). Puede llegar
+// otro: la ficha lo muestra como «No se pudo calcular».
+export type ProgramaLodge = 'ALL_INCLUSIVE' | 'FULL_DAY';
+/** Mercado por país del pescador: Chile → CL, Brasil → BR, otro o sin país → USA. */
+export type MercadoLodge = 'USA' | 'CL' | 'BR';
+export type UnidadCosto = 'pescador' | 'jornada';
+
+export interface ReservaProfit {
+  SupplierCost: number | null;
+  Amount: number | null;
+  Percent: number | null;
+  Currency: string | null;
+  Reason: string | null;
+  /** Nombre del proveedor del guía (`proveedor` en la config del cliente).
+   *  Opcional: una Lambda anterior no lo manda y la ficha dice «Costo del guía». */
+  Supplier?: string | null;
+  // Desglose del costo (16-oct). Opcionales: una Lambda anterior no los manda.
+  Programa?: ProgramaLodge | null;
+  Mercado?: MercadoLodge | null;
+  /** true = el pescador no tiene país y se usó USA. */
+  MercadoAsumido?: boolean | null;
+  /** Mercado de la tarifa que se usó. Distinto de Mercado cuando un All
+   *  Inclusive de Chile o Brasil se calcula con la tarifa de USA. */
+  MercadoCosto?: MercadoLodge | null;
+  UnitCost?: number | null;
+  Units?: number | null;
+  Unit?: UnidadCosto | null;
+  IncluyeLicencia?: boolean | null;
+  // Precio de lista y dólar (17-oct, diseno-dolar-precios.md §6.4). Opcionales:
+  // una Lambda anterior no los manda.
+  /** Unidades × precio de lista, en la moneda de la reserva; null si la lista
+   *  está en otra moneda o la regla no trae precio. */
+  ListPrice?: number | null;
+  /** Costo antes de convertir (solo si hubo conversión). SupplierCost ya viene convertido. */
+  SupplierCostOriginal?: number | null;
+  SupplierCurrencyOriginal?: string | null;
+  ExchangeRate?: { Value: number; Date: string; Source: string } | null;
+  /** Día de confirmación en Chile, YYYY-MM-DD. */
+  ConfirmedAt?: string | null;
+  BelowList?: boolean | null;
+}
+
+// GET /dashboard/ventas?temporada=2026-27 (16-oct). Mes = mes de llegada; solo
+// reservas confirmadas; las monedas nunca se suman ni se convierten.
+export interface VentasMontos {
+  venta: number | null;
+  costo: number | null;
+  utilidad: number | null;
+  /** 0–100, igual que Profit.Percent; null cuando no hubo venta. */
+  porcentaje: number | null;
+}
+
+export interface VentasCostoFijo {
+  desde: string;
+  hasta?: string | null;
+  proveedor: string;
+  programa: ProgramaLodge;
+  mercado: MercadoLodge;
+  unidad: UnidadCosto;
+  pescadores_por_jornada?: number | null;
+  monto: number;
+  moneda: string;
+  incluye_licencia?: boolean | null;
+  /** Precio de lista de la misma regla (17-oct); null si la regla no lo trae. */
+  precio?: number | null;
+  moneda_precio?: string | null;
+}
+
+export interface VentasReserva {
+  BookingID: string;
+  GuestID: string;
+  GuestName: string;
+  Programa: ProgramaLodge | null;
+  Mercado: MercadoLodge | null;
+  CheckIn: string;
+  CheckOut: string;
+  Pescadores: number | null;
+  Jornadas: number | null;
+  Moneda: string;
+  Venta: number | null;
+  Costo: number | null;
+  Utilidad: number | null;
+  Porcentaje: number | null;
+  Reason: string | null;
+  // 17-oct (diseno-dolar-precios.md §6.3). Opcionales: una Lambda anterior no los manda.
+  /** Unidades × precio de lista en `Moneda`; null si la lista está en otra moneda. */
+  PrecioLista?: number | null;
+  /** Costo antes de convertir, solo si hubo conversión. `Costo` ya viene en `Moneda`. */
+  CostoOriginal?: { moneda: string; monto: number } | null;
+  Dolar?: Dolar | null;
+  /** Día de confirmación en Chile, YYYY-MM-DD. */
+  FechaConfirmacion?: string | null;
+  BajoLista?: boolean | null;
+}
+
+/** Dólar observado: CLP por 1 USD, del día hábil `fecha`. */
+export interface Dolar {
+  valor: number;
+  fecha: string;
+  /** p. ej. «Banco Central de Chile vía mindicador.cl». */
+  fuente: string;
+}
+
+/** Una fila de «Cuánto ganamos por venta»: una regla vigente en la temporada.
+ *  Ganancia y margen son por unidad y en la moneda del precio. */
+export interface VentasTarifa {
+  programa: ProgramaLodge;
+  mercado: MercadoLodge;
+  unidad: UnidadCosto;
+  pescadores_por_jornada?: number | null;
+  desde?: string | null;
+  hasta?: string | null;
+  /** null si la regla no trae precio (reason SIN_PRECIO_LISTA). */
+  precio: { moneda: string; monto: number } | null;
+  costo: { moneda: string; monto: number };
+  /** Costo en la moneda del precio; solo si las monedas difieren. */
+  costo_convertido: number | null;
+  /** Último dólar publicado al día de la consulta: referencia, no el de una reserva. */
+  dolar: Dolar | null;
+  ganancia: number | null;
+  /** 0–100. */
+  margen: number | null;
+  /** Dólar en que la venta deja de ganar; null si las monedas coinciden. */
+  dolar_equilibrio: number | null;
+  vendidas: { reservas: number; unidades: number };
+  /** null, `SIN_PRECIO_LISTA` o `SIN_DOLAR` (contrato final del 17-oct). */
+  reason?: string | null;
+}
+
+export interface VentasMes {
+  mes: string;
+  full_day: { reservas: number; jornadas: number };
+  all_inclusive: { reservas: number; pescadores: number };
+  por_moneda: Record<string, VentasMontos>;
+  reservas: VentasReserva[];
+  /** Mix del mes (17-oct). Opcionales: una Lambda anterior no los manda. */
+  segmentos?: VentasSegmento[];
+  mercados?: VentasMercadoMix[];
+  programas?: VentasProgramaMix[];
+}
+
+/** Mix por programa × mercado, calculado por el servidor (17-oct). Orden fijo:
+ *  FD (USA, BR, CL) y AI (USA, BR, CL), los 6 siempre, también en 0. Al final
+ *  puede venir uno con programa y mercado null: reservas sin clasificar. */
+export interface VentasSegmento {
+  programa: ProgramaLodge | null;
+  mercado: MercadoLodge | null;
+  reservas: number;
+  pescadores: number;
+  /** Jornadas en FD, pescadores en AI; null en el sin clasificar. */
+  unidades: number | null;
+  unidad: 'jornada' | 'pescador' | null;
+  /** Reservas Full Day sin jornadas calculadas (p. ej., sin CheckOut); 0 en AI y en lo sin clasificar.
+   *  `unidades` suma solo las jornadas conocidas. Ausente en el backend anterior: vale 0. */
+  jornadas_incompletas?: number;
+}
+/** Solo lo clasificado. */
+export interface VentasMercadoMix {
+  mercado: MercadoLodge;
+  reservas: number;
+  pescadores: number;
+}
+/** Solo lo clasificado. `unidad`: jornada en FD, pescador en AI. */
+export interface VentasProgramaMix {
+  programa: ProgramaLodge;
+  reservas: number;
+  pescadores: number;
+  unidades: number;
+  unidad: 'jornada' | 'pescador';
+  /** Reservas Full Day sin jornadas calculadas (p. ej., sin CheckOut); 0 en AI y en lo sin clasificar.
+   *  `unidades` suma solo las jornadas conocidas. Ausente en el backend anterior: vale 0. */
+  jornadas_incompletas?: number;
+}
+
+export interface VentasResponse {
+  client_id: string;
+  periodo: { temporada: string; desde: string; hasta: string };
+  /** De la más nueva a la más vieja. */
+  temporadas: string[];
+  costos_fijos: VentasCostoFijo[];
+  resumen: {
+    /** jornadas_incompletas: reservas Full Day sin fechas, cuyas jornadas no
+     *  se pueden contar. Opcional: una Lambda anterior no lo manda. */
+    full_day: { reservas: number; jornadas: number; pescadores: number; jornadas_incompletas?: number };
+    all_inclusive: { reservas: number; pescadores: number };
+    pendientes: { reservas: number };
+  };
+  totales: Record<string, VentasMontos>;
+  meses: VentasMes[];
+  sin_calcular: { BookingID: string; GuestName: string; Reason: string | null }[];
+  /** Reglas de costo de la configuración que no pasaron la validación y no
+   *  se usan. Opcional: una Lambda anterior no lo manda. */
+  reglas_descartadas?: VentasReglaDescartada[];
+  /** Precio, costo y ganancia por unidad (17-oct). Sin él, la pantalla
+   *  muestra `costos_fijos` como antes. */
+  tarifas?: VentasTarifa[];
+  /** Mix de la temporada (17-oct). Sin ellos (Lambda anterior) no se muestra el mix. */
+  segmentos?: VentasSegmento[];
+  mercados?: VentasMercadoMix[];
+  programas?: VentasProgramaMix[];
+  /** Cajas por período (18-oct, spec-ventas-cajas.md §3). Opcional: sin él
+   *  (Lambda anterior) la pantalla queda como antes. */
+  ventanas?: VentasVentanas;
+}
+
+export type VentasPeriodo = '30d' | '90d' | 'temporada';
+
+/** Plata de una caja en una moneda; `margen` 0–100 lo calcula el servidor. */
+export interface VentasCajaMonto {
+  moneda: string;
+  /** Reservas con plata calculada en esta moneda. */
+  reservas: number;
+  venta: number;
+  costo: number;
+  ganancia: number;
+  margen: number | null;
+}
+
+/** Una de las 5 cajas fijas (AI USA, FD CL, FD BR, FD USA, AI BR). */
+export interface VentasCaja {
+  programa: ProgramaLodge;
+  mercado: MercadoLodge;
+  reservas: number;
+  pescadores: number;
+  /** Solo Full Day; null en All Inclusive. */
+  jornadas: number | null;
+  jornadas_incompletas?: number;
+  /** Vacío cuando no hay plata calculada. USD y CLP nunca se suman. */
+  montos: VentasCajaMonto[];
+  sin_calcular: number;
+}
+
+export interface VentasVentana {
+  /** null en `temporada`. */
+  desde: string | null;
+  hasta: string;
+  cajas: VentasCaja[];
+  /** All Inclusive Chile y lo sin clasificar: no tienen caja. */
+  otros: { reservas: number; pescadores: number };
+  /** Solo lo clasificado (incluye AI Chile). */
+  mercados: VentasMercadoMix[];
+  /** `programas[ALL_INCLUSIVE]` incluye AI Chile (decisión del 18-oct). */
+  programas: { programa: ProgramaLodge; reservas: number; pescadores: number; jornadas?: number | null; unidades?: number | null }[];
+  sin_fecha_confirmacion: number;
+}
+
+export interface VentasVentanas {
+  /** Día de Chile con que el servidor cortó 30d y 90d. */
+  hoy?: string;
+  '30d': VentasVentana;
+  '90d': VentasVentana;
+  temporada: VentasVentana;
+}
+
+export interface VentasReglaDescartada {
+  /** Posición de la regla en la configuración, desde 0. */
+  indice: number;
+  motivo: string;
+  proveedor?: string | null;
+  programa?: string | null;
+}
+
+// Conteos del mes y de los próximos 30 días, en hora de Chile, calculados
+// por el servidor sobre todas las reservas (no sobre la ventana de la lista).
+export interface ReservasKpis {
+  arrivals_next_30_days: number;
+  bookings_this_month: number;
+  bookings_this_month_pending: number;
+  /** «YYYY-MM» del mes que cuentan, en hora de Chile. */
+  month?: string;
 }
 
 // Quien viaja con el titular de la reserva sin ser el titular: la señora que
@@ -338,6 +632,8 @@ export type BorradorAcompanante = Omit<Acompanante, 'CompanionID'> & { Companion
 export interface ReservasResumenResponse {
   client_id: string;
   reservas: ReservaResumenItem[];
+  // Ausente con la Lambda anterior a 5.0.0.
+  kpis?: ReservasKpis;
 }
 
 // Itinerarios (2026-08-17, pedido explícito de Mato): el plan y la bitácora

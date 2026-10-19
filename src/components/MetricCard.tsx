@@ -10,13 +10,16 @@ interface MetricCardProps {
   sub?: string;
   delta?: string;
   onClick?: () => void;
+  /** Un conteo que no es bueno ni malo (5.0.0, «Reservas de {mes}»): sin
+   *  punto ni etiqueta de semáforo. Las demás tarjetas no lo usan. */
+  neutro?: boolean;
 }
 
 // A diferencia del Make (que solo conocia bien/atencion/critico), esta
 // version tiene que poder mostrar los estados honestos que la API real
 // devuelve (sin_campana_enviada, sin_channel_manager_conectado, etc.) -
 // nunca se fuerzan a un color de semaforo ni a un numero inventado.
-export function MetricCard({ title, estado, value, sub, delta, onClick }: MetricCardProps) {
+export function MetricCard({ title, estado, value, sub, delta, onClick, neutro }: MetricCardProps) {
   const [hov, setHov] = useState(false);
   const status = estadoToStatus(estado);
   const honestLabel = estadoLabel(estado);
@@ -48,7 +51,7 @@ export function MetricCard({ title, estado, value, sub, delta, onClick }: Metric
         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', lineHeight: 1.3, letterSpacing: '0.02em' }}>
           {title}
         </span>
-        <StatusDot status={status} />
+        {!neutro && <StatusDot status={status} />}
       </div>
       <div>
         <div

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { BadgePrograma, BanderaPescador, esPrograma } from './BadgePrograma';
 import { AsyncState } from './AsyncState';
+import { nombrePrograma } from '../lib/fichaPescador';
 import type { ReservaResumenItem } from '../types';
 
 const STATUS_COLOR: Record<string, { bg: string; dot: string }> = {
@@ -165,14 +167,16 @@ export function ReservationCalendar({
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Calendario</div>
             {seasonStart && seasonEnd ? (
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
                 Temporada {fmtDateLarga(seasonStart)} – {fmtDateLarga(seasonEnd)}
               </div>
             ) : (
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{monthLabelCap}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>{monthLabelCap}</div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Con las flechas de 44 px (17-oct) el grupo no cabía a 320 px:
+              el select cede ancho en vez de empujar la flecha fuera. */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0, maxWidth: '100%' }}>
             <select
               value={visible}
               onChange={(e) => setVisible(e.target.value)}
@@ -181,6 +185,9 @@ export function ReservationCalendar({
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-sm)',
                 padding: '6px 10px',
+                minHeight: 44,
+                minWidth: 0,
+                flex: '0 1 auto',
                 background: 'var(--white)',
                 fontSize: 13,
                 fontWeight: 600,
@@ -199,7 +206,7 @@ export function ReservationCalendar({
               onClick={() => shiftMonth(-1)}
               disabled={!puedeAnterior}
               aria-label="Mes anterior"
-              style={{ all: 'unset', cursor: puedeAnterior ? 'pointer' : 'default', opacity: puedeAnterior ? 1 : 0.3, padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
+              style={{ all: 'unset', cursor: puedeAnterior ? 'pointer' : 'default', opacity: puedeAnterior ? 1 : 0.3, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, padding: '0 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
             >
               ←
             </button>
@@ -207,7 +214,7 @@ export function ReservationCalendar({
               onClick={() => shiftMonth(1)}
               disabled={!puedeSiguiente}
               aria-label="Mes siguiente"
-              style={{ all: 'unset', cursor: puedeSiguiente ? 'pointer' : 'default', opacity: puedeSiguiente ? 1 : 0.3, padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
+              style={{ all: 'unset', cursor: puedeSiguiente ? 'pointer' : 'default', opacity: puedeSiguiente ? 1 : 0.3, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, padding: '0 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-sub)' }}
             >
               →
             </button>
@@ -216,7 +223,7 @@ export function ReservationCalendar({
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
           {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((d) => (
-            <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>
+            <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'uppercase' }}>
               {d}
             </div>
           ))}
@@ -238,7 +245,7 @@ export function ReservationCalendar({
               const titulo = fueraDeTemporada
                 ? 'Fuera de temporada'
                 : items.length
-                  ? `${items.map((r) => `${r.GuestName} · ${r.RoomID}`).join('\n')}${clickeable ? '\n\nClick para agregar otra reserva este día' : ''}`
+                  ? `${items.map((r) => `${r.GuestName} · ${nombrePrograma(r.RoomID)}`).join('\n')}${clickeable ? '\n\nClick para agregar otra reserva este día' : ''}`
                   : clickeable
                     ? 'Disponible · click para agregar una reserva'
                     : 'Disponible';
@@ -255,6 +262,14 @@ export function ReservationCalendar({
               );
               const estilo: React.CSSProperties = {
                 aspectRatio: '1',
+                // Alto mínimo táctil (17-oct). El ancho lo fijan las 7
+                // columnas: a 320 px no caben 7 × 44 px.
+                minHeight: 44,
+                // Con aspect-ratio la celda no se estira sola: el alto mínimo
+                // pasaba al ancho y la grilla se salía de su caja a 320 px
+                // (medido 17-oct). El ancho lo fija la columna.
+                width: '100%',
+                minWidth: 0,
                 borderRadius: 'var(--radius-sm)',
                 border: isToday ? '1.5px solid var(--primary)' : '1px solid var(--border-soft)',
                 background: fueraDeTemporada
@@ -296,7 +311,7 @@ export function ReservationCalendar({
           )}
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 10, fontSize: 11, color: 'var(--text-faint)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 10, fontSize: 11, color: 'var(--text-sub)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--status-bien-bg)', border: '1px solid var(--status-bien-dot)', display: 'inline-block' }} />
             Disponible
@@ -311,7 +326,8 @@ export function ReservationCalendar({
               Fuera de temporada
             </span>
           )}
-          {onDayClick && <span>Haz click en un día para agregar una reserva</span>}
+          {/* --text-sub: --text-faint no llega a 4,5:1 sobre blanco (WCAG 2.2 1.4.3). */}
+          {onDayClick && <span style={{ color: 'var(--text-sub)' }}>Toca un día para agregar una reserva.</span>}
         </div>
 
         <div style={{ marginTop: 'var(--space-6)', borderTop: '1px solid var(--border-soft)', paddingTop: 'var(--space-6)' }}>
@@ -324,17 +340,21 @@ export function ReservationCalendar({
                 const fila = (
                   <>
                     <span style={{ fontWeight: 600, color: 'var(--text)', minWidth: 90 }}>{fmtDate(r.CheckIn)}</span>
-                    <span style={{ color: 'var(--text)', flex: 1, textAlign: 'left' }}>
-                      {r.GuestName} · {r.RoomID}
+                    {/* Encoge y corta palabras largas; si no cabe, el estado baja de línea (320 px, 17-oct). */}
+                    <span style={{ color: 'var(--text)', flex: '1 1 120px', minWidth: 0, overflowWrap: 'anywhere', textAlign: 'left' }}>
+                      <BanderaPescador pais={r.GuestOriginCountry} />
+                      {r.GuestName}
+                      {esPrograma(r.RoomID) ? ' ' : ' · '}
+                      <BadgePrograma codigo={r.RoomID} />
                     </span>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 'var(--radius-sm)', background: sc?.bg ?? 'var(--status-neutro-bg)', color: sc?.dot ?? 'var(--status-neutro-text)' }}>
+                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 'var(--radius-sm)', background: sc?.bg ?? 'var(--status-neutro-bg)', color: sc?.dot ?? 'var(--status-neutro-text)' }}>
                       {STATUS_LABEL[r.Status] ?? r.Status}
                     </span>
                   </>
                 );
                 if (!onReservaClick) {
                   return (
-                    <div key={r.BookingID} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+                    <div key={r.BookingID} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 10px', fontSize: 13 }}>
                       {fila}
                     </div>
                   );
@@ -345,6 +365,7 @@ export function ReservationCalendar({
                     type="button"
                     onClick={() => onReservaClick(r)}
                     className="cal-fila"
+                    data-fila={`cal:${r.BookingID}`}
                   >
                     {fila}
                   </button>

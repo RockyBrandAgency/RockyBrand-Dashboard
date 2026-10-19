@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { BadgePrograma } from '../../components/BadgePrograma';
+import { personasDe } from '../../lib/personas';
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { TabsWithIndicator } from '../../components/TabsWithIndicator';
@@ -178,7 +180,8 @@ export function Itinerarios({ isDesktop }: { isDesktop: boolean }) {
                     reserva={r}
                     hoyIso={hoyIso}
                     isDesktop={isDesktop}
-                    personaLabel={t.columnaPersona}
+                    persona={t.personaMinuscula}
+                    personasTexto={t.personasMinuscula}
                     onEditar={(dia) => setEditando({ reserva: r, dia })}
                   />
                 ))}
@@ -212,16 +215,22 @@ function ExpedicionCard({
   reserva,
   hoyIso,
   isDesktop,
-  personaLabel,
+  persona,
+  personasTexto,
   onEditar,
 }: {
   reserva: ItinerarioReserva;
   hoyIso: string;
   isDesktop: boolean;
-  personaLabel: string;
+  /** «pescador» / «huésped» y su plural, de terminologiaPms: el plural con
+   *  «s» daba «huéspeds» (QA 18-oct). */
+  persona: string;
+  personasTexto: string;
   onEditar: (dia: ItinerarioDia) => void;
 }) {
   const { resumen } = reserva;
+  // PartyMembers llega como texto: con === 1 salía «1 personas» (QA 18-oct).
+  const personas = personasDe(reserva);
   const completa = resumen.dias_cargados === resumen.dias_totales;
 
   return (
@@ -232,8 +241,8 @@ function ExpedicionCard({
             {reserva.GuestName}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 3 }}>
-            {reserva.RoomID} · {fmtCorta(reserva.CheckIn)} al {fmtCorta(reserva.CheckOut)}
-            {reserva.PartyMembers ? ` · ${reserva.PartyMembers} ${personaLabel.toLowerCase()}${reserva.PartyMembers === 1 ? '' : 's'}` : ''}
+            <BadgePrograma codigo={reserva.RoomID} /> · {fmtCorta(reserva.CheckIn)} al {fmtCorta(reserva.CheckOut)}
+            {personas ? ` · ${personas} ${personas === 1 ? persona : personasTexto}` : ''}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>

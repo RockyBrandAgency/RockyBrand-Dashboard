@@ -54,6 +54,7 @@ export function AcompanantesReserva({
   onEditando,
   titulo = 'Acompañantes',
   separacion = 'abajo',
+  encabezado,
 }: {
   bookingId: string;
   inicial: Acompanante[];
@@ -62,6 +63,9 @@ export function AcompanantesReserva({
   onEditando: (editando: boolean) => void;
   titulo?: string;
   separacion?: 'arriba' | 'abajo';
+  /** Reemplaza la etiqueta del título (la ficha del pescador usa su
+   *  encabezado numerado). Recibe cuántos acompañantes hay. */
+  encabezado?: (cantidad: number) => React.ReactNode;
 }) {
   const { handleUnauthorized } = useAuth();
   const ids = useId();
@@ -148,10 +152,14 @@ export function AcompanantesReserva({
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div style={fieldLabel}>
-          {titulo}
-          {lista.length > 0 ? ` (${lista.length})` : ''}
-        </div>
+        {encabezado ? (
+          encabezado(lista.length)
+        ) : (
+          <div style={fieldLabel}>
+            {titulo}
+            {lista.length > 0 ? ` (${lista.length})` : ''}
+          </div>
+        )}
         {puedeAgregar && (
           <button className="crm-btn crm-btn-ghost crm-btn-sm" onClick={() => abrir(null)} disabled={guardando}>
             + Agregar acompañante
@@ -273,7 +281,7 @@ export function AcompanantesReserva({
           <fieldset style={{ border: 'none', padding: 0, margin: '14px 0 0' }}>
             <legend style={{ ...fieldLabel, padding: 0 }}>¿Tiene alguna alergia alimentaria?</legend>
             <div style={{ display: 'flex', gap: 20, marginTop: 8, fontSize: 14, color: 'var(--text)' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, minWidth: 44, cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name={`${ids}-alergia`}
@@ -283,7 +291,7 @@ export function AcompanantesReserva({
                 />
                 No
               </label>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, minWidth: 44, cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name={`${ids}-alergia`}

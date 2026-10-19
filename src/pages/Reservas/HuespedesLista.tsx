@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { BadgePrograma, PaisConBandera } from '../../components/BadgePrograma';
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { SearchIcon, UsersIcon } from '../../components/icons/RockyIcons';
@@ -7,6 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import { telefonoDe, enlaceWhatsapp } from '../../lib/contactoHuesped';
 import { AcompanantesReserva } from '../../components/AcompanantesReserva';
+import { FichaPescador } from './FichaPescador';
+import { useRetornoFicha } from '../../hooks/useRetornoFicha';
+import { hoyLocalISO, pescadoresConfirmados, sumarDias } from '../../lib/fichaPescador';
+import type { Screen } from '../../screens';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
 
 const PAGE_SIZE = 20;
@@ -36,6 +41,9 @@ function enBullets(texto: string): string[] {
 interface FilaHuesped extends HuespedItem {
   reservas: ReservaResumenItem[];
   proxima: ReservaResumenItem | null;
+  /** Solo CFF: la reserva que abre la ficha y si ya viajó. */
+  abrir?: ReservaResumenItem;
+  yaViajo?: boolean;
 }
 
 // Segundo acceso del PMS en el panel del cliente (2026-08-11, pedido
@@ -51,8 +59,13 @@ interface FilaHuesped extends HuespedItem {
 // (get_pms_lookahead_days) - o sea "sus reservas" acá significa "las
 // reservas dentro de esa ventana", y por eso la columna dice "en la
 // ventana del panel" y no un total histórico que no estaríamos midiendo.
-export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized, clientId, clientDisplayName, clientTerminologia } = useAuth();
+//
+// 5.0.0, Chile Fly Fishing: solo pescadores con al menos una reserva
+// confirmada (pescadoresConfirmados), y la fila abre la ficha del pescador
+// como página. Los demás clientes siguen con la lista completa y el modal
+// DetalleHuesped.
+export function HuespedesLista({ isDesktop, onNavigate }: { isDesktop: boolean; onNavigate?: (s: Screen) => void }) {
+  const { handleUnauthorized, clientId, clientDisplayName, clientTerminologia, features } = useAuth();
   const t = terminologiaPms(clientId, clientTerminologia);
   const [huespedes, setHuespedes] = useState<HuespedItem[] | null>(null);
   const [reservas, setReservas] = useState<ReservaResumenItem[]>([]);
@@ -61,6 +74,10 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [detalle, setDetalle] = useState<FilaHuesped | null>(null);
+  // Un solo gate para todo lo de 5.0.0: la bandera del cliente, no su client_id.
+  const conFicha = features?.pms_ficha_pesca === true;
+  const [ficha, setFicha] = useState<{ bookingId: string; huesped: HuespedItem } | null>(null);
+  const { scrollRef, recordar } = useRetornoFicha(ficha !== null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -84,9 +101,10 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
     load();
   }, [load]);
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = conFicha ? hoyLocalISO() : new Date().toISOString().slice(0, 10);
 
   const filas = useMemo<FilaHuesped[]>(() => {
+    if (conFicha) return pescadoresConfirmados(huespedes ?? [], reservas, hoy);
     const porHuesped = new Map<string, ReservaResumenItem[]>();
     for (const r of reservas) {
       if (!r.GuestID) continue;
@@ -99,7 +117,7 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
       const proxima = suyas.find((r) => r.Status !== 'CANCELLED' && r.CheckIn >= hoy) ?? null;
       return { ...h, reservas: suyas, proxima };
     });
-  }, [huespedes, reservas, hoy]);
+  }, [huespedes, reservas, hoy, conFicha]);
 
   const filtradas = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -117,12 +135,37 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
   const pageItems = filtradas.slice(pageSafe * PAGE_SIZE, pageSafe * PAGE_SIZE + PAGE_SIZE);
 
   const conProxima = filas.filter((f) => f.proxima).length;
+  const hasta30 = sumarDias(hoy, 30);
+  // Misma ventana que el backend: hoy <= CheckIn < hoy + 30.
+  const llegan30 = filas.filter((f) => f.proxima && f.proxima.CheckIn < hasta30).length;
+  const irCalendario = onNavigate ? () => onNavigate('servicio-pms-reservas') : undefined;
+  const sinConfirmados = conFicha && huespedes !== null && huespedes.length > 0 && filas.length === 0;
+
+  if (conFicha && ficha) {
+    return (
+      <FichaPescador
+        bookingId={ficha.bookingId}
+        reservas={reservas}
+        huesped={huespedes?.find((h) => h.GuestID === ficha.huesped.GuestID) ?? ficha.huesped}
+        volverA={t.navPersonas}
+        isDesktop={isDesktop}
+        onVolver={() => setFicha(null)}
+        onCambio={load}
+      />
+    );
+  }
+
+  function abrir(f: FilaHuesped) {
+    if (!conFicha || !f.abrir) return setDetalle(f);
+    recordar(f.GuestID);
+    setFicha({ bookingId: f.abrir.BookingID, huesped: f });
+  }
   const paises = new Set(filas.map((f) => f.OriginCountry).filter(Boolean)).size;
 
   const col = (w: number, extra?: React.CSSProperties): React.CSSProperties => ({ flexShrink: 0, width: w, ...extra });
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
+    <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div className="contenedor-pagina">
         <div
           style={{
@@ -131,15 +174,29 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
             marginBottom: 'var(--space-8)',
           }}
         >
-          <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+          <h1 data-titulo-lista tabIndex={-1} style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
             {t.navPersonas}
           </h1>
           <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
-            Todas las personas registradas en el {t.navSeccion} de {clientDisplayName ?? 'tu negocio'}.
+            {conFicha
+              ? `Pescadores con reserva confirmada en ${clientDisplayName ?? 'tu negocio'}.`
+              : `Todas las personas registradas en el ${t.navSeccion} de ${clientDisplayName ?? 'tu negocio'}.`}
           </div>
         </div>
 
-        <AsyncState loading={loading} error={error} onRetry={load}>
+        <AsyncState loading={loading} error={error && conFicha ? 'No pudimos cargar los pescadores. Revisa tu conexión y vuelve a intentarlo.' : error} onRetry={load}>
+          {sinConfirmados && (
+            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '32px 24px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text)' }}>Todavía no hay pescadores con reserva confirmada.</p>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-sub)' }}>Las reservas sin pagar están en el Calendario de Reservas.</p>
+              {irCalendario && (
+                <button type="button" className="crm-btn crm-btn-text crm-btn-sm" style={{ marginTop: 8 }} onClick={irCalendario}>
+                  Ver Calendario de Reservas
+                </button>
+              )}
+            </div>
+          )}
+
           {huespedes && huespedes.length === 0 && (
             <EmptyStateIllustrated
               icon={<UsersIcon size={36} />}
@@ -148,17 +205,17 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
             />
           )}
 
-          {huespedes && huespedes.length > 0 && (
+          {huespedes && huespedes.length > 0 && !sinConfirmados && (
             <>
               <div className="crm-mini-dash">
                 <div className="crm-mini-card">
-                  <div className="crm-mini-label">Total registrados</div>
+                  <div className="crm-mini-label">{conFicha ? 'Con reserva confirmada' : 'Total registrados'}</div>
                   <div className="crm-mini-value">{filas.length}</div>
                 </div>
                 <div className="crm-mini-card">
-                  <div className="crm-mini-label">Con llegada próxima</div>
-                  <div className="crm-mini-value">{conProxima}</div>
-                  <div className="crm-mini-sub">Dentro de la ventana de reservas del panel</div>
+                  <div className="crm-mini-label">{conFicha ? 'Llegan en 30 días' : 'Con llegada próxima'}</div>
+                  <div className="crm-mini-value">{conFicha ? llegan30 : conProxima}</div>
+                  {!conFicha && <div className="crm-mini-sub">Dentro de la ventana de reservas del panel</div>}
                 </div>
                 <div className="crm-mini-card">
                   <div className="crm-mini-label">Países de origen</div>
@@ -171,6 +228,7 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
                   <SearchIcon size={14} color="var(--text-faint)" />
                   <input
                     className="crm-search"
+                    style={{ minHeight: 44 }}
                     placeholder={`Buscar por nombre, email o país…`}
                     aria-label={`Buscar ${t.personasMinuscula}`}
                     value={search}
@@ -184,7 +242,16 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
 
               {filtradas.length === 0 ? (
                 <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Nadie coincide con la búsqueda.
+                  {conFicha ? (
+                    <>
+                      <p style={{ margin: 0 }}>Ningún pescador confirmado coincide con «{search.trim()}».</p>
+                      <button type="button" className="crm-btn crm-btn-ghost crm-btn-sm" style={{ marginTop: 12 }} onClick={() => setSearch('')}>
+                        Borrar búsqueda
+                      </button>
+                    </>
+                  ) : (
+                    'Nadie coincide con la búsqueda.'
+                  )}
                 </div>
               ) : (
                 <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
@@ -210,9 +277,12 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
                     </div>
                   )}
                   {pageItems.map((f) => (
-                    <div
+                    <button
+                      type="button"
+                      className="fila-lista"
                       key={f.GuestID}
-                      onClick={() => setDetalle(f)}
+                      data-fila={f.GuestID}
+                      onClick={() => abrir(f)}
                       style={{
                         display: 'flex',
                         flexDirection: isDesktop ? 'row' : 'column',
@@ -230,7 +300,7 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
                         {f.Contact.Email || telefonoDe(f.Contact) || '—'}
                       </span>
                       <span style={isDesktop ? col(120, { fontSize: 13, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
-                        {f.OriginCountry || '—'}
+                        <PaisConBandera pais={f.OriginCountry} />
                       </span>
                       <span style={isDesktop ? col(120, { fontSize: 12, color: 'var(--text-sub)' }) : { fontSize: 12, color: 'var(--text-muted)' }}>
                         {f.BirthDate || f.AnniversaryDate ? (
@@ -253,9 +323,9 @@ export function HuespedesLista({ isDesktop }: { isDesktop: boolean }) {
                             : { fontSize: 12, color: 'var(--text-muted)' }
                         }
                       >
-                        {f.proxima ? fmtDate(f.proxima.CheckIn) : '—'}
+                        {f.proxima ? fmtDate(f.proxima.CheckIn) : f.yaViajo ? 'Ya viajó' : '—'}
                       </span>
-                    </div>
+                    </button>
                   ))}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-7)' }}>
                     <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
@@ -433,7 +503,7 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
           </div>
           <div>
             <div style={fieldLabel}>País de origen</div>
-            <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 4 }}>{fila.OriginCountry || '—'}</div>
+            <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 4 }}><PaisConBandera pais={fila.OriginCountry} /></div>
           </div>
           <div>
             <div style={fieldLabel}>Reservas en el panel</div>
@@ -543,7 +613,9 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
               {fila.reservas.map((r) => (
                 <div key={r.BookingID} style={{ display: 'flex', gap: 10, fontSize: 13, alignItems: 'center' }}>
                   <span style={{ fontWeight: 600, color: 'var(--text)', minWidth: 100 }}>{fmtDate(r.CheckIn)}</span>
-                  <span style={{ flex: 1, color: 'var(--text-sub)' }}>{r.RoomID}</span>
+                  <span style={{ flex: 1, minWidth: 0, color: 'var(--text-sub)' }}>
+                    <BadgePrograma codigo={r.RoomID} />
+                  </span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.Status}</span>
                 </div>
               ))}

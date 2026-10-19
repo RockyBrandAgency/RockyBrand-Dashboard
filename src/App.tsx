@@ -12,6 +12,7 @@ import { Overview } from './pages/Overview';
 import { DetailScreen } from './pages/DetailScreen';
 import { ReservasResumen } from './pages/Reservas/ReservasResumen';
 import { HuespedesLista } from './pages/Reservas/HuespedesLista';
+import { VentasLodge } from './pages/Reservas/VentasLodge';
 import { Housekeeping } from './pages/Reservas/Housekeeping';
 import { PmsResumen } from './pages/Reservas/PmsResumen';
 import { Itinerarios } from './pages/Reservas/Itinerarios';
@@ -106,7 +107,7 @@ function AuthenticatedShell() {
   }, [clientServices, pmsRoomViews, features, screen]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: breakpoint === 'mobile' ? 'column' : 'row', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: breakpoint === 'mobile' ? 'column' : 'row', minHeight: '100vh', fontFamily: "Inter, 'Inter reserva', system-ui, sans-serif" }}>
       {breakpoint === 'desktop' && (
         <>
           <Sidebar screen={screen} setScreen={setScreen} userEmail={userEmail} onLogout={logout} />
@@ -146,7 +147,7 @@ function AuthenticatedShell() {
           <ServiceUnavailableScreen isDesktop={isDesktop} />
         ) : (
           <>
-            {screen === 'overview' && <Overview onDetail={() => setScreen('llegadas-detalle')} isDesktop={isDesktop} />}
+            {screen === 'overview' && <Overview onDetail={() => setScreen('llegadas-detalle')} isDesktop={isDesktop} onNavigate={setScreen} />}
             {screen === 'llegadas-detalle' && <DetailScreen isDesktop={isDesktop} />}
             {screen === 'metricas-resumen' && <MetricasResumen isDesktop={isDesktop} onNavigate={setScreen} />}
             {screen === 'metricas-facebook' && <MetricasFacebook isDesktop={isDesktop} />}
@@ -157,7 +158,8 @@ function AuthenticatedShell() {
             {screen === 'metricas-tiktok' && <MetricasTiktok isDesktop={isDesktop} />}
             {screen === 'servicio-pms-resumen' && <PmsResumen isDesktop={isDesktop} />}
             {screen === 'servicio-pms-reservas' && <ReservasResumen isDesktop={isDesktop} />}
-            {screen === 'servicio-pms-huespedes' && <HuespedesLista isDesktop={isDesktop} />}
+            {screen === 'servicio-pms-huespedes' && <HuespedesLista isDesktop={isDesktop} onNavigate={setScreen} />}
+            {screen === 'servicio-pms-ventas' && <VentasLodge isDesktop={isDesktop} tablas={breakpoint === 'desktop'} />}
             {screen === 'servicio-pms-itinerarios' && <Itinerarios isDesktop={isDesktop} />}
             {screen === 'servicio-pms-housekeeping' && <Housekeeping isDesktop={isDesktop} />}
             {screen === 'servicio-email-campanas' && <EmailCampanas isDesktop={isDesktop} />}

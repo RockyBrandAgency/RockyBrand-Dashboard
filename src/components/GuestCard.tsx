@@ -1,7 +1,7 @@
 import { Card } from './Card';
 import { InfoRow } from './InfoRow';
 import { STATUS } from './status';
-import { countryFlag } from './countryFlags';
+import { banderaDePais } from '../lib/banderas';
 import { OriginBadge } from './OriginBadge';
 import type { LlegadaGuest } from '../types';
 
@@ -40,7 +40,13 @@ export function GuestCard({ guest, isDesktop }: { guest: LlegadaGuest; isDesktop
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22 }}>{countryFlag(guest.OriginCountry)}</span>
+          {/* Bandera grande decorativa (aria-hidden), de la misma fuente que el resto
+              del panel (lib/banderas). País fuera de la lista: sin bandera, nunca se adivina. */}
+          {banderaDePais(guest.OriginCountry) && (
+            <span aria-hidden="true" style={{ fontSize: 22 }}>
+              {banderaDePais(guest.OriginCountry)}
+            </span>
+          )}
           <div>
             <div style={{ fontSize: isDesktop ? 16 : 15, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
               {guest.FullName}

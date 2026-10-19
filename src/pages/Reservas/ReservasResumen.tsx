@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
+import { BadgePrograma, PaisPescador } from '../../components/BadgePrograma';
 import { AsyncState } from '../../components/AsyncState';
 import { OriginBadge } from '../../components/OriginBadge';
 import { SearchIcon, CalendarIcon, CalendarRangeIcon } from '../../components/icons/RockyIcons';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { BookingDetailModal } from '../../components/BookingDetailModal';
+import { FichaPescador } from './FichaPescador';
+import { useRetornoFicha } from '../../hooks/useRetornoFicha';
+import { useAnchoContenido } from '../../hooks/useAnchoContenido';
 import { NewBookingModal } from '../../components/NewBookingModal';
 import { ReservationCalendar } from '../../components/ReservationCalendar';
 import { PlusIcon } from '../../components/icons/RockyIcons';
@@ -12,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
 import { temporadaActualCff, CFF_CLIENT_ID } from '../../lib/temporadaCff';
 import { terminologiaPms } from '../../lib/terminologiaPms';
+import { nombrePrograma } from '../../lib/fichaPescador';
 import type { ReservaResumenItem } from '../../types';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -39,14 +44,24 @@ const TABS: { key: string; label: string }[] = [
 
 const PAGE_SIZE = 15;
 
-function fmtDate(iso: string): string {
+// Una reserva puede llegar sin CheckIn o CheckOut (Alto Castillo, 17-oct):
+// sin este cuidado la tabla pintaba «Invalid Date» y React avisaba de un NaN.
+function fechaValida(iso: string | null | undefined): Date | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
   const d = new Date(`${iso}T00:00:00`);
-  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function nights(checkIn: string, checkOut: string): number {
-  const inD = new Date(`${checkIn}T00:00:00`);
-  const outD = new Date(`${checkOut}T00:00:00`);
+export function fmtDate(iso: string | null | undefined): string {
+  const d = fechaValida(iso);
+  return d ? d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+}
+
+/** Noches entre llegada y salida; null si falta una de las dos fechas. */
+export function nights(checkIn: string | null | undefined, checkOut: string | null | undefined): number | null {
+  const inD = fechaValida(checkIn);
+  const outD = fechaValida(checkOut);
+  if (!inD || !outD) return null;
   return Math.max(0, Math.round((outD.getTime() - inD.getTime()) / 86400000));
 }
 
@@ -63,8 +78,15 @@ function monthLabel(key: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+/** Avisa cuando AsyncState ya dibuja su contenido (y no el esqueleto), en el
+ *  mismo cuadro: useLayoutEffect corre antes de pintar. */
+function AlMontar({ alMontar }: { alMontar: () => void }) {
+  useLayoutEffect(alMontar, [alMontar]);
+  return null;
+}
+
 export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
-  const { handleUnauthorized, clientDisplayName, clientId, pmsRoomViews, clientTerminologia } = useAuth();
+  const { handleUnauthorized, clientDisplayName, clientId, pmsRoomViews, clientTerminologia, features } = useAuth();
   const [reservas, setReservas] = useState<ReservaResumenItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +95,15 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   const [tab, setTab] = useState('ALL');
   const [page, setPage] = useState(0);
   const [detalle, setDetalle] = useState<ReservaResumenItem | null>(null);
+  // CFF (5.0.0): la reserva abre la ficha del pescador como página, en vez
+  // del modal. Los filtros siguen en este estado; el scroll y el foco los
+  // devuelve useRetornoFicha.
+  const [fichaId, setFichaId] = useState<string | null>(null);
+  const [listaRef, anchoLista] = useAnchoContenido<HTMLDivElement>();
+  const { scrollRef, recordar } = useRetornoFicha(fichaId !== null);
   const [nuevaAbierta, setNuevaAbierta] = useState(false);
+  const [listaMontada, setListaMontada] = useState(false);
+  const marcarLista = useCallback(() => setListaMontada(true), []);
   // Fecha con la que se abre "Nueva reserva" cuando el disparador fue un
   // click en un día del calendario (2026-08-11, pedido de Mato). Vacía
   // cuando se abre desde el botón de la cabecera.
@@ -86,6 +116,8 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   // de pmsRoomViews (esa bandera es sobre "no tiene habitaciones", un
   // concepto distinto).
   const esCff = clientId === CFF_CLIENT_ID;
+  // 5.0.0: la ficha como página depende de la bandera, no del client_id.
+  const conFicha = features?.pms_ficha_pesca === true;
   const temporada = useMemo(() => (esCff ? temporadaActualCff(new Date()) : null), [esCff]);
 
   // Terminología propia de cada cliente (2026-08-11, pedido explícito de
@@ -140,9 +172,34 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   const fechaCap = fecha.charAt(0).toUpperCase() + fecha.slice(1);
 
   const col = (w: number, extra?: React.CSSProperties): React.CSSProperties => ({ flexShrink: 0, width: w, ...extra });
+  // La tabla necesita el ancho de sus columnas fijas (+ monto y márgenes). A
+  // 768 px, con la barra lateral, no cabía y la página desbordaba 286 px
+  // (WCAG 1.4.10): si no cabe, la lista usa las filas apiladas del teléfono.
+  // Mismo criterio que TiendaGarantias, por el ancho real y no por la ventana.
+  const anchoTabla = 48 + 150 + 130 + 95 + 95 + (mostrarNoches ? 70 : 0) + 130 + 95 + 105 + 100;
+  const tabla = isDesktop && (anchoLista === null || anchoLista >= anchoTabla);
+
+  if (conFicha && fichaId && reservas) {
+    return (
+      <FichaPescador
+        bookingId={fichaId}
+        reservas={reservas}
+        volverA="Calendario de Reservas"
+        isDesktop={isDesktop}
+        onVolver={() => setFichaId(null)}
+        onCambio={load}
+      />
+    );
+  }
+
+  function abrir(r: ReservaResumenItem, fila: string) {
+    if (!conFicha) return setDetalle(r);
+    recordar(fila);
+    setFichaId(r.BookingID);
+  }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
+    <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
       <div className="contenedor-pagina">
         <div
           style={{
@@ -174,6 +231,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                 medida que la spec fija para el icono de un boton. */}
             <button
               className="crm-btn crm-btn-primary"
+              style={{ minHeight: 44 }}
               onClick={() => {
                 setFechaNueva(undefined);
                 setNuevaAbierta(true);
@@ -186,6 +244,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>
+          <AlMontar alMontar={marcarLista} />
           {reservas && reservas.length === 0 && (
             <EmptyStateIllustrated
               icon={<CalendarRangeIcon size={36} />}
@@ -197,15 +256,18 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
           {reservas && reservas.length > 0 && (
             <>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', alignItems: 'center', marginBottom: 'var(--space-7)' }}>
+                {/* 44 px de alto en el campo mismo, no solo en el marco
+                    (QA 5.0.0: medía 274x16). */}
                 <div
                   className="crm-search-wrap"
-                  style={{ width: isDesktop ? 320 : '100%' }}
+                  style={{ width: isDesktop ? 320 : '100%', paddingBlock: 0 }}
                 >
                   <SearchIcon size={14} color="var(--text-faint)" />
                   <input
                     className="crm-search"
-                    placeholder={`Buscar ${guestLabel.toLowerCase()}…`}
-                    aria-label={`Buscar ${guestLabel.toLowerCase()}`}
+                    style={{ minHeight: 44 }}
+                    placeholder={`Buscar ${t.personaMinuscula}…`}
+                    aria-label={`Buscar ${t.personaMinuscula}`}
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
@@ -221,17 +283,18 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                     background: 'var(--white)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius-sm)',
-                    padding: 10,
+                    padding: '0 10px',
                   }}
                 >
                   <CalendarIcon size={14} color="var(--text-sub)" />
                   <select
+                    aria-label="Mes"
                     value={month}
                     onChange={(e) => {
                       setMonth(e.target.value);
                       setPage(0);
                     }}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer' }}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer', minHeight: 44 }}
                   >
                     <option value="ALL">Todos los meses</option>
                     {months.map((m) => (
@@ -241,7 +304,8 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                     ))}
                   </select>
                 </div>
-                <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 'var(--radius-md)' }}>
+                {/* flexWrap: a 320 px «Cancelada» quedaba cortada 48 px a la derecha (WCAG 1.4.10). */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 'var(--radius-md)' }}>
                   {TABS.map((t) => (
                     <button
                       key={t.key}
@@ -252,7 +316,11 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                       aria-pressed={tab === t.key}
                       style={{
                         all: 'unset',
-                        padding: '6px 12px',
+                        boxSizing: 'border-box',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        minHeight: 44,
+                        padding: '0 14px',
                         borderRadius: 'var(--radius-sm)',
                         fontSize: 13,
                         fontWeight: tab === t.key ? 600 : 500,
@@ -272,8 +340,8 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                   Ninguna reserva coincide con el filtro.
                 </div>
               ) : (
-                <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                  {isDesktop && (
+                <div ref={listaRef} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                  {tabla && (
                     <div
                       style={{
                         display: 'flex',
@@ -300,56 +368,64 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                   {pageItems.map((r) => {
                     const sc = STATUS_COLOR[r.Status];
                     return (
-                      <div
+                      <button
+                        type="button"
+                        className="fila-lista"
                         key={r.BookingID}
-                        onClick={() => setDetalle(r)}
+                        data-fila={r.BookingID}
+                        onClick={() => abrir(r, r.BookingID)}
                         style={{
                           display: 'flex',
-                          flexDirection: isDesktop ? 'row' : 'column',
-                          alignItems: isDesktop ? 'center' : 'flex-start',
-                          gap: isDesktop ? 0 : 6,
-                          padding: isDesktop ? '16px 24px' : '14px 16px',
+                          flexDirection: tabla ? 'row' : 'column',
+                          alignItems: tabla ? 'center' : 'flex-start',
+                          gap: tabla ? 0 : 6,
+                          padding: tabla ? '16px 24px' : '14px 16px',
                           borderBottom: '1px solid var(--border-soft)',
                           cursor: 'pointer',
                         }}
                       >
                         <span
-                          title={isDesktop ? r.GuestName : undefined}
+                          title={tabla ? [r.GuestName, r.GuestOriginCountry].filter(Boolean).join(' · ') : undefined}
                           style={
-                            isDesktop
+                            tabla
                               ? col(150, { fontWeight: 600, color: 'var(--text)', fontSize: 14, paddingRight: 8, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
                               : { fontWeight: 700, color: 'var(--text)', fontSize: 14 }
                           }
                         >
                           {r.GuestName}
+                          {r.GuestOriginCountry && (
+                            <span data-pais="" style={{ display: 'flex', fontSize: 12, fontWeight: 400, color: 'var(--text-sub)', marginTop: 2, minWidth: 0 }}>
+                              <PaisPescador pais={r.GuestOriginCountry} />
+                            </span>
+                          )}
                         </span>
                         {/* Ancho fijo + texto largo (ej. "Pesca con mosca 4
                             días") se montaba encima de la columna Check-in:
                             la celda no recortaba nada. El nombre completo
                             queda en el title y en el detalle al hacer click. */}
                         <span
-                          title={isDesktop ? r.RoomID : undefined}
+                          title={tabla ? nombrePrograma(r.RoomID) : undefined}
                           style={
-                            isDesktop
+                            tabla
                               ? col(130, { fontSize: 14, color: 'var(--text-sub)', paddingRight: 8, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
                               : { fontSize: 12, color: 'var(--text-muted)' }
                           }
                         >
-                          {r.RoomID} {!isDesktop && `· ${fmtDate(r.CheckIn)} → ${fmtDate(r.CheckOut)}`}
+                          <BadgePrograma codigo={r.RoomID} /> {!tabla && `· ${fmtDate(r.CheckIn)} → ${fmtDate(r.CheckOut)}`}
                         </span>
-                        {isDesktop && (
+                        {tabla && (
                           <>
                             <span style={col(95, { fontSize: 14, color: 'var(--text-sub)' })}>{fmtDate(r.CheckIn)}</span>
                             <span style={col(95, { fontSize: 14, color: 'var(--text-sub)' })}>{fmtDate(r.CheckOut)}</span>
                             {mostrarNoches && (
-                              <span style={col(70, { fontSize: 14, color: 'var(--text-sub)', textAlign: 'center' })}>{nights(r.CheckIn, r.CheckOut)}</span>
+                              <span style={col(70, { fontSize: 14, color: 'var(--text-sub)', textAlign: 'center' })}>{nights(r.CheckIn, r.CheckOut) ?? '—'}</span>
                             )}
                           </>
                         )}
-                        <span style={isDesktop ? col(130) : { marginTop: 2 }}>
+                        <span style={tabla ? col(130) : { marginTop: 2 }}>
                           <OriginBadge source={r.Source} />
                         </span>
-                        {isDesktop && (
+                        {tabla && (
                           /* Casi siempre vacío, y está bien: el huésped lo
                              manda por WhatsApp DESPUÉS de pagar, no al
                              reservar. Por eso el vacío se dibuja como un
@@ -359,15 +435,15 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                             {r.FlightNumber || '—'}
                           </span>
                         )}
-                        <span style={isDesktop ? col(105) : { marginTop: 2 }}>
+                        <span style={tabla ? col(105) : { marginTop: 2 }}>
                           <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: sc?.bg ?? 'var(--status-neutro-bg)', color: sc?.dot ?? 'var(--status-neutro-text)' }}>
                             {STATUS_LABEL[r.Status] ?? r.Status}
                           </span>
                         </span>
-                        <span style={isDesktop ? { flex: 1, textAlign: 'right', fontWeight: 700, color: 'var(--text)', fontSize: 14 } : { fontWeight: 700, color: 'var(--text)', fontSize: 14, marginTop: 2 }}>
+                        <span style={tabla ? { flex: 1, textAlign: 'right', fontWeight: 700, color: 'var(--text)', fontSize: 14 } : { fontWeight: 700, color: 'var(--text)', fontSize: 14, marginTop: 2 }}>
                           {r.Currency} {r.TotalAmount.toLocaleString('es-CL')}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-7)' }}>
@@ -377,6 +453,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         className="crm-btn crm-btn-ghost crm-btn-sm"
+                        style={{ minHeight: 44 }}
                         onClick={() => setPage((p) => Math.max(0, p - 1))}
                         disabled={pageSafe === 0}
                       >
@@ -384,6 +461,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                       </button>
                       <button
                         className="crm-btn crm-btn-ghost crm-btn-sm"
+                        style={{ minHeight: 44 }}
                         onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
                         disabled={pageSafe >= pageCount - 1}
                       >
@@ -402,7 +480,13 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
             elegido; con "Todos los meses" navega por su cuenta. La
             sincronización es en un solo sentido a propósito: moverse por
             los meses del calendario no filtra la tabla, para que nadie
-            pierda filas de vista sin haberlo pedido. */}
+            pierda filas de vista sin haberlo pedido.
+            Se monta recién cuando la lista ya está dibujada (19-oct, QA del
+            panel): si se dibujaba mientras cargaba, la lista llegaba encima y
+            lo empujaba 250-650 px hacia abajo (CLS 0,29 a 768 px). Lo que
+            aparece nuevo no cuenta como desplazamiento; lo que ya estaba y se
+            mueve, sí. Con error, AsyncState no dibuja la lista: va igual. */}
+        {(listaMontada || error !== null) && (
         <div style={{ marginTop: 'var(--space-8)' }}>
           <ReservationCalendar
             reservas={reservas}
@@ -416,9 +500,10 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
               setFechaNueva(fechaISO);
               setNuevaAbierta(true);
             }}
-            onReservaClick={(r) => setDetalle(r)}
+            onReservaClick={(r) => abrir(r, `cal:${r.BookingID}`)}
           />
         </div>
+        )}
       </div>
 
       {detalle && (

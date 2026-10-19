@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { BadgePrograma, PaisPescador } from '../../components/BadgePrograma';
+import { personasDe } from '../../lib/personas';
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { CalendarRangeIcon, ChevronDownIcon, UsersIcon } from '../../components/icons/RockyIcons';
@@ -9,6 +11,7 @@ import { terminologiaPms } from '../../lib/terminologiaPms';
 import { fechasImportantesProximas, semanaDe, isoLocal, type FechaImportante } from '../../lib/fechasImportantes';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
 
+import { nombrePrograma } from '../../lib/fichaPescador';
 const STATUS_LABEL: Record<string, string> = { CONFIRMED: 'Confirmada', PENDING: 'Pendiente', CANCELLED: 'Cancelada' };
 const STATUS_COLOR: Record<string, { bg: string; dot: string }> = {
   CONFIRMED: { bg: 'var(--status-bien-bg)', dot: 'var(--status-bien-dot)' },
@@ -119,7 +122,8 @@ export function PmsResumen({ isDesktop }: { isDesktop: boolean }) {
     [activas]
   );
 
-  const personasSemana = llegan.reduce((n, r) => n + (r.PartyMembers ?? 1), 0);
+  // personasDe: PartyMembers llega como texto y «+» lo concatenaba («01»).
+  const personasSemana = llegan.reduce((n, r) => n + (personasDe(r) ?? 1), 0);
   const pendientes = (reservas ?? []).filter((r) => r.Status === 'PENDING').length;
   const canceladas = (reservas ?? []).filter((r) => r.Status === 'CANCELLED').length;
 
@@ -395,15 +399,9 @@ function DetalleActivas({
                       <span style={{ color: 'var(--text-sub)', minWidth: isDesktop ? 150 : undefined, whiteSpace: 'nowrap' }}>
                         {fmtCorta(new Date(`${r.CheckIn}T00:00:00`))} → {fmtCorta(new Date(`${r.CheckOut}T00:00:00`))}
                       </span>
-                      <span style={{ flex: 1, minWidth: 140, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{r.GuestName}</span>
-                        <span style={{ color: 'var(--text-faint)' }} title={`${etiquetaLugar}: ${r.RoomID}`}>
-                          {' · '}
-                          {r.RoomID}
-                        </span>
-                      </span>
+                      <CeldaPescador r={r} minWidth={140} tituloLugar={`${etiquetaLugar}: ${nombrePrograma(r.RoomID)}`} />
                       <span style={{ color: 'var(--text-sub)', whiteSpace: 'nowrap' }}>
-                        {r.PartyMembers ?? 1} p.
+                        {personasDe(r) ?? 1} p.
                       </span>
                       <span style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', minWidth: isDesktop ? 110 : undefined, textAlign: 'right' }}>
                         {r.Currency} {r.TotalAmount.toLocaleString('es-CL')}
@@ -420,6 +418,29 @@ function DetalleActivas({
         </div>
       )}
     </div>
+  );
+}
+
+/** Nombre del pescador arriba (con «…» si no cabe, completo en title) y, en su
+ *  propia línea, el país y el programa o la habitación, que bajan de línea antes
+ *  que perderse. QA 18-oct: todo en una línea con nowrap y overflow:hidden, a
+ *  320 y 360 px el país escondía el badge y en AC dejaba «· Hab 101» fuera de la
+ *  pantalla (WCAG 2.2 1.4.10). Es la misma forma de Overview y ReservasResumen. */
+function CeldaPescador({ r, minWidth, tituloLugar, nombreFuerte = true }: { r: ReservaResumenItem; minWidth: number; tituloLugar?: string; nombreFuerte?: boolean }) {
+  return (
+    <span data-celda-pescador="" style={{ flex: 1, minWidth, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, textAlign: 'left' }}>
+      <span title={r.GuestName} style={{ fontWeight: nombreFuerte ? 600 : 400, color: 'var(--text)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {r.GuestName}
+      </span>
+      {/* --text-sub: --text-faint no llega a 4,5:1 (WCAG 2.2 1.4.3). */}
+      <span data-pais-programa="" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 6px', maxWidth: '100%', minWidth: 0, fontSize: 12, color: 'var(--text-sub)' }}>
+        {r.GuestOriginCountry && <PaisPescador pais={r.GuestOriginCountry} />}
+        {r.GuestOriginCountry && <span aria-hidden="true">·</span>}
+        <span data-programa="" title={tituloLugar}>
+          <BadgePrograma codigo={r.RoomID} />
+        </span>
+      </span>
+    </span>
   );
 }
 
@@ -452,10 +473,7 @@ function ListaReservas({
             return (
               <button key={r.BookingID} type="button" className="cal-fila" onClick={() => onClick(r)}>
                 <span style={{ fontWeight: 600, color: 'var(--text)', minWidth: 92 }}>{fmtDia(r[campoFecha])}</span>
-                <span style={{ flex: 1, color: 'var(--text)', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {r.GuestName}
-                  <span style={{ color: 'var(--text-faint)' }}> · {r.RoomID}</span>
-                </span>
+                <CeldaPescador r={r} minWidth={0} nombreFuerte={false} />
                 <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 'var(--radius-sm)', background: sc?.bg ?? 'var(--status-neutro-bg)', color: sc?.dot ?? 'var(--status-neutro-text)' }}>
                   {STATUS_LABEL[r.Status] ?? r.Status}
                 </span>

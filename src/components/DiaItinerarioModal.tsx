@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BadgePrograma } from './BadgePrograma';
 import { guardarDiaItinerario, vaciarDiaItinerario, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { fmtSelloUtcCorto } from '../lib/selloUtc';
@@ -160,7 +161,9 @@ export function DiaItinerarioModal({
           <div>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{fmtDiaLargo(dia.Fecha)}</h2>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
-              {reserva.GuestName} · {reserva.RoomID}
+              {reserva.GuestName}
+              {' · '}
+              <BadgePrograma codigo={reserva.RoomID} />
             </div>
           </div>
           {/* Icon button de M3: 40x40 redondo, para que la capa de estado del

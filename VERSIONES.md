@@ -15,6 +15,181 @@ muestra botones que no guardan.
 
 ---
 
+## 5.0.0
+
+**2026-10-16** · mayor (en Chile Fly Fishing, Pescadores deja de listar a
+quien no tiene reserva confirmada y el Overview deja de mostrar el
+calendario) · requiere backend: rama `lodge-cff-detalle` de AI_Agency
+desplegada antes. Con la Lambda anterior la ficha muestra «—» en pago,
+utilidad y datos de pesca, no ofrece editarlos y la tarjeta del mes dice
+«Sin dato del mes completo».
+
+Lodge de Chile Fly Fishing (pedido de Mato):
+
+- **Qué.** El Overview de CFF parte por «Llegan en los próximos 30 días»
+  (cada fila abre la ficha) y la tarjeta «Reservas de {mes}», que cuenta las
+  confirmadas con llegada en el mes; salen el calendario, «Reservas nuevas
+  esta semana» y «Sincronización de reservas». El Calendario y Pescadores
+  abren la **ficha del pescador como página**, con pago, saldo, utilidad,
+  viaje, experiencia, equipo, licencia, acompañantes y notas, y cancelar o
+  confirmar «Ya pagó» con confirmación dentro de la página. Pescadores lista
+  solo a quien tiene una reserva confirmada y marca a quien ya viajó. Las
+  filas de las tres listas son botones: se abren con teclado. Alto Castillo
+  sigue con el modal y la lista completa.
+- **Por qué.** El modal no tenía espacio para los datos del viaje de pesca ni
+  para la utilidad, y Pescadores mezclaba confirmados con reservas sin pagar
+  o canceladas. Las filas eran `div` con clic: no se llegaba con teclado.
+- **Beneficio.** En una pantalla se ve quién llega, cuánto pagó, cuánto debe
+  y cuánto deja la reserva, y se cancela sin `window.confirm`, con el detalle
+  de qué pasa. Al volver, la lista conserva filtros, scroll y la fila enfocada.
+- **Errores.** Si el servidor no devuelve un dato nuevo en la respuesta del
+  guardado, la ficha avisa que no se guardó en vez de darlo por hecho. El
+  itinerario del viaje todavía no está en la ficha.
+
+Ampliación del 16-oct, Ventas y costo del guía por programa (pedido de Mato):
+
+- **Qué.** Nueva pestaña Lodge → Ventas (solo con `pms_utilidad`): Full Days
+  vendidos (jornadas) y programas All Inclusive vendidos, total de la
+  temporada por moneda, tabla por mes (tarjetas en el teléfono) que despliega
+  sus reservas y abre la ficha, costos fijos en lenguaje simple, «Sin
+  calcular» con su motivo y selector de temporada. En la ficha, el costo del
+  guía es «USD 490 × 2 jornadas = USD 980», el mercado asumido se dice, el All
+  Inclusive muestra la licencia incluida y el Full Day mantiene «¿La compramos
+  nosotros?». Con utilidad, «Nueva reserva» elige el programa entre All
+  Inclusive y Full Day en vez de texto libre.
+- **Por qué.** El costo del guía depende del programa y del mercado, no de la
+  cantidad de personas, y la licencia dejó de restar utilidad. Mato ingresa a
+  mano las reservas de Chile y Brasil, que se pagan en CLP: un nombre de
+  programa escrito a mano no calza con la tarifa.
+- **Beneficio.** Se ve cuánto se vendió y cuánto queda por mes sin sumar USD
+  con CLP, y por qué una reserva no tiene utilidad.
+- **Errores.** Una venta web de un pescador chileno sale en USD y queda en «Sin
+  calcular» (`MONEDA_DISTINTA`). Si la temporada no está configurada (409), la
+  pestaña lo dice sin ofrecer reintentar.
+
+Correcciones de la revisión de código del 16-oct, Ventas:
+
+- **Qué.** La ficha abierta desde Ventas pide su reserva por `booking_id`.
+  Si eso falla, Ventas muestra un error con «Reintentar»; con un 404 dice que
+  la reserva no existe. «Costos fijos» avisa cuántas reglas de costo no se usan
+  y por qué. La tarjeta de Full Days dice cuántas reservas no tienen fechas.
+  Un 403 dice que Ventas no está activa para la cuenta. Las pendientes se
+  llaman «pendientes de confirmar».
+- **Por qué.** El resumen de reservas trae solo una ventana de fechas: toda
+  llegada fuera de ella salía como «No encontramos esta reserva». Una falla de
+  red se leía como que la reserva no existía. Una regla mal escrita se
+  descartaba en silencio y un 403 hablaba de la conexión.
+- **Beneficio.** Toda reserva de la temporada abre su ficha. Cada falla dice
+  qué pasó y qué hacer, y no se pinta «undefined» ni «NaN».
+- **Errores.** Los códigos de `reglas_descartadas` se infirieron del backend,
+  todavía sin confirmar: un código desconocido muestra un texto genérico. Los
+  otros viajes del pescador en esa ficha salen del resumen con ventana: si ese
+  resumen falla, la ficha abre igual, solo con este viaje.
+
+Correcciones de QA del 17-oct (Ventas, ficha, Nueva reserva y Calendario):
+
+- **Qué.** Un 503 «No pudimos leer la configuración» se muestra con el texto
+  del servidor y «Reintentar», en Ventas, en la ficha y al guardar (el botón
+  pasa a «Reintentar»). En la ficha abierta desde Ventas, un 403 dice que
+  Ventas no está activa, un 400 o un 409 muestran el motivo sin «Reintentar»,
+  y el foco va a «← Ventas» mientras abre o al mensaje si no abre. El select de
+  temporada ya no se deshabilita al cargar (avisa con `aria-busy`) y, tras un
+  400, muestra la misma temporada que el aviso. Una respuesta tardía ya no pisa
+  la ficha ni la temporada más nuevas. Si el refresco tras guardar no trae la
+  lista, siguen los otros viajes que había; ese rótulo pasa a «Viajes
+  cercanos». Campos, correo y WhatsApp de la ficha miden 44 px. Nueva reserva
+  es un diálogo modal: `role="dialog"`, Escape cierra (pregunta si hay datos),
+  Tab no sale, el foco vuelve al botón que lo abrió, cada campo con su
+  etiqueta, toques de 44 px y las filas de tres campos se apilan en el
+  teléfono. En Calendario de Reservas, la tabla pasa a filas apiladas cuando
+  no cabe y los filtros de estado bajan de línea.
+- **Por qué.** La revisión de QA del 17-oct midió: el modal desbordaba 115 px a
+  320 y 75 px a 360; el Calendario desbordaba 286 px (CFF) y 356 px (Alto
+  Castillo) a 768 por la tabla de reservas de 910 px; el select deshabilitado
+  dejaba el foco en BODY (WCAG 2.4.3), y Escape no cerraba el modal.
+- **Beneficio.** Sin desborde de 320 a 1440 px en Ventas, ficha, Calendario y
+  Nueva reserva, medido en el arnés. Teclado y lector de pantalla saben dónde
+  están y qué pasó en cada falla.
+- **Errores.** «Viajes cercanos» no dice entre qué fechas: el servidor no
+  devuelve los límites de su ventana. En Calendario siguen bajo 44 px «Nueva
+  reserva» (40) y los filtros de estado (28): cumplen 2.5.8 AA (24 px) y no se
+  cambiaron porque también son de Alto Castillo.
+- **Ajuste de la revisión del 17-oct.** Con «Creando…», Escape, el fondo, la × y Cancelar
+  ya no cierran Nueva reserva (cerrar invitaba a crearla dos veces); un 403 al
+  abrir la ficha dice «No tienes acceso a esta reserva desde esta cuenta.»,
+  porque viene de `/reservas-resumen` y no de Ventas.
+
+Ventas v2 y dólar del día, 17-oct (pedido de Mato):
+
+- **Qué.** Ventas parte por «Resumen de la temporada» (pescadores en Full Day
+  y All Inclusive, ganancia por moneda con chip «Pérdida»), sigue con «Cuánto
+  ganamos por venta» (una fila por programa y mercado: precio de lista, costo,
+  dólar usado, ganancia, margen y el dólar en que esa venta deja de ganar),
+  después la tabla por mes con «Cobrado con ganancia calculada» / Costo /
+  Ganancia / Margen y un «Total temporada», y al final «Sin calcular». Bajo
+  cada moneda, en el resumen, en cada mes y en el total, «+ N reservas sin
+  calcular: USD X» suma aparte lo que se cobró sin ganancia calculada. Cada reserva marca «Bajo lista»
+  y «Pérdida» con texto. La ficha dice «Costos y ganancia»: Cobrado, Precio de
+  lista con aviso «Bajo lista», costo original en CLP y su equivalente en USD,
+  y «Dólar usado» con la fecha y la fuente. Motivos nuevos `SIN_DOLAR` y
+  `SIN_FECHA_CONFIRMACION`; reglas descartadas `PRECIO_INVALIDO` y
+  `MONEDA_PRECIO_INVALIDA` explicadas en español. Todo control táctil del
+  Calendario (CFF y Alto Castillo), de Ventas y de la ficha mide 44 px. Las
+  tablas de Ventas salen solo si el contenido mide 760 px o más (a 1024 px,
+  con la barra lateral, quedan 664 y se ven tarjetas). Calendario, lista de
+  reservas, Resumen, Itinerarios y Pescadores dicen «Full Day» y «All
+  Inclusive» como la ficha, no el código; otros nombres quedan igual. «Nueva reserva»
+  parte en USD para CFF aunque los permisos lleguen tarde, pregunta antes de
+  cerrar con Escape si se cambió moneda, personas o pago, y su error se anuncia
+  y recibe el foco.
+- **Por qué.** Brasil paga en USD y el guía cobra en CLP: sin el dólar del
+  día de confirmación esas reservas quedaban «sin calcular» y no se veía qué
+  venta perdía plata. «Nueva reserva» medía 40 px y los filtros de estado 28.
+  «Vendido USD 22.620» parecía todo lo vendido, pero dejaba fuera tres
+  reservas por USD 7.400; diciembre mostraba «—» con dos Full Day Brasil por
+  USD 900. Textos en `--text-faint` (2,56:1) no llegaban a 4,5:1 (WCAG 2.2
+  1.4.3): pasan a `--text-sub` (7,73:1).
+- **Beneficio.** Se ve cuánto deja cada programa por mercado, qué reservas se
+  vendieron bajo lista o con pérdida y con qué dólar se calculó cada una.
+- **Errores.** Con la Lambda anterior (sin `tarifas` ni los campos nuevos),
+  Ventas vuelve a «Costos fijos» y la ficha no muestra precio de lista ni
+  dólar, sin «undefined» ni «NaN». Una reserva pendiente dice «Se calcula al
+  confirmar». Sin tarifa, la ficha dice «Sin tarifa para este programa y
+  mercado.»; sin precio de lista, «Sin precio de lista para esa fecha.». Sin
+  dólar o sin fecha de confirmación, «Costo de Guía» muestra la tarifa sin
+  convertir («CLP 400.000 × 1 jornada = CLP 400.000») en vez de «sin monto».
+  La licencia del All Inclusive dice lo mismo en la ficha y en Ventas:
+  «Incluida, la compra el guía». Un monto con centavos lleva siempre dos
+  decimales («USD 43,50»). En Reservas, una fecha vacía se ve «—» y no
+  «Invalid Date» ni NaN. «No avisar al pescador» y Sí/No de alergias miden
+  44 px de toque. En el teléfono a 320 px las celdas de día del calendario miden
+  44 px de alto, pero el ancho lo fijan las 7 columnas.
+- Programas y países (pedido de Mato, 17-oct): Full Day lleva un badge cian y
+  All Inclusive uno violeta, con el nombre dentro, en Ventas, la ficha,
+  Reservas, el calendario, Overview, Pescadores, Itinerarios, PMS y los modales.
+  Otro RoomID (Alto Castillo) sigue como texto. El país del pescador va con su
+  bandera (emoji decorativo) y el nombre del país a la vista en las listas, con
+  «…» si no cabe; solo las barras del calendario llevan la bandera sola, con el
+  país para lectores y en `title`. Los mercados de tarifa van con la suya. En
+  Resumen (PMS) el país y el programa o la habitación van en una línea propia
+  bajo el nombre: a 320 px ya no esconden el badge ni «Hab 101». El backend
+  manda `PartyMembers` como texto («"1"»): ahora se lee con `personasDe`
+  (lib/personas) en Overview, Resumen, Itinerarios, la ficha y el detalle de
+  reserva, así no sale «1 personas» ni «01 personas». El mercado USA se muestra «USA y otros»;
+  el código sigue siendo USA. «Mercado asumido» queda sin bandera.
+- Qué se vende (pedido de Mato, 17-oct): Ventas abre con «Resumen», una frase
+  que dice qué mercado lidera y qué se vende más (sin plata, en pescadores) y la
+  tarjeta «Reservas confirmadas»; debajo, el bloque «Qué se vende» por mercado y
+  por programa, con barras decorativas que miden la participación sobre el
+  total de pescadores de la temporada, y el número y el % en texto. «Más
+  vendido» aparece desde 10 pescadores y sin empate. El mix lo manda el servidor
+  (`segmentos`, `mercados`, `programas`); si no viene, Ventas queda como antes.
+  Si no cuadra con el resumen, se avisa con «Reintentar». «Por mes» suma la
+  columna «Mercados» y «Cuánto ganamos por venta» baja al quinto lugar. Full Day
+  avisa las reservas sin jornadas calculadas (`jornadas_incompletas`). La frase
+  dice «Esta temporada lidera USA y otros: 6 de 13 pescadores (46 %).»; sin
+  pescadores clasificados no hay frase, y el % va con espacio no separable.
+
 ## 4.0.0
 
 **2026-10-12** · mayor (Publicación de Reels cambia de lugar y de nombre en el

@@ -24,6 +24,7 @@ export type Screen =
   | 'servicio-pms-resumen'
   | 'servicio-pms-reservas'
   | 'servicio-pms-huespedes'
+  | 'servicio-pms-ventas'
   | 'servicio-pms-itinerarios'
   | 'servicio-pms-housekeeping'
   | 'servicio-email-campanas'
@@ -140,6 +141,9 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: 'servicio-pms-resumen', label: 'Resumen', shortLabel: 'Resumen', serviceKeys: ['pms'], featureKey: 'pms_resumen'},
       { id: 'servicio-pms-reservas', label: 'Calendario de Reservas', shortLabel: 'Reservas', serviceKeys: ['pms'], featureKey: 'pms_reservas'},
       { id: 'servicio-pms-huespedes', label: 'Huéspedes', shortLabel: 'Huéspedes', serviceKeys: ['pms'], featureKey: 'pms_huespedes'},
+      // Ventas (5.0.0, 16-oct): lo vendido y la utilidad por temporada. Solo
+      // con la bandera pms_utilidad, la misma que muestra la utilidad en la ficha.
+      { id: 'servicio-pms-ventas', label: 'Ventas', shortLabel: 'Ventas', serviceKeys: ['pms'], featureKey: 'pms_utilidad'},
       // Itinerarios (2026-08-17, pedido explícito de Mato): el plan y la
       // bitácora de cada día de una expedición. Va DESPUÉS de personas y
       // antes de Housekeeping: se llega desde una reserva, no desde el

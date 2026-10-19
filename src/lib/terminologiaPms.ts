@@ -23,6 +23,9 @@ export interface TerminologiaPms {
   navPersonas: string;
   /** Para textos corridos ("Aún no hay pescadores cargados"). */
   personasMinuscula: string;
+  /** Singular para textos corridos y buscadores ("Buscar pescador…"). En
+   *  CFF no es la columna ("Angler"): en un texto corrido va «pescador». */
+  personaMinuscula: string;
   /** CFF vende programas guiados por día, no alojamiento por noche. */
   mostrarNoches: boolean;
   /**
@@ -43,6 +46,7 @@ const CFF: TerminologiaPms = {
   columnaPersona: 'Angler',
   navPersonas: 'Pescadores',
   personasMinuscula: 'pescadores',
+  personaMinuscula: 'pescador',
   mostrarNoches: false,
   navSeccion: 'Lodge',
 };
@@ -51,6 +55,7 @@ const GENERICO: TerminologiaPms = {
   columnaPersona: 'Huésped',
   navPersonas: 'Huéspedes',
   personasMinuscula: 'huéspedes',
+  personaMinuscula: 'huésped',
   mostrarNoches: true,
   navSeccion: 'PMS',
 };
@@ -79,6 +84,7 @@ export function terminologiaPms(
     columnaPersona: capitalizar(singular),
     navPersonas: capitalizar(plural),
     personasMinuscula: plural.toLowerCase(),
+    personaMinuscula: singular.toLowerCase(),
   };
 }
 

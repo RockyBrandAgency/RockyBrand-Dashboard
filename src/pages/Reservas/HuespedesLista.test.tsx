@@ -2,11 +2,13 @@ import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react-dom/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { hoyLocalISO, sumarDias } from '../../lib/fichaPescador';
 import type { HuespedItem, ReservaResumenItem } from '../../types';
 
-// Qué afirma este archivo: el camino que pidió Mato (Lodge → Pescadores → tocar
-// a un pescador confirmado) termina en la sección de acompañantes de ESE viaje,
-// y una reserva cancelada no ofrece agregar a nadie.
+// Qué afirma este archivo (5.0.0): en CFF, Pescadores lista solo a quien tiene
+// una reserva confirmada; la fila es un botón que abre la ficha del pescador
+// como página, con los acompañantes de ese viaje; al volver, el foco queda en
+// la fila que se abrió.
 
 const { api, handleUnauthorized } = vi.hoisted(() => ({
   api: { getHuespedes: vi.fn(), getReservasResumen: vi.fn(), guardarAcompanantes: vi.fn() },
@@ -18,10 +20,16 @@ vi.mock('../../api/dashboardApi', () => ({
   getReservasResumen: () => api.getReservasResumen(),
   guardarAcompanantes: (...args: unknown[]) => api.guardarAcompanantes(...args),
   actualizarHuesped: vi.fn(),
+  actualizarReserva: vi.fn(),
+  cancelarReserva: vi.fn(),
+  confirmarReserva: vi.fn(),
   UnauthorizedError: class UnauthorizedError extends Error {},
+  ConflictError: class ConflictError extends Error {},
+  ErrorTransitorio: class ErrorTransitorio extends Error {},
+  TimeoutError: class TimeoutError extends Error {},
 }));
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ handleUnauthorized, clientId: 'chile-fly-fishing', clientDisplayName: 'Chile Fly Fishing', clientTerminologia: null }),
+  useAuth: () => ({ handleUnauthorized, clientId: 'chile-fly-fishing', clientDisplayName: 'Chile Fly Fishing', clientTerminologia: null, features: { pms_ficha_pesca: true } }),
 }));
 
 import { HuespedesLista } from './HuespedesLista';
@@ -33,15 +41,16 @@ function huesped(GuestID: string, FullName: string): HuespedItem {
   } as HuespedItem;
 }
 
-function reserva(BookingID: string, GuestID: string, Status: string, CheckIn: string): ReservaResumenItem {
+function reserva(BookingID: string, GuestID: string, Status: string, CheckIn: string, GuestName: string): ReservaResumenItem {
   return {
-    BookingID, GuestID, Status, CheckIn, CheckOut: CheckIn, RoomID: 'ALL_INCLUSIVE', Source: 'Directa Web',
-    GuestName: '', TotalAmount: 6500, Currency: 'USD', PaymentStatus: 'PAID', Companions: [],
+    BookingID, GuestID, Status, CheckIn, CheckOut: sumarDias(CheckIn, 5), RoomID: 'ALL_INCLUSIVE', Source: 'Directa Web',
+    GuestName, TotalAmount: 6500, Currency: 'USD', PaymentStatus: 'PAID', Companions: [],
   };
 }
 
 let container: HTMLDivElement;
 let root: Root;
+const llegada = sumarDias(hoyLocalISO(), 15);
 
 async function render() {
   container = document.createElement('div');
@@ -56,18 +65,11 @@ async function render() {
   });
 }
 
-async function abrirFicha(nombre: string) {
-  const fila = Array.from(container.querySelectorAll<HTMLDivElement>('div[style*="cursor: pointer"]')).find((d) =>
-    d.textContent?.includes(nombre),
-  );
-  await act(async () => {
-    fila!.click();
-  });
-}
+const filas = () => Array.from(container.querySelectorAll<HTMLButtonElement>('button[data-fila]'));
+const boton = (texto: string) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes(texto));
 
 beforeAll(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
-  // jsdom no trae matchMedia; AsyncState lo consulta al montar (mismo arreglo que App.test.tsx).
   window.matchMedia = ((query: string) => ({
     matches: false, media: query, onchange: null,
     addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {},
@@ -76,9 +78,15 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  api.getHuespedes.mockResolvedValue({ huespedes: [huesped('gst_1', 'Ana Pescadora'), huesped('gst_2', 'Beto Cancelado')] });
+  api.getHuespedes.mockResolvedValue({
+    huespedes: [huesped('gst_1', 'Ana Pescadora'), huesped('gst_2', 'Beto Cancelado'), huesped('gst_3', 'Carla Pendiente')],
+  });
   api.getReservasResumen.mockResolvedValue({
-    reservas: [reserva('bkg_1', 'gst_1', 'CONFIRMED', '2026-10-31'), reserva('bkg_2', 'gst_2', 'CANCELLED', '2026-11-08')],
+    reservas: [
+      reserva('bkg_1', 'gst_1', 'CONFIRMED', llegada, 'Ana Pescadora'),
+      reserva('bkg_2', 'gst_2', 'CANCELLED', llegada, 'Beto Cancelado'),
+      reserva('bkg_3', 'gst_3', 'PENDING', llegada, 'Carla Pendiente'),
+    ],
   });
 });
 
@@ -87,18 +95,29 @@ afterEach(() => {
   container.remove();
 });
 
-describe('Pescadores → ficha del pescador', () => {
-  it('un pescador confirmado muestra los acompañantes de su viaje y deja agregar', async () => {
+describe('Pescadores (CFF)', () => {
+  it('lista solo a quien tiene una reserva confirmada, con filas que son botones', async () => {
     await render();
-    await abrirFicha('Ana Pescadora');
-    expect(container.textContent).toContain('Acompañantes · viaje del 31 oct 2026');
-    const agregar = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Agregar acompañante'));
-    expect(agregar).toBeDefined();
+    expect(filas().map((f) => f.textContent)).toEqual([expect.stringContaining('Ana Pescadora')]);
+    expect(container.textContent).not.toContain('Beto Cancelado');
+    expect(container.textContent).not.toContain('Carla Pendiente');
   });
 
-  it('una reserva cancelada no ofrece acompañantes', async () => {
+  it('la fila abre la ficha con los acompañantes del viaje, y volver deja el foco en la fila', async () => {
     await render();
-    await abrirFicha('Beto Cancelado');
-    expect(container.textContent).not.toContain('Acompañantes · viaje');
+    await act(async () => filas()[0].click());
+    expect(container.querySelector('h1')?.textContent).toBe('Ana Pescadora');
+    expect(Array.from(container.querySelectorAll('h2')).map((h) => h.textContent)).toContain('Acompañantes');
+    expect(boton('Agregar acompañante')).toBeDefined();
+
+    await act(async () => boton('← Pescadores')!.click());
+    expect(document.activeElement).toBe(filas()[0]);
+  });
+
+  it('sin confirmados muestra el estado vacío y no lista pendientes', async () => {
+    api.getHuespedes.mockResolvedValue({ huespedes: [huesped('gst_3', 'Carla Pendiente')] });
+    await render();
+    expect(container.textContent).toContain('Todavía no hay pescadores con reserva confirmada.');
+    expect(filas()).toHaveLength(0);
   });
 });
