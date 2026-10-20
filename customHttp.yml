@@ -5,8 +5,46 @@
 # Amplify los servía con `max-age=0` y el navegador preguntaba por el bundle
 # (716 KB) en cada visita. index.html queda como está: tiene que revalidarse
 # para que un despliegue nuevo llegue al cliente.
+#
+# Cabeceras de seguridad (2026-10-19). Formato y patrón '**':
+# https://docs.aws.amazon.com/amplify/latest/userguide/setting-custom-headers.html
+# Este archivo pisa lo que haya en la consola de Amplify (misma página, «Note»).
+#
+# Content-Security-Policy, origen por origen:
+#   script-src 'self'      solo el bundle de Vite; ningún script en línea.
+#   style-src 'unsafe-inline'  las vistas previas de correo (iframe sandbox con
+#                          srcdoc) heredan esta CSP, y el HTML de un correo trae
+#                          <style> y style="" en línea: sin esto se ven sin
+#                          formato. Los scripts en línea siguen bloqueados.
+#   fonts.googleapis.com / fonts.gstatic.com  Inter (@import en src/index.css).
+#   img-src https: data:   imágenes de los correos (cada cliente las aloja
+#                          donde quiere), miniaturas de Instagram, TikTok y
+#                          YouTube, y el logo propio (logo_data_url, data:).
+#   execute-api            la API del panel (VITE_DASHBOARD_API_URL). Si esa
+#                          variable cambia en Amplify, cambia acá también.
+#   cognito-idp.us-east-2  login y renovación de sesión (VITE_COGNITO_REGION).
+#   api.open-meteo.com     el widget del clima.
+#   rockybrand-berry-medios  Berry Studio: subida por partes (PUT firmado) y
+#                          video y audio firmados. boto3 firma con el host
+#                          global o el regional según la versión: van los dos.
+#   form-action 'self'     no cae en default-src: sin esto un formulario podría
+#                          enviar a cualquier origen.
+#   frame-src 'none'       el panel solo enmarca srcdoc (vistas previas), que
+#                          no carga ninguna URL.
 customHeaders:
   - pattern: '/assets/**'
     headers:
       - key: 'Cache-Control'
         value: 'public, max-age=31536000, immutable'
+  - pattern: '**'
+    headers:
+      - key: 'Strict-Transport-Security'
+        value: 'max-age=31536000; includeSubDomains'
+      - key: 'X-Content-Type-Options'
+        value: 'nosniff'
+      - key: 'Referrer-Policy'
+        value: 'strict-origin-when-cross-origin'
+      - key: 'X-Frame-Options'
+        value: 'DENY'
+      - key: 'Content-Security-Policy'
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https://rockybrand-berry-medios.s3.amazonaws.com https://rockybrand-berry-medios.s3.us-east-2.amazonaws.com; connect-src 'self' https://ozqccunu01.execute-api.us-east-2.amazonaws.com https://cognito-idp.us-east-2.amazonaws.com https://api.open-meteo.com https://rockybrand-berry-medios.s3.amazonaws.com https://rockybrand-berry-medios.s3.us-east-2.amazonaws.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"

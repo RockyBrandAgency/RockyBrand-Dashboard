@@ -137,14 +137,22 @@ export function LoginScreen({ sessionExpiredMessage }: { sessionExpiredMessage?:
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                /* Objetivo de 32x32 (WCAG 2.2 2.5.8 pide 24x24; medía 16x16)
+                   con el ícono centrado: right 4 + 16 de medio ancho deja el
+                   centro del ícono donde estaba (right 12 + 8), y cabe en el
+                   paddingRight 40 del campo. */
                 style={{
                   all: 'unset',
                   position: 'absolute',
-                  right: 12,
+                  right: 4,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   cursor: 'pointer',
                   display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
                   color: 'var(--text-faint)',
                 }}
               >
