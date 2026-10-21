@@ -19,7 +19,7 @@ vi.mock('../../api/dashboardApi', () => ({
   getHuespedes: () => Promise.resolve({ huespedes: [] }),
   UnauthorizedError: class UnauthorizedError extends Error {},
 }));
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth.value }));
+vi.mock('../../context/AuthContext', () => ({ usePermiso: () => true, useAuth: () => auth.value }));
 
 import { PmsResumen } from './PmsResumen';
 

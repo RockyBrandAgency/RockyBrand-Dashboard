@@ -13,7 +13,7 @@ import {
   TimeoutError,
   UnauthorizedError,
 } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import { useAnchoContenido } from '../../hooks/useAnchoContenido';
 import { Chip } from './ChipVenta';
 import { AcompanantesReserva } from '../../components/AcompanantesReserva';
@@ -273,6 +273,8 @@ function FichaContenido({
   onCambiarViaje: (id: string) => void;
 }) {
   const { handleUnauthorized, features, clientId, clientTerminologia } = useAuth();
+  // Guardar, confirmar y cancelar: editor y admin (lib/permisos.ts).
+  const puedeOperar = usePermiso('pms.operar');
   const term = terminologiaPms(clientId, clientTerminologia);
   // El bloque de utilidad solo con la bandera pms_utilidad del cliente.
   const conUtilidad = features?.pms_utilidad === true;
@@ -378,6 +380,7 @@ function FichaContenido({
   }
 
   async function guardar() {
+    if (!puedeOperar) return;
     if (!sucio || guardando) return;
     const fechasCambiaron = form.checkIn !== base.checkIn || form.checkOut !== base.checkOut;
     if (fechasCambiaron) {
@@ -533,6 +536,7 @@ function FichaContenido({
   });
 
   function abrirConfirmacion(tipo: 'cancelar' | 'confirmar') {
+    if (!puedeOperar) return;
     setErrorAccion(null);
     setConflicto(false);
     setConfirmacion(tipo);
@@ -1163,7 +1167,7 @@ function FichaContenido({
                 )}
                 {sucio || guardando ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{isDesktop ? 'Cambios sin guardar' : 'Sin guardar'}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{!puedeOperar ? 'Tu rol no guarda cambios' : isDesktop ? 'Cambios sin guardar' : 'Sin guardar'}</span>
                     <span style={{ flex: 1 }} />
                     <button
                       type="button"
@@ -1178,11 +1182,13 @@ function FichaContenido({
                     >
                       Descartar
                     </button>
+                    {puedeOperar && (
                     <button type="button" className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando} title={isDesktop ? 'Guardar (⌘S o Ctrl+S)' : undefined}>
                       {guardando ? 'Guardando…' : reintentar ? 'Reintentar' : 'Guardar cambios'}
                     </button>
+                    )}
                   </div>
-                ) : (
+                ) : puedeOperar ? (
                   <>
                     {pendiente && (
                       <label style={{ display: 'flex', justifyContent: isDesktop ? 'flex-end' : 'flex-start', alignItems: 'center', gap: 8, minHeight: 44, marginBottom: 10, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}>
@@ -1202,7 +1208,7 @@ function FichaContenido({
                       )}
                     </div>
                   </>
-                )}
+                ) : null}
               </>
             )}
           </div>

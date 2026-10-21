@@ -24,7 +24,7 @@ vi.mock('../api/dashboardApi', () => ({
   ErrorTransitorio: class ErrorTransitorio extends Error {},
   TimeoutError: class TimeoutError extends Error {},
 }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => auth.value }));
+vi.mock('../context/AuthContext', () => ({ usePermiso: () => true, useAuth: () => auth.value }));
 vi.mock('../components/ReservationCalendar', () => ({ ReservationCalendar: () => <div data-testid="calendario" /> }));
 vi.mock('../components/RoomGrid', () => ({ RoomGrid: () => <div data-testid="grilla" /> }));
 vi.mock('../components/WeatherWidget', () => ({ WeatherWidget: () => null }));

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { getTiendaProductos, actualizarTiendaProducto, UnauthorizedError } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import type { StoreProduct } from '../../types';
 
 function money(clp: number): string {
@@ -44,6 +44,8 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone?:
 
 export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
+  // Editar precio, stock o estado: editor y admin (lib/permisos.ts).
+  const puedeEditar = usePermiso('tienda.editar');
   const [productos, setProductos] = useState<StoreProduct[] | null>(null);
   const [umbral, setUmbral] = useState(2);
   const [loading, setLoading] = useState(true);
@@ -115,6 +117,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
   }
 
   function empezarEdicion(sku: string, campo: Campo, actual: number) {
+    if (!puedeEditar) return;
     setEditando({ sku, campo });
     setValor(String(actual));
     setSaveError('');
@@ -148,6 +151,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
   }
 
   async function toggleActivo(p: StoreProduct) {
+    if (!puedeEditar) return;
     setGuardando(p.sku);
     setSaveError('');
     try {
@@ -342,6 +346,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
                           ) : (
                             <button
                               onClick={() => empezarEdicion(p.sku, 'precio_clp', p.precio_clp)}
+                              disabled={!puedeEditar}
                               style={{ all: 'unset', cursor: 'pointer', fontWeight: 700, color: 'var(--text)', fontSize: 14, borderBottom: '1px dashed var(--border)' }}
                             >
                               {money(p.precio_clp)}
@@ -374,6 +379,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
                           ) : (
                             <button
                               onClick={() => empezarEdicion(p.sku, 'stock', p.stock)}
+                              disabled={!puedeEditar}
                               style={{
                                 all: 'unset',
                                 cursor: 'pointer',
@@ -392,7 +398,7 @@ export function TiendaInventario({ isDesktop }: { isDesktop: boolean }) {
                           <button
                             className={`crm-btn crm-btn-sm ${p.activo ? 'crm-btn-success' : 'crm-btn-ghost'}`}
                             onClick={() => void toggleActivo(p)}
-                            disabled={busy}
+                            disabled={busy || !puedeEditar}
                             aria-pressed={p.activo}
                           >
                             {p.activo ? 'Activo · Desactivar' : 'Inactivo · Reactivar'}

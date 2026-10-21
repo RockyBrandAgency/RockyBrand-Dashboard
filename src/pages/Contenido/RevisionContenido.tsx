@@ -5,7 +5,7 @@ import {
 import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { ImageIcon } from '../../components/icons/RockyIcons';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
 import type {
   ContentPiece, Adaptacion, HorarioSugerido, EstadoPieza, AdvertenciaPieza,
@@ -233,6 +233,8 @@ function BloqueHorario({ h }: { h: HorarioSugerido | null }) {
 }
 
 function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiece) => void }) {
+  // Aprobar o rechazar: editor y admin (lib/permisos.ts).
+  const puedeRevisar = usePermiso('contenido.revisar');
   const [tab, setTab] = useState(0);
   const [rechazando, setRechazando] = useState(false);
   const [comentario, setComentario] = useState('');
@@ -327,7 +329,7 @@ function Pieza({ p, onCambio }: { p: ContentPiece; onCambio: (nueva: ContentPiec
 
       <div style={{ flex: 1 }} />
 
-      {!decidida && !rechazando && (
+      {!decidida && !rechazando && puedeRevisar && (
         <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
           {/* flex:1 se conserva: en esta tarjeta los dos botones se reparten el
               ancho a proposito (aprobar y rechazar pesan igual). Lo que cambia

@@ -30,7 +30,7 @@ vi.mock('../../api/dashboardApi', () => ({
   ConflictError: class ConflictError extends Error {},
   TimeoutError: class TimeoutError extends Error {},
 }));
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ handleUnauthorized }) }));
+vi.mock('../../context/AuthContext', () => ({ usePermiso: () => true, useAuth: () => ({ handleUnauthorized }) }));
 
 import { ConflictError, TimeoutError } from '../../api/dashboardApi';
 import { GarantiaFicha, leerMonto } from './GarantiaFicha';

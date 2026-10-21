@@ -39,7 +39,7 @@ vi.mock('../../api/dashboardApi', () => ({
   guardarAcompanantes: vi.fn(),
   ...Errores,
 }));
-vi.mock('../../context/AuthContext', () => ({
+vi.mock('../../context/AuthContext', () => ({ usePermiso: () => true,
   useAuth: () => auth,
 }));
 

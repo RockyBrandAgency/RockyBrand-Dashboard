@@ -10,7 +10,7 @@ import {
   gestionarAccesoAgencia,
   UnauthorizedError,
 } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import type { Agencia, AgenciaAcceso } from '../../types';
 
 /**
@@ -95,6 +95,8 @@ function Boton({
 
 export function AgenciasLista({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
+  // Agencias, tarifas y accesos: solo admin (lib/permisos.ts).
+  const puedeAgencias = usePermiso('agencias');
   const [agencias, setAgencias] = useState<Agencia[] | null>(null);
   const [habitaciones, setHabitaciones] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +147,7 @@ export function AgenciasLista({ isDesktop }: { isDesktop: boolean }) {
               no se le ofrece.
             </div>
           </div>
-          {!creando && <Boton tono="fuerte" onClick={() => setCreando(true)}>Nueva agencia</Boton>}
+          {!creando && puedeAgencias && <Boton tono="fuerte" onClick={() => setCreando(true)}>Nueva agencia</Boton>}
         </div>
 
         {creando && (
@@ -352,6 +354,8 @@ function DetalleAgencia({
   onActualizada: (a: Agencia) => void;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Agencias, tarifas y accesos: solo admin (lib/permisos.ts).
+  const puedeAgencias = usePermiso('agencias');
   const [tarifas, setTarifas] = useState<Record<string, string>>(() =>
     Object.fromEntries(habitaciones.map((r) => [r, agencia.tarifas[r] != null ? String(agencia.tarifas[r]) : ''])),
   );
@@ -488,12 +492,12 @@ function DetalleAgencia({
       {error && <div style={{ fontSize: 13, color: 'var(--status-critico-dot)', marginTop: 14 }}>{error}</div>}
       {ok && <div style={{ fontSize: 13, color: 'var(--status-bien-dot)', marginTop: 14 }}>Guardado.</div>}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
+      {puedeAgencias && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
         <Boton tono="fuerte" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar cambios'}</Boton>
         <Boton tono={agencia.estado === 'ACTIVA' ? 'peligro' : 'suave'} onClick={cambiarEstado} disabled={guardando}>
           {agencia.estado === 'ACTIVA' ? 'Suspender agencia' : 'Reactivar agencia'}
         </Boton>
-      </div>
+      </div>}
       <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 8 }}>
         Suspender corta la venta al instante y conserva su historial. Última edición: {fmtFecha(agencia.actualizado_en)}.
       </div>
@@ -538,6 +542,7 @@ function DetalleAgencia({
                 {acceso.habilitado ? (ESTADO_ACCESO[acceso.estado] ?? acceso.estado) : 'Deshabilitada'}
               </span>
             </span>
+            {puedeAgencias && <>
             <Boton onClick={() => gestionar(acceso.email, 'resetear')} disabled={ocupado}>Resetear clave</Boton>
             <Boton
               tono={acceso.habilitado ? 'peligro' : 'suave'}
@@ -546,6 +551,7 @@ function DetalleAgencia({
             >
               {acceso.habilitado ? 'Deshabilitar' : 'Habilitar'}
             </Boton>
+            </>}
           </div>
         ))}
 
@@ -555,7 +561,7 @@ function DetalleAgencia({
           </div>
         )}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+        {puedeAgencias && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
           <input
             style={{ ...campo, flex: 1, minWidth: 200, width: 'auto' }}
             value={nuevoEmail}
@@ -563,7 +569,7 @@ function DetalleAgencia({
             placeholder="correo@agencia.cl"
           />
           <Boton tono="fuerte" onClick={crearAcceso} disabled={ocupado || !nuevoEmail.trim()}>Crear acceso</Boton>
-        </div>
+        </div>}
         {errorAcceso && <div style={{ fontSize: 13, color: 'var(--status-critico-dot)', marginTop: 10 }}>{errorAcceso}</div>}
       </div>
 

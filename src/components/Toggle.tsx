@@ -54,7 +54,7 @@ export function Toggle({
   const h = size === 'sm' ? 20 : 24;
   const knob = size === 'sm' ? 16 : 20;
   const inset = 2;
-  const knobRef = useRef<HTMLDivElement>(null);
+  const knobRef = useRef<HTMLSpanElement>(null);
   const mounted = useRef(false);
 
   useLayoutEffect(() => {
@@ -79,6 +79,10 @@ export function Toggle({
     };
   }, [on, w, knob, inset]);
 
+  // Área táctil de 24 px de alto como mínimo (WCAG 2.2 2.5.8, AA): el botón
+  // es la caja transparente y el dibujo del interruptor (40x20 en 'sm') va
+  // dentro, sin cambiar su tamaño.
+  const alto = Math.max(h, 24);
   return (
     <button
       role="switch"
@@ -88,29 +92,43 @@ export function Toggle({
       disabled={disabled}
       style={{
         all: 'unset',
+        boxSizing: 'border-box',
+        display: 'inline-flex',
+        alignItems: 'center',
         width: w,
-        height: h,
-        borderRadius: h / 2,
+        height: alto,
+        borderRadius: alto / 2,
         cursor: disabled ? 'default' : 'pointer',
-        background: on ? 'var(--toggle-on)' : 'var(--toggle-off)',
-        position: 'relative',
-        transition: 'background 0.22s ease',
         flexShrink: 0,
         opacity: disabled ? 0.4 : 1,
       }}
     >
-      <div
-        ref={knobRef}
+      <span
+        aria-hidden="true"
         style={{
-          position: 'absolute',
-          top: inset,
-          left: inset,
-          width: knob,
-          height: knob,
-          borderRadius: '50%',
-          background: '#fff',
+          display: 'block',
+          width: w,
+          height: h,
+          borderRadius: h / 2,
+          background: on ? 'var(--toggle-on)' : 'var(--toggle-off)',
+          position: 'relative',
+          transition: 'background 0.22s ease',
         }}
-      />
+      >
+        <span
+          ref={knobRef}
+          style={{
+            display: 'block',
+            position: 'absolute',
+            top: inset,
+            left: inset,
+            width: knob,
+            height: knob,
+            borderRadius: '50%',
+            background: '#fff',
+          }}
+        />
+      </span>
     </button>
   );
 }

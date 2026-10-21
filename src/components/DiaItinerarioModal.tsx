@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BadgePrograma } from './BadgePrograma';
 import { guardarDiaItinerario, vaciarDiaItinerario, UnauthorizedError } from '../api/dashboardApi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, usePermiso } from '../context/AuthContext';
 import { fmtSelloUtcCorto } from '../lib/selloUtc';
 import type { ItinerarioDia, ItinerarioReserva, TipoDeAgua } from '../types';
 
@@ -62,6 +62,8 @@ export function DiaItinerarioModal({
   onGuardado: () => void;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Guardar o vaciar la jornada: editor y admin (lib/permisos.ts).
+  const puedeOperar = usePermiso('pms.operar');
   const [guia, setGuia] = useState(dia.Guia);
   const [tipoAgua, setTipoAgua] = useState<TipoDeAgua>(dia.Agua.Tipo);
   const [nombreAgua, setNombreAgua] = useState(dia.Agua.Nombre);
@@ -311,7 +313,7 @@ export function DiaItinerarioModal({
               a la izquierda, las de avance a la derecha, y todas con .crm-btn
               para que queden del mismo alto. "Vaciar el dia" era un boton
               pelado con padding propio y rompia la linea. */}
-          {teniaAlgo ? (
+          {teniaAlgo && puedeOperar ? (
             <button className="crm-btn crm-btn-danger" onClick={() => void vaciar()} disabled={guardando || vaciando}>
               {vaciando ? 'Vaciando…' : 'Vaciar el día'}
             </button>
@@ -320,11 +322,13 @@ export function DiaItinerarioModal({
           )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginLeft: 'auto' }}>
             <button className="crm-btn crm-btn-text" onClick={onClose} disabled={guardando || vaciando}>
-              Cancelar
+              {puedeOperar ? 'Cancelar' : 'Cerrar'}
             </button>
-            <button className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando || vaciando}>
-              {guardando ? 'Guardando…' : 'Guardar jornada'}
-            </button>
+            {puedeOperar && (
+              <button className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando || vaciando}>
+                {guardando ? 'Guardando…' : 'Guardar jornada'}
+              </button>
+            )}
           </div>
         </div>
 

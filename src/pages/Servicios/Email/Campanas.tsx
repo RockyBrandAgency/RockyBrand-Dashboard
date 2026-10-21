@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { AsyncState } from '../../../components/AsyncState';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, usePermiso } from '../../../context/AuthContext';
 import { getEmailCampaigns, deleteEmailCampaign, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailCampaign } from '../../../types';
 import { Boton, Pill, Tabla, formatTasa, formatFecha, estadoCampana } from './shared';
@@ -24,6 +24,9 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
   onVerDetalle: (campaignId: string) => void;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Borrar una campaña, aunque sea borrador: solo admin. El servidor responde
+  // 403 a editor (acordado con backend, 2026-10-20).
+  const puedeBorrar = usePermiso('email.campanas.borrar');
   const [campanas, setCampanas] = useState<EmailCampaign[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +141,7 @@ export function CampanasEmail({ onEditar, onNueva, onVerDetalle }: {
                 <td onClick={(e) => e.stopPropagation()}>
                   <div className="crm-row-actions">
                     {c.status === 'draft' && onEditar && <Boton sm onClick={() => onEditar(c.campaign_id)}>Retomar</Boton>}
-                    {c.status === 'draft' && <Boton sm tipo="danger" onClick={() => borrar(c)}>Eliminar</Boton>}
+                    {c.status === 'draft' && puedeBorrar && <Boton sm tipo="danger" onClick={() => borrar(c)}>Eliminar</Boton>}
                   </div>
                 </td>
               </tr>

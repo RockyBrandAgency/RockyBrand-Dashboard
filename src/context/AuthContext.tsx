@@ -1,5 +1,20 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
-import { login as cognitoLogin, getStoredSession, clearStoredSession, decodeIdTokenClaims, LoginError } from '../api/cognitoAuth';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  login as cognitoLogin,
+  responderCodigoMfa,
+  responderNuevaClave,
+  iniciarInscripcionEnLogin,
+  completarInscripcionEnLogin,
+  getStoredSession,
+  clearStoredSession,
+  decodeIdTokenClaims,
+  LoginError,
+  SesionDeLoginVencidaError,
+  type DesafioLogin,
+  type ResultadoLogin,
+  alCambiarSesion,
+} from '../api/cognitoAuth';
+import { puede, rolDesdeClaims, type Accion, type Rol } from '../lib/permisos';
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
 import { leerPerfilCacheado, guardarPerfilCacheado, borrarPerfilCacheado } from '../api/perfilCache';
 import { applyClientTheme, applyClientTitle, CLIENT_BRANDING, clientIdFromHostname } from '../branding';
@@ -12,6 +27,23 @@ interface AuthContextValue {
   sessionExpiredMessage: string | null;
   isLoggingIn: boolean;
   login: (email: string, password: string) => Promise<void>;
+  // Paso de seguridad pendiente después de la contraseña (código TOTP,
+  // inscripción obligatoria o clave nueva). null = no hay ninguno.
+  desafio: DesafioLogin | null;
+  // Secreto TOTP de la inscripción obligatoria, solo en memoria. null hasta
+  // que Cognito lo entrega.
+  secretoInscripcion: string | null;
+  responderCodigo: (codigo: string) => Promise<void>;
+  cambiarClaveInicial: (nuevaClave: string) => Promise<void>;
+  pedirSecretoInscripcion: () => Promise<void>;
+  completarInscripcion: (codigo: string) => Promise<void>;
+  // Aviso de un paso que terminó bien pero sigue otro (p. ej., "app
+  // vinculada, escribe el código siguiente").
+  avisoDesafio: string | null;
+  volverAlInicio: () => void;
+  // Rol del usuario según cognito:groups (ver lib/permisos.ts). Solo para
+  // esconder botones; el servidor es quien autoriza.
+  rol: Rol;
   logout: () => void;
   handleUnauthorized: () => void;
   // Identidad + servicios REALES del cliente logueado (rockybrand-client-config,
@@ -155,6 +187,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [desafio, setDesafio] = useState<DesafioLogin | null>(null);
+  const [secretoInscripcion, setSecretoInscripcion] = useState<string | null>(null);
+  const [avisoDesafio, setAvisoDesafio] = useState<string | null>(null);
+  const desafioRef = useRef<DesafioLogin | null>(null);
+  useEffect(() => {
+    desafioRef.current = desafio;
+  }, [desafio]);
   // Los inicializadores lazy corren UNA vez, antes del primer render: si hay
   // perfil recordado, el primer pixel que se pinta ya es el del cliente
   // correcto. Si no lo hay (primera carga de la pestaña), todo arranca en
@@ -259,36 +298,105 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated, intentoPerfil]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  // Cierra el login cuando ya hay tokens: comprueba que la cuenta sea de
+  // este panel y recién ahí da la sesión por iniciada.
+  const terminarLogin = useCallback((): boolean => {
+    setDesafio(null);
+    setSecretoInscripcion(null);
+    setAvisoDesafio(null);
+    // La sesión existe y es válida, pero puede no ser de ESTE panel. Se
+    // descarta antes de dar por iniciada la sesión: así nadie llega a ver
+    // un panel que no le corresponde ni siquiera un instante.
+    const ajeno = clienteEquivocado();
+    if (ajeno) {
+      clearStoredSession();
+      borrarPerfilCacheado();
+      setLoginError(
+        `Esa cuenta es de otro cliente. Entra en ${ajeno}.panel.rockybrand.cl, ` +
+        'o inicia sesión con la cuenta de este panel.',
+      );
+      return false;
+    }
+    setIsAuthenticated(true);
+    setUserEmail(readUserEmail());
+    return true;
+  }, []);
+
+  const volverAlInicio = useCallback(() => {
+    setDesafio(null);
+    setSecretoInscripcion(null);
+    setAvisoDesafio(null);
+    setLoginError(null);
+  }, []);
+
+  // Cada paso del login pasa por acá: mismo "Entrando…", mismo manejo de
+  // errores. Si la sesión de 3 minutos venció, se vuelve al formulario con el
+  // motivo a la vista; un código incorrecto deja a la persona en su paso.
+  const correrPaso = useCallback(async (paso: () => Promise<ResultadoLogin | void>) => {
+    const tipoAnterior = desafioRef.current?.tipo;
     setIsLoggingIn(true);
     setLoginError(null);
     setSessionExpiredMessage(null);
     try {
-      await cognitoLogin(email, password);
-      // La sesión existe y es válida, pero puede no ser de ESTE panel. Se
-      // descarta antes de dar por iniciada la sesión: así nadie llega a ver
-      // un panel que no le corresponde ni siquiera un instante.
-      const ajeno = clienteEquivocado();
-      if (ajeno) {
-        clearStoredSession();
-        borrarPerfilCacheado();
-        setLoginError(
-          `Esa cuenta es de otro cliente. Entra en ${ajeno}.panel.rockybrand.cl, ` +
-          'o inicia sesión con la cuenta de este panel.',
-        );
+      const r = await paso();
+      if (!r) return;
+      if (r.tipo === 'listo') {
+        terminarLogin();
         return;
       }
-      setIsAuthenticated(true);
-      setUserEmail(readUserEmail());
+      setAvisoDesafio(
+        tipoAnterior === 'inscribir' && r.tipo === 'codigo'
+          ? 'Listo, tu app quedó vinculada. Para entrar, escribe el código siguiente que muestre.'
+          : null,
+      );
+      setDesafio(r);
+      if (r.tipo !== 'inscribir') setSecretoInscripcion(null);
     } catch (e) {
+      if (e instanceof SesionDeLoginVencidaError) {
+        setDesafio(null);
+        setSecretoInscripcion(null);
+        setAvisoDesafio(null);
+      }
       setLoginError(e instanceof LoginError ? e.message : 'No se pudo iniciar sesión.');
-      throw e;
     } finally {
       setIsLoggingIn(false);
     }
-  }, []);
+  }, [terminarLogin]);
+
+  const login = useCallback(
+    (email: string, password: string) => correrPaso(() => cognitoLogin(email, password)),
+    [correrPaso],
+  );
+
+  const responderCodigo = useCallback(
+    (codigo: string) => correrPaso(async () => (desafio ? responderCodigoMfa(desafio, codigo) : undefined)),
+    [correrPaso, desafio],
+  );
+
+  const cambiarClaveInicial = useCallback(
+    (nuevaClave: string) => correrPaso(async () => (desafio ? responderNuevaClave(desafio, nuevaClave) : undefined)),
+    [correrPaso, desafio],
+  );
+
+  const pedirSecretoInscripcion = useCallback(
+    () =>
+      correrPaso(async () => {
+        if (!desafio) return;
+        const { secreto, desafio: siguiente } = await iniciarInscripcionEnLogin(desafio);
+        setSecretoInscripcion(secreto);
+        setDesafio(siguiente);
+      }),
+    [correrPaso, desafio],
+  );
+
+  const completarInscripcion = useCallback(
+    (codigo: string) => correrPaso(async () => (desafio ? completarInscripcionEnLogin(desafio, codigo) : undefined)),
+    [correrPaso, desafio],
+  );
 
   const logout = useCallback(() => {
+    setDesafio(null);
+    setSecretoInscripcion(null);
     clearStoredSession();
     borrarPerfilCacheado();
     setIsAuthenticated(false);
@@ -303,6 +411,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionExpiredMessage('Tu sesión expiró, inicia sesión de nuevo.');
   }, []);
 
+  // userEmail cambia en cada login/logout: es la señal de que cambió el token.
+  // El ID token se lee del almacenamiento y se sigue con alCambiarSesion: si
+  // renovar() guarda uno nuevo (con otro grupo), el rol se recalcula solo.
+  const idTokenActual = useSyncExternalStore(alCambiarSesion, () => getStoredSession()?.idToken ?? null);
+  const rol = useMemo<Rol>(() => {
+    if (!isAuthenticated || !idTokenActual) return 'lectura';
+    return rolDesdeClaims(decodeIdTokenClaims(idTokenActual));
+  }, [isAuthenticated, idTokenActual]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -312,6 +429,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionExpiredMessage,
         isLoggingIn,
         login,
+        desafio,
+        secretoInscripcion,
+        responderCodigo,
+        cambiarClaveInicial,
+        pedirSecretoInscripcion,
+        completarInscripcion,
+        avisoDesafio,
+        volverAlInicio,
+        rol,
         logout,
         handleUnauthorized,
         clientDisplayName,
@@ -338,4 +464,9 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
   return ctx;
+}
+
+/** true si el rol del usuario permite la acción (solo para la interfaz). */
+export function usePermiso(accion: Accion): boolean {
+  return puede(useAuth().rol, accion);
 }

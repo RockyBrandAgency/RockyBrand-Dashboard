@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import {
   getEmailContacts,
   upsertEmailContact,
@@ -74,8 +74,14 @@ export function EmailCampanas({ isDesktop }: { isDesktop: boolean }) {
   // mismo criterio que el sidebar.
   // useMemo para que la identidad del array no cambie en cada render: es
   // dependencia del efecto que corrige la pestaña activa.
-  const visibleTabs = useMemo(() => TABS.filter((t) => !features || features[t.featureKey]), [features]);
-  const puedeCrearCampana = !features || features.email_nueva_campana;
+  // Además de la bandera del cliente, el rol: «Nueva campaña» es para quien
+  // puede guardar borradores (editor y admin; lib/permisos.ts).
+  const puedeBorrador = usePermiso('email.borrador');
+  const visibleTabs = useMemo(
+    () => TABS.filter((t) => (!features || features[t.featureKey]) && (t.id !== 'nueva' || puedeBorrador)),
+    [features, puedeBorrador],
+  );
+  const puedeCrearCampana = (!features || features.email_nueva_campana) && puedeBorrador;
   const [editandoId, setEditandoId] = useState<string | null>(null);
   // El detalle vive DENTRO de la pestaña Campañas, no como pestaña propia:
   // en el panel principal es una ruta hija de campañas, y una pestaña extra

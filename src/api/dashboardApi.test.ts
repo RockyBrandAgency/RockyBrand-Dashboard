@@ -9,7 +9,7 @@ vi.mock('../config', () => ({
   COGNITO_USER_POOL_ID: 'pool-test',
 }));
 
-import { getMe, getSemaforo, crearReserva, TimeoutError, UnauthorizedError } from './dashboardApi';
+import { getMe, getSemaforo, crearReserva, sendTestEmail, TimeoutError, UnauthorizedError } from './dashboardApi';
 import { setStoredSession, getStoredSession } from './cognitoAuth';
 
 const API = 'https://api.test';
@@ -89,6 +89,13 @@ describe('reintentos', () => {
     await expect(getSemaforo()).rejects.toThrow('no habilitado');
     expect(llamadasA(API)).toHaveLength(1);
   });
+
+  it('un 403 por rol muestra el `error` del servidor', async () => {
+    sesion(3_600_000);
+    fetchMock.mockResolvedValue(json(403, { error: 'Borrar una campaña requiere rol admin.', rol: 'editor', rol_requerido: 'admin' }));
+
+    await expect(getSemaforo()).rejects.toThrow('Borrar una campaña requiere rol admin.');
+  });
 });
 
 describe('tiempo máximo', () => {
@@ -150,5 +157,24 @@ describe('sesión', () => {
     );
 
     await expect(getMe()).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+});
+
+describe('envío de prueba (contrato de test-send)', () => {
+  const cuerpo = () => JSON.parse(String(llamadasA(API)[0][1].body));
+
+  it('editor: el body no lleva test_email (el servidor usa el email del token)', async () => {
+    sesion(3_600_000);
+    fetchMock.mockResolvedValueOnce(json(200, { ok: true, enviado_a: 'editor@cliente.test' }));
+    await expect(sendTestEmail('Asunto', '<p>x</p>')).resolves.toEqual({ ok: true, enviado_a: 'editor@cliente.test' });
+    expect(cuerpo()).toEqual({ subject: 'Asunto', html_body: '<p>x</p>' });
+    expect('test_email' in cuerpo()).toBe(false);
+  });
+
+  it('admin: manda test_email y un 400 muestra el error del servidor', async () => {
+    sesion(3_600_000);
+    fetchMock.mockResolvedValueOnce(json(400, { error: 'Email de prueba invalido.' }));
+    await expect(sendTestEmail('Asunto', '<p>x</p>', 'malo')).rejects.toThrow('Email de prueba invalido.');
+    expect(cuerpo()).toEqual({ subject: 'Asunto', html_body: '<p>x</p>', test_email: 'malo' });
   });
 });

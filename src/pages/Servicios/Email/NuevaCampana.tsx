@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, usePermiso } from '../../../context/AuthContext';
 import { STATUS } from '../../../components/status';
 import {
   getEmailCampaign, saveEmailCampaign, getEmailTemplates, getEmailTemplate, sendTestEmail,
@@ -71,12 +71,22 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
   onGuardada: () => void;
   onCancelar: () => void;
 }) {
-  const { handleUnauthorized, clientDisplayName, userEmail, clientEmailFrom } = useAuth();
+  const { handleUnauthorized, clientDisplayName, userEmail, clientEmailFrom, rol } = useAuth();
+  // Rol (lib/permisos.ts): enviar y programar, solo admin; borrador y prueba,
+  // editor y admin. El servidor igual lo revalida.
+  const puedeEnviar = usePermiso('email.enviar');
+  const puedeProgramar = usePermiso('email.programar');
+  const puedeBorrador = usePermiso('email.borrador');
+  const puedePrueba = usePermiso('email.prueba');
+  const puedeSalir = puedeEnviar || puedeProgramar;
   const [campana, setCampana] = useState<Partial<EmailCampaign>>({ name: '', subject: '', html_body: '', template_id: '' });
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [cargando, setCargando] = useState(!!campaignId);
   const [error, setError] = useState<string | null>(null);
   const [correoPrueba, setCorreoPrueba] = useState('');
+  // Correo de prueba (contrato en sendTestEmail): admin elige el destinatario;
+  // editor no lo manda y el servidor usa el email de su token.
+  const pruebaLibre = rol === 'admin';
   const [avisoPrueba, setAvisoPrueba] = useState<string | null>(null);
   const [contactos, setContactos] = useState<EmailContact[]>([]);
   const [audiencia, setAudiencia] = useState('all');
@@ -159,6 +169,7 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
 
   async function ejecutar(accion: 'guardar' | 'programar' | 'enviar') {
     const alcance = opciones.find((o) => o.key === audiencia)?.cuantos ?? 0;
+    if ((accion === 'enviar' && !puedeEnviar) || (accion === 'programar' && !puedeProgramar) || (accion === 'guardar' && !puedeBorrador)) return;
 
     // Confirmación explícita antes de un envío real. No es ceremonia: un
     // correo a cientos de personas no se puede deshacer, y el número de
@@ -191,11 +202,12 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
   }
 
   async function enviarPrueba() {
-    if (!correoPrueba.includes('@')) { setAvisoPrueba('Ingresa un correo válido.'); return; }
+    const destino = pruebaLibre ? correoPrueba.trim() : undefined;
+    if (destino !== undefined && !destino.includes('@')) { setAvisoPrueba('Ingresa un correo válido.'); return; }
     setAvisoPrueba(null);
     try {
-      await sendTestEmail(campana.subject ?? '', campana.html_body ?? '', correoPrueba.trim());
-      setAvisoPrueba(`Enviado a ${correoPrueba.trim()}. Revisa cómo se ve antes de mandarlo a tu lista.`);
+      const r = await sendTestEmail(campana.subject ?? '', campana.html_body ?? '', destino);
+      setAvisoPrueba(`Prueba enviada a ${r.enviado_a || destino || userEmail}. Revisa cómo se ve antes de mandarlo a tu lista.`);
     } catch (e) {
       if (e instanceof UnauthorizedError) return handleUnauthorized();
       setAvisoPrueba(e instanceof Error ? e.message : 'No se pudo enviar la prueba.');
@@ -263,8 +275,9 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
           />
         </Campo>
 
+        {puedeSalir ? (<>
         <div className="crm-field-label">Programación del Envío</div>
-        <div style={{ display: 'flex', gap: 'var(--space-6)', marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', marginBottom: 'var(--space-4)' }}>
           {(['ahora', 'programar'] as const).map((modo) => (
             <button
               key={modo}
@@ -304,21 +317,32 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
           ))}
         </div>
         {modoEnvio === 'programar' && (
-          <div style={{ display: 'flex', gap: 'var(--space-5)', marginBottom: 'var(--space-6)' }}>
-            <input className="crm-input" type="date" value={fechaProgramada} onChange={(e) => setFechaProgramada(e.target.value)} style={{ flex: 1 }} />
-            <input className="crm-input" type="time" value={horaProgramada} onChange={(e) => setHoraProgramada(e.target.value)} style={{ flex: 1 }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)', marginBottom: 'var(--space-6)' }}>
+            {/* minWidth 0 y wrap: el ancho mínimo nativo de date/time desbordaba 8 px a 320 (WCAG 2.2 1.4.10). */}
+            <input className="crm-input" type="date" value={fechaProgramada} onChange={(e) => setFechaProgramada(e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }} />
+            <input className="crm-input" type="time" value={horaProgramada} onChange={(e) => setHoraProgramada(e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }} />
           </div>
         )}
 
+        </>) : (
+          <Aviso tono="info">
+            Tu rol guarda borradores. Enviar o programar la campaña lo hace un administrador de tu cuenta.
+          </Aviso>
+        )}
+
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 'var(--space-4)' }}>
-          <Boton tipo="primary" onClick={() => ejecutar(accionPrimaria)} disabled={!!ocupado || (modoEnvio === 'programar' && !programarPara)}>
-            {ocupadoPrimaria
-              ? (modoEnvio === 'ahora' ? 'Enviando…' : 'Programando…')
-              : (modoEnvio === 'ahora' ? `Enviar Ahora a ${alcanceActual}` : 'Programar Envío')}
-          </Boton>
-          <Boton onClick={() => ejecutar('guardar')} disabled={!!ocupado}>
-            {ocupado === 'guardar' ? 'Guardando…' : 'Guardar Borrador'}
-          </Boton>
+          {puedeSalir && (
+            <Boton tipo="primary" onClick={() => ejecutar(accionPrimaria)} disabled={!!ocupado || (modoEnvio === 'programar' && !programarPara) || (modoEnvio === 'ahora' ? !puedeEnviar : !puedeProgramar)}>
+              {ocupadoPrimaria
+                ? (modoEnvio === 'ahora' ? 'Enviando…' : 'Programando…')
+                : (modoEnvio === 'ahora' ? `Enviar Ahora a ${alcanceActual}` : 'Programar Envío')}
+            </Boton>
+          )}
+          {puedeBorrador && (
+            <Boton tipo={puedeSalir ? 'ghost' : 'primary'} onClick={() => ejecutar('guardar')} disabled={!!ocupado}>
+              {ocupado === 'guardar' ? 'Guardando…' : 'Guardar Borrador'}
+            </Boton>
+          )}
           <Boton onClick={onCancelar} disabled={!!ocupado}>Cancelar</Boton>
         </div>
       </Card>
@@ -354,26 +378,36 @@ export function NuevaCampana({ campaignId, plantillaInicial, onGuardada, onCance
         />
       </Card>
 
-      <Card title="Envío de prueba">
+      {puedePrueba && <Card title="Envío de prueba">
         <Aviso tono="info">
           Mándatelo a ti primero. Es el único momento en que ves cómo se lee de verdad — los enlaces, las imágenes y el
           corte del asunto en el teléfono — antes de que salga a toda tu lista.
         </Aviso>
         <div className="crm-toolbar">
-          <div className="crm-search-wrap">
-            <SearchIcon size={14} color="var(--text-sub)" />
-            <input
-              className="crm-search"
-              placeholder="tu@correo.com"
-              aria-label="Correo para el envío de prueba"
-              value={correoPrueba}
-              onChange={(e) => setCorreoPrueba(e.target.value)}
-            />
-          </div>
+          {pruebaLibre ? (
+            <div className="crm-search-wrap">
+              <SearchIcon size={14} color="var(--text-sub)" />
+              <input
+                className="crm-search"
+                type="email"
+                placeholder="tu@correo.com"
+                aria-label="Correo para el envío de prueba"
+                value={correoPrueba}
+                onChange={(e) => setCorreoPrueba(e.target.value)}
+                // 24 px de objetivo táctil (WCAG 2.2 2.5.8); el margen negativo
+                // deja la caja del buscador del mismo alto que antes.
+                style={{ minHeight: 24, margin: '-4px 0' }}
+              />
+            </div>
+          ) : (
+            <div id="nota-prueba-propia" style={{ fontSize: 13, color: 'var(--text-sub)', minWidth: 0, overflowWrap: 'anywhere' }}>
+              Como editor, la prueba llega a tu correo: <strong style={{ color: 'var(--text)' }}>{userEmail}</strong>
+            </div>
+          )}
           <Boton onClick={enviarPrueba}>Enviar prueba</Boton>
         </div>
-        {avisoPrueba && <Aviso tono={avisoPrueba.startsWith('Enviado') ? 'ok' : 'alerta'}>{avisoPrueba}</Aviso>}
-      </Card>
+        {avisoPrueba && <Aviso tono={avisoPrueba.startsWith('Prueba enviada') ? 'ok' : 'alerta'}><span style={{ overflowWrap: 'anywhere' }}>{avisoPrueba}</span></Aviso>}
+      </Card>}
     </>
   );
 }

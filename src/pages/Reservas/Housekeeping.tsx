@@ -3,7 +3,7 @@ import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { CalendarRangeIcon } from '../../components/icons/RockyIcons';
 import { getHousekeeping, setRoomState, UnauthorizedError } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import type { HousekeepingHabitacion, RoomState } from '../../types';
 
 // Los 4 estados son los del backend (pms_frontdesk.VALID_ROOM_STATES), no
@@ -66,6 +66,8 @@ const chip = (bg: string, fg: string): React.CSSProperties => ({
 // se lleva en un cuaderno.
 export function Housekeeping({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized, clientDisplayName } = useAuth();
+  // Cambiar estado o nota de una habitación: editor y admin (lib/permisos.ts).
+  const puedeOperar = usePermiso('pms.operar');
   const [fecha, setFecha] = useState(hoyISO());
   const [data, setData] = useState<HousekeepingHabitacion[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -247,7 +249,7 @@ export function Housekeeping({ isDesktop }: { isDesktop: boolean }) {
                             <button
                               key={e.key}
                               onClick={() => void cambiar(hab, e.key)}
-                              disabled={activo || guardando === hab.room_id}
+                              disabled={!puedeOperar || activo || guardando === hab.room_id}
                               aria-pressed={activo}
                               title={activo ? 'Es el estado actual' : `Marcar como ${e.label.toLowerCase()}`}
                               style={{
@@ -257,7 +259,7 @@ export function Housekeeping({ isDesktop }: { isDesktop: boolean }) {
                                 borderRadius: 'var(--radius-sm)',
                                 fontSize: 13,
                                 fontWeight: 600,
-                                cursor: activo || guardando === hab.room_id ? 'default' : 'pointer',
+                                cursor: !puedeOperar || activo || guardando === hab.room_id ? 'default' : 'pointer',
                                 background: activo ? e.fg : 'var(--white)',
                                 color: activo ? '#fff' : 'var(--text-sub)',
                                 border: `1px solid ${activo ? e.fg : 'var(--border-strong, var(--border))'}`,
@@ -268,7 +270,7 @@ export function Housekeeping({ isDesktop }: { isDesktop: boolean }) {
                             </button>
                           );
                         })}
-                        <button
+                        {puedeOperar && <button
                           className="crm-btn crm-btn-ghost crm-btn-sm"
                           onClick={() => {
                             setNotaAbierta(notaAbierta === hab.room_id ? null : hab.room_id);
@@ -276,7 +278,7 @@ export function Housekeeping({ isDesktop }: { isDesktop: boolean }) {
                           }}
                         >
                           {hab.nota ? 'Editar nota' : 'Agregar nota'}
-                        </button>
+                        </button>}
                         {guardando === hab.room_id && <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Guardando…</span>}
                       </div>
 

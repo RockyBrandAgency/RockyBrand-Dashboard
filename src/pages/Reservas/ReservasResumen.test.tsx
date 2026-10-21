@@ -18,7 +18,7 @@ vi.mock('../../api/dashboardApi', () => ({
   getReservasResumen: () => Promise.resolve({ client_id: 'alto-castillo', reservas }),
   UnauthorizedError: class UnauthorizedError extends Error {},
 }));
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth, usePermiso: () => true }));
 
 import { fmtDate, nights, ReservasResumen } from './ReservasResumen';
 

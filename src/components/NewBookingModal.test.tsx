@@ -16,7 +16,7 @@ vi.mock('../api/dashboardApi', () => ({
   crearHuesped: (...a: unknown[]) => api.crearHuesped(...a),
   UnauthorizedError: class UnauthorizedError extends Error {},
 }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
+vi.mock('../context/AuthContext', () => ({ usePermiso: () => true, useAuth: () => auth }));
 
 import { NewBookingModal } from './NewBookingModal';
 

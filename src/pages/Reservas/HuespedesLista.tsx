@@ -4,7 +4,7 @@ import { AsyncState } from '../../components/AsyncState';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { SearchIcon, UsersIcon } from '../../components/icons/RockyIcons';
 import { getHuespedes, getReservasResumen, actualizarHuesped, UnauthorizedError } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import { telefonoDe, enlaceWhatsapp } from '../../lib/contactoHuesped';
 import { AcompanantesReserva } from '../../components/AcompanantesReserva';
@@ -371,6 +371,8 @@ export function HuespedesLista({ isDesktop, onNavigate }: { isDesktop: boolean; 
 
 function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onClose: () => void; onGuardado: () => void }) {
   const { handleUnauthorized } = useAuth();
+  // Editar fechas del huésped: editor y admin (lib/permisos.ts).
+  const puedeOperar = usePermiso('pms.operar');
   const [editando, setEditando] = useState(false);
   // Acompañantes (2026-10-05, pedido de Mato: "en Lodge, Pescadores, al
   // presionar un pescador confirmado, poder agregarle un acompañante"). Viven
@@ -394,6 +396,7 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
   const [errorFechas, setErrorFechas] = useState('');
 
   async function guardarFechas() {
+    if (!puedeOperar) return;
     setGuardando(true);
     setErrorFechas('');
     try {
@@ -515,7 +518,7 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
         <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={fieldLabel}>Fechas importantes</div>
-            {!editando && (
+            {!editando && puedeOperar && (
               <button className="crm-btn crm-btn-ghost crm-btn-sm" onClick={() => setEditando(true)}>
                 {fila.BirthDate || fila.AnniversaryDate ? 'Editar' : 'Agregar'}
               </button>

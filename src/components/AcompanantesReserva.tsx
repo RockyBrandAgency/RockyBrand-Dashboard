@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { guardarAcompanantes, UnauthorizedError } from '../api/dashboardApi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, usePermiso } from '../context/AuthContext';
 import {
   BORRADOR_VACIO,
   LIMITES_ACOMPANANTE,
@@ -68,6 +68,8 @@ export function AcompanantesReserva({
   encabezado?: (cantidad: number) => React.ReactNode;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Con rol de lectura la lista se ve, pero no se edita (lib/permisos.ts).
+  const puedeOperar = usePermiso('pms.operar');
   const ids = useId();
   const [lista, setLista] = useState<Acompanante[]>(inicial);
   // 'nuevo', el CompanionID que se está editando, o null.
@@ -141,7 +143,7 @@ export function AcompanantesReserva({
     await persistir(lista.filter((x) => x.CompanionID !== a.CompanionID));
   }
 
-  const puedeAgregar = editable && editando === null && lista.length < LIMITES_ACOMPANANTE.maxPorReserva;
+  const puedeAgregar = puedeOperar && editable && editando === null && lista.length < LIMITES_ACOMPANANTE.maxPorReserva;
 
   return (
     <div
@@ -193,7 +195,7 @@ export function AcompanantesReserva({
                       )}
                     </div>
                   </div>
-                  {editable && editando === null && (
+                  {puedeOperar && editable && editando === null && (
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button className="crm-btn crm-btn-text crm-btn-sm" onClick={() => abrir(a)} disabled={guardando}>
                         Editar

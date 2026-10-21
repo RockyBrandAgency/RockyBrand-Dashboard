@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { BadgePrograma, PaisConBandera } from './BadgePrograma';
 import { actualizarReserva, cancelarReserva, confirmarReserva, UnauthorizedError } from '../api/dashboardApi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, usePermiso } from '../context/AuthContext';
 import { telefonoDe, enlaceWhatsapp } from '../lib/contactoHuesped';
 import { AcompanantesReserva } from './AcompanantesReserva';
 import { OriginBadge } from './OriginBadge';
@@ -76,6 +76,8 @@ export function BookingDetailModal({
   onGuardado: () => void;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Confirmar, cancelar y mover fechas: editor y admin (lib/permisos.ts).
+  const puedeOperar = usePermiso('pms.operar');
   const [editandoFechas, setEditandoFechas] = useState(false);
   const [checkIn, setCheckIn] = useState(reserva.CheckIn);
   const [checkOut, setCheckOut] = useState(reserva.CheckOut);
@@ -454,7 +456,7 @@ export function BookingDetailModal({
             sin buscarla. Va SIN marcar por defecto -el caso normal es una
             reserva recién pagada, y ahí el correo corresponde-: el silencio es
             siempre una decisión explícita de quien la está registrando. */}
-        {!editandoFechas && (
+        {!editandoFechas && puedeOperar && (
           <div
             style={{
               borderTop: '1px solid var(--border-soft)',

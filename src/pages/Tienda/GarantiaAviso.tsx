@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ConflictError, notificarTiendaGarantia, TimeoutError, UnauthorizedError } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import type { StoreGarantia, StoreGarantiaAviso } from '../../types';
 import { fmtMomento } from './garantias';
 
@@ -67,11 +67,13 @@ export function GarantiaAviso({
   onVerActual?: () => void;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Avisar por WhatsApp: solo admin (lib/permisos.ts).
+  const rolNotifica = usePermiso('tienda.garantias.notificar');
   const [aviso, setAviso] = useState(avisoInicial);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<{ texto: string; conflicto: boolean } | null>(null);
   const previa = aviso.vista_previa;
-  const puede = aviso.accion !== '' && previa !== null;
+  const puede = rolNotifica && aviso.accion !== '' && previa !== null;
 
   async function enviar() {
     if (!previa || aviso.accion === '' || cambiado || enviando) return;

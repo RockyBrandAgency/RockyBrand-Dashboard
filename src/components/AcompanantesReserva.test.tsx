@@ -15,7 +15,7 @@ vi.mock('../api/dashboardApi', () => ({
   guardarAcompanantes: (...args: unknown[]) => guardar(...args),
   UnauthorizedError: class UnauthorizedError extends Error {},
 }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ handleUnauthorized }) }));
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ handleUnauthorized }), usePermiso: () => true }));
 
 import { AcompanantesReserva } from './AcompanantesReserva';
 

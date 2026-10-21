@@ -5,7 +5,7 @@ import { useAnchoContenido } from '../../hooks/useAnchoContenido';
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { KpiRow } from '../../components/KpiRow';
 import { borrarTiendaGarantia, eliminarTiendaGarantia, getTiendaGarantias, restaurarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import type { StoreGarantia } from '../../types';
 import { GarantiaFicha } from './GarantiaFicha';
 import { COLOR_TONO, ESTADOS_GARANTIA as ESTADOS, SIN_FILTROS, TRAMO_NOMBRE, anioDe, filtrarGarantias, fmtMomento, hayFiltros, lineaAviso, money, opcionesDe, preguntaBorrado, type FiltrosGarantias, type OpcionFiltro } from './garantias';
@@ -34,6 +34,10 @@ const porFecha = (a: StoreGarantia, b: StoreGarantia) => b.created_at.localeComp
 
 export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized } = useAuth();
+  // Papelera (eliminar y restaurar) y alta: editor y admin; borrar para
+  // siempre, solo admin (lib/permisos.ts).
+  const puedeEditar = usePermiso('tienda.editar');
+  const puedeBorrar = usePermiso('tienda.garantias.borrar');
   const [garantias, setGarantias] = useState<StoreGarantia[] | null>(null);
   // La papelera (2026-10-07, decisión de Mato): no cuenta en la lista ni en
   // los indicadores, y desde acá se restaura.
@@ -450,7 +454,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
               <span
                 style={{ display: 'flex', flexDirection: filas ? 'column' : 'row', flexWrap: filas ? 'nowrap' : 'wrap', gap: filas ? 4 : 8, flex: filas ? '0 0 auto' : '1 1 100%', marginLeft: filas ? 'auto' : 0, paddingLeft: filas ? 0 : 16, paddingBlock: filas ? 8 : 0 }}
               >
-                <button
+                {puedeEditar && <button
                   className="crm-btn crm-btn-ghost crm-btn-sm"
                   style={filas ? { width: ANCHO_ACCIONES } : undefined}
                   onClick={() => void restaurar(g, 'lista')}
@@ -458,8 +462,8 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                   aria-label={`Restaurar la garantía de ${g.nombre || g.solicitud_id}`}
                 >
                   {restaurando === g.solicitud_id ? 'Restaurando…' : 'Restaurar'}
-                </button>
-                <button
+                </button>}
+                {puedeBorrar && <button
                   className="crm-btn crm-btn-danger crm-btn-sm"
                   style={filas ? { width: ANCHO_ACCIONES } : undefined}
                   onClick={() => {
@@ -469,7 +473,7 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
                   aria-label={`Eliminar permanentemente la garantía de ${g.nombre || g.solicitud_id}`}
                 >
                   {borrando === g.solicitud_id ? 'Eliminando…' : 'Eliminar permanentemente'}
-                </button>
+                </button>}
               </span>
             </div>
           ))}
@@ -495,9 +499,9 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
             avisar(nueva ? 'Agregaste la garantía.' : 'Guardaste los cambios.');
             void recargarEnSilencio();
           }}
-          onEliminar={eliminar}
-          onRestaurar={(g) => restaurar(g, 'ficha')}
-          onBorrar={(g) => borrar(g, 'ficha')}
+          onEliminar={puedeEditar ? eliminar : undefined}
+          onRestaurar={puedeEditar ? (g) => restaurar(g, 'ficha') : undefined}
+          onBorrar={puedeBorrar ? (g) => borrar(g, 'ficha') : undefined}
           onVerActual={() => void verActual()}
           onAvisoCambiado={(id, a) => setGarantias((prev) => (prev ?? []).map((x) => (x.solicitud_id === id ? { ...x, aviso: a } : x)))}
           onRecargarAviso={async (id) => {
@@ -531,9 +535,11 @@ export function TiendaGarantias({ isDesktop }: { isDesktop: boolean }) {
               Solicitudes de reposición de tramos: las del formulario de la web y las que agregas a mano.
             </div>
           </div>
-          <button className="crm-btn crm-btn-primary" onClick={() => abrir()}>
-            + Agregar garantía
-          </button>
+          {puedeEditar && (
+            <button className="crm-btn crm-btn-primary" onClick={() => abrir()}>
+              + Agregar garantía
+            </button>
+          )}
         </div>
 
         <AsyncState loading={loading} error={error} onRetry={load}>

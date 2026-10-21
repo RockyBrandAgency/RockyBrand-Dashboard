@@ -103,8 +103,9 @@ export class ConflictError extends Error {}
 /** 400: la petición está mal formada (p. ej., una temporada mal escrita). Es
  *  un Error común con el mensaje del servidor: quien ya atrapa Error no cambia. */
 export class SolicitudInvalidaError extends Error {}
-/** 403: la cuenta no tiene activa esa sección. */
+/** 403: la cuenta no tiene activa esa sección, o su rol no permite la acción. */
 export class SinPermisoError extends Error {}
+export const MENSAJE_SIN_PERMISO = 'Tu rol no permite esta acción. Pídesela a un administrador de tu cuenta.';
 /** 404: lo pedido no existe (p. ej., una reserva por booking_id). */
 export class NoEncontradoError extends Error {}
 
@@ -170,7 +171,12 @@ async function requestUnaVez<T>(path: string, method: string, body: unknown): Pr
     if (ESTADOS_TRANSITORIOS.has(res.status)) throw new ErrorTransitorio(mensaje, Boolean(delServidor));
     if (res.status === 409) throw new ConflictError(mensaje);
     if (res.status === 400) throw new SolicitudInvalidaError(mensaje);
-    if (res.status === 403) throw new SinPermisoError(mensaje);
+    if (res.status === 403) {
+      // 403 por rol (2026-10-20): el servidor manda su motivo; si viene vacío
+      // o como código suelto ("forbidden"), se explica en castellano.
+      const legible = delServidor && /\s/.test(delServidor.trim()) ? delServidor : MENSAJE_SIN_PERMISO;
+      throw new SinPermisoError(legible);
+    }
     if (res.status === 404) throw new NoEncontradoError(mensaje);
     throw new Error(mensaje);
   }
@@ -380,8 +386,12 @@ export function deleteEmailContact(email: string): Promise<{ ok: boolean }> {
   return request('/dashboard/email/contacts', 'DELETE', { email });
 }
 
-export function sendTestEmail(subject: string, html_body: string, test_email: string): Promise<{ ok: boolean; enviado_a: string }> {
-  return request('/dashboard/email/test-send', 'POST', { subject, html_body, test_email });
+// Contrato de /dashboard/email/test-send (backend, 2026-10-20): admin manda
+// `test_email` (obligatorio; si no sirve, 400 «Email de prueba invalido.»);
+// editor lo omite y el servidor usa el email del token (con otro destinatario,
+// 403). En ambos casos responde a quién llegó en `enviado_a`.
+export function sendTestEmail(subject: string, html_body: string, test_email?: string): Promise<{ ok: boolean; enviado_a: string }> {
+  return request('/dashboard/email/test-send', 'POST', test_email === undefined ? { subject, html_body } : { subject, html_body, test_email });
 }
 
 export function sendEmailNow(subject: string, html_body: string, segment: EmailSegment, name?: string): Promise<{ ok: boolean; campaign_id: string }> {

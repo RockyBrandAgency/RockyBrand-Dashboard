@@ -5,7 +5,7 @@ import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { SectionHead } from '../../components/SectionHead';
 import { TabsWithIndicator } from '../../components/TabsWithIndicator';
 import { FilmIcon, UploadIcon } from '../../components/icons/RockyIcons';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import type { BerryBibliotecaResponse, BerryMedio, BerryTipo } from '../../types';
 import { ACCEPT } from './formatos';
 import { ListaSubidas } from './ListaSubidas';
@@ -40,6 +40,8 @@ function tieneArchivos(e: DragEvent): boolean {
 
 export function BerryStudio({ isDesktop }: { isDesktop: boolean }) {
   const { clientId, handleUnauthorized } = useAuth();
+  // Subir material: editor y admin (lib/permisos.ts). Lectura ve la biblioteca.
+  const puedeSubir = usePermiso('subidas');
   const [datos, setDatos] = useState<BerryBibliotecaResponse | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +141,7 @@ export function BerryStudio({ isDesktop }: { isDesktop: boolean }) {
   // soltar fuera de la zona abriría el archivo en la pestaña y se perdería
   // el panel.
   useEffect(() => {
+    if (!puedeSubir) return;
     let profundidad = 0;
     const entrar = (e: DragEvent) => {
       if (!tieneArchivos(e)) return;
@@ -174,7 +177,7 @@ export function BerryStudio({ isDesktop }: { isDesktop: boolean }) {
       window.removeEventListener('dragleave', salir);
       window.removeEventListener('drop', soltar);
     };
-  }, [clientId]);
+  }, [clientId, puedeSubir]);
 
   const elegir = () => selector.current?.click();
 
@@ -220,10 +223,12 @@ export function BerryStudio({ isDesktop }: { isDesktop: boolean }) {
               Sube clips, fotos y audio. Berry prepara la versión liviana para editar.
             </div>
           </div>
-          <button type="button" className="crm-btn crm-btn-primary" onClick={elegir}>
-            <UploadIcon size={16} />
-            Subir archivos
-          </button>
+          {puedeSubir && (
+            <button type="button" className="crm-btn crm-btn-primary" onClick={elegir}>
+              <UploadIcon size={16} />
+              Subir archivos
+            </button>
+          )}
           <input
             ref={selector}
             type="file"
@@ -239,7 +244,7 @@ export function BerryStudio({ isDesktop }: { isDesktop: boolean }) {
           />
         </div>
 
-        {isDesktop && (
+        {isDesktop && puedeSubir && (
           <button
             type="button"
             onClick={elegir}

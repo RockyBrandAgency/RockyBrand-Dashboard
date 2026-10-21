@@ -12,7 +12,7 @@ import { NewBookingModal } from '../../components/NewBookingModal';
 import { ReservationCalendar } from '../../components/ReservationCalendar';
 import { PlusIcon } from '../../components/icons/RockyIcons';
 import { getReservasResumen, UnauthorizedError } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import { CLIENT_LOCATION } from '../../branding';
 import { temporadaActualCff, CFF_CLIENT_ID } from '../../lib/temporadaCff';
 import { terminologiaPms } from '../../lib/terminologiaPms';
@@ -87,6 +87,8 @@ function AlMontar({ alMontar }: { alMontar: () => void }) {
 
 export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   const { handleUnauthorized, clientDisplayName, clientId, pmsRoomViews, clientTerminologia, features } = useAuth();
+  // Crear reservas: editor y admin (lib/permisos.ts).
+  const puedeOperar = usePermiso('pms.operar');
   const [reservas, setReservas] = useState<ReservaResumenItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -229,17 +231,19 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
                 cualquier otro boton, sin alinearse con nada. .crm-btn le da
                 los 40px y la forma de M3. El icono va a 18px, que es la
                 medida que la spec fija para el icono de un boton. */}
-            <button
-              className="crm-btn crm-btn-primary"
-              style={{ minHeight: 44 }}
-              onClick={() => {
-                setFechaNueva(undefined);
-                setNuevaAbierta(true);
-              }}
-            >
-              <PlusIcon size={18} color="currentColor" />
-              Nueva reserva
-            </button>
+            {puedeOperar && (
+              <button
+                className="crm-btn crm-btn-primary"
+                style={{ minHeight: 44 }}
+                onClick={() => {
+                  setFechaNueva(undefined);
+                  setNuevaAbierta(true);
+                }}
+              >
+                <PlusIcon size={18} color="currentColor" />
+                Nueva reserva
+              </button>
+            )}
           </div>
         </div>
 
@@ -496,10 +500,10 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
             seasonStart={temporada?.inicio}
             seasonEnd={temporada?.fin}
             focusMonth={month === 'ALL' ? undefined : month}
-            onDayClick={(fechaISO) => {
+            onDayClick={puedeOperar ? (fechaISO) => {
               setFechaNueva(fechaISO);
               setNuevaAbierta(true);
-            }}
+            } : undefined}
             onReservaClick={(r) => abrir(r, `cal:${r.BookingID}`)}
           />
         </div>

@@ -1,8 +1,18 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Card } from '../components/Card';
 import { ToggleRow } from '../components/ToggleRow';
-import { useAuth } from '../context/AuthContext';
+import { InscripcionTotp } from '../components/VerificacionDosPasos';
+import { useAuth, usePermiso } from '../context/AuthContext';
 import { uploadClientLogo } from '../api/dashboardApi';
+import {
+  completarInscripcionVoluntaria,
+  iniciarInscripcionVoluntaria,
+  leerEstadoMfa,
+  LoginError,
+  SessionExpiredError,
+} from '../api/cognitoAuth';
+import { motivoSinPermiso, NOMBRE_ROL } from '../lib/permisos';
 import { CLIENT_LOCATION } from '../branding';
 
 // Redimensiona/comprime la imagen ANTES de mandarla - el backend acepta
@@ -42,7 +52,8 @@ function resizeImageToDataUrl(file: File, maxDim = 240): Promise<string> {
 const MAX_LOGO_DATA_URL_LEN = 300_000;
 
 function LogoCard() {
-  const { clientDisplayName, clientLogoSrcLight, setUploadedLogo } = useAuth();
+  const { clientDisplayName, clientLogoSrcLight, setUploadedLogo, rol } = useAuth();
+  const puedeLogo = usePermiso('logo');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,13 +126,147 @@ function LogoCard() {
               e.target.value = '';
             }}
           />
-          <button className="crm-btn crm-btn-primary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+          <button className="crm-btn crm-btn-primary" onClick={() => fileInputRef.current?.click()} disabled={uploading || !puedeLogo}>
             {uploading ? 'Subiendo…' : saved ? '✓ Guardado' : 'Subir logo'}
           </button>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>PNG o JPG. Se ajusta automáticamente al tamaño del panel.</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+            {puedeLogo ? 'PNG o JPG. Se ajusta automáticamente al tamaño del panel.' : motivoSinPermiso(rol)}
+          </div>
           {error && <div style={{ fontSize: 12, color: 'var(--status-critico-text)', marginTop: 8 }}>{error}</div>}
         </div>
       </div>
+    </Card>
+  );
+}
+
+
+type EstadoTarjetaMfa =
+  | { paso: 'cargando' }
+  | { paso: 'error'; mensaje: string }
+  | { paso: 'listo'; activo: boolean }
+  | { paso: 'inscribiendo'; secreto: string };
+
+// Verificación en dos pasos con la sesión ya iniciada (2026-10-20). El pool
+// la tiene OPCIONAL mientras todos se inscriben; cuando pase a obligatoria,
+// quien no la activó acá la configura en el login (desafío MFA_SETUP).
+function VerificacionCard() {
+  const { userEmail, handleUnauthorized } = useAuth();
+  const [estado, setEstado] = useState<EstadoTarjetaMfa>({ paso: 'cargando' });
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fallo = (e: unknown, alTerminar: (mensaje: string) => void) => {
+    if (e instanceof SessionExpiredError) {
+      handleUnauthorized();
+      return;
+    }
+    alTerminar(e instanceof LoginError ? e.message : 'No se pudo consultar la verificación en dos pasos.');
+  };
+
+  useEffect(() => {
+    let cancelado = false;
+    leerEstadoMfa()
+      .then((r) => !cancelado && setEstado({ paso: 'listo', activo: r.activo }))
+      .catch((e) => !cancelado && fallo(e, (mensaje) => setEstado({ paso: 'error', mensaje })));
+    return () => {
+      cancelado = true;
+    };
+    // fallo solo usa handleUnauthorized, que es estable (useCallback).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const empezar = async () => {
+    setOcupado(true);
+    setError(null);
+    try {
+      const secreto = await iniciarInscripcionVoluntaria();
+      setEstado({ paso: 'inscribiendo', secreto });
+    } catch (e) {
+      fallo(e, setError);
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const verificar = async (codigo: string) => {
+    setOcupado(true);
+    setError(null);
+    try {
+      await completarInscripcionVoluntaria(codigo);
+      setEstado({ paso: 'listo', activo: true });
+    } catch (e) {
+      fallo(e, setError);
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const activo = estado.paso === 'listo' && estado.activo;
+
+  return (
+    <Card style={{ marginBottom: 'var(--space-8)' }}>
+      <div style={{ marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
+        {estado.paso === 'listo' && (
+          <span
+            className="crm-pill"
+            data-estado-mfa={activo ? 'activo' : 'inactivo'}
+            style={{
+              gap: 'var(--space-2)',
+              background: activo ? 'var(--status-bien-bg)' : 'var(--status-atencion-bg)',
+              color: activo ? 'var(--status-bien-text)' : 'var(--status-atencion-text)',
+            }}
+          >
+            {activo ? <ShieldCheck size={14} aria-hidden="true" /> : <ShieldAlert size={14} aria-hidden="true" />}
+            {activo ? 'MFA activado' : 'MFA no activado'}
+          </span>
+        )}
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Verificación en dos pasos</div>
+        <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+          Además de tu contraseña, al entrar se pide un código de 6 dígitos de una app de autenticación en tu teléfono.
+        </div>
+      </div>
+      <div style={{ height: 1, background: 'var(--border-soft)', marginBottom: 'var(--space-6)' }} />
+      {estado.paso === 'cargando' && <div role="status" style={{ fontSize: 13, color: 'var(--text-sub)' }}>Consultando…</div>}
+      {estado.paso === 'error' && <div role="alert" style={{ fontSize: 13, color: 'var(--status-critico-text)' }}>{estado.mensaje}</div>}
+      {estado.paso === 'listo' && activo && (
+        <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+          Tu cuenta ya pide el código al entrar. Si cambias de teléfono, escríbele a RockyBrand para volver a vincularla.
+        </div>
+      )}
+      {estado.paso === 'listo' && !activo && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+          {/* .crm-btn es nowrap: a 320 px el texto medía 274 px en un padre de
+              238 y salía de la tarjeta (WCAG 2.2 1.4.10). Aquí puede partir en
+              dos líneas; el padding vertical las separa del borde. */}
+          <button className="crm-btn crm-btn-primary" onClick={empezar} disabled={ocupado} style={{ whiteSpace: 'normal', maxWidth: '100%', paddingBlock: 8 }}>
+            {ocupado ? 'Preparando…' : 'Activar verificación en dos pasos'}
+          </button>
+          {error && <div role="alert" style={{ fontSize: 12, color: 'var(--status-critico-text)' }}>{error}</div>}
+        </div>
+      )}
+      {estado.paso === 'inscribiendo' && (
+        <div style={{ maxWidth: 400 }}>
+          <InscripcionTotp
+            secreto={estado.secreto}
+            cuenta={userEmail}
+            ocupado={ocupado}
+            error={error}
+            textoBoton="Activar"
+            onVerificar={(c) => void verificar(c)}
+          />
+          <button
+            type="button"
+            className="crm-btn crm-btn-text crm-btn-sm"
+            style={{ marginTop: 'var(--space-3)' }}
+            onClick={() => {
+              setError(null);
+              setEstado({ paso: 'listo', activo: false });
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
     </Card>
   );
 }
@@ -139,7 +284,7 @@ function LogoCard() {
 // "05 — Configuración"); el logo es la única sección que sí es 100% real
 // de punta a punta (pedido explícito de Mato, 2026-08-03).
 export function SettingsScreen() {
-  const { logout, clientId } = useAuth();
+  const { logout, clientId, rol, userEmail } = useAuth();
   const [sw, setSw] = useState({ newBooking: true, cancellation: true, inquiry: false, syncError: true });
   const [horario, setHorario] = useState({ desde: '08:00', hasta: '22:00' });
   const tog = (k: keyof typeof sw) => setSw((s) => ({ ...s, [k]: !s[k] }));
@@ -173,6 +318,22 @@ export function SettingsScreen() {
           </div>
           {location && <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{location.label}, Chile · {fechaCapitalizada}</div>}
         </div>
+
+        <Card style={{ marginBottom: 'var(--space-8)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
+            <span className="crm-pill" data-rol={rol}>{NOMBRE_ROL[rol]}</span>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', overflowWrap: 'anywhere' }}>{userEmail || 'Tu cuenta'}</div>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+              {rol === 'admin'
+                ? 'Puedes ver y cambiar todo en tu panel, incluidos los envíos de campañas.'
+                : rol === 'editor'
+                  ? 'Puedes operar reservas, tienda, borradores y contenido. Enviar campañas, importar contactos y el logo los hace un administrador.'
+                  : 'Puedes ver toda la información, pero no cambiarla.'}
+            </div>
+          </div>
+        </Card>
+
+        <VerificacionCard />
 
         <LogoCard />
 

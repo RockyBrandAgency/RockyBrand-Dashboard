@@ -28,7 +28,7 @@ vi.mock('../../api/dashboardApi', () => ({
   ErrorTransitorio: class ErrorTransitorio extends Error {},
   TimeoutError: class TimeoutError extends Error {},
 }));
-vi.mock('../../context/AuthContext', () => ({
+vi.mock('../../context/AuthContext', () => ({ usePermiso: () => true,
   useAuth: () => ({ handleUnauthorized, clientId: 'chile-fly-fishing', clientDisplayName: 'Chile Fly Fishing', clientTerminologia: null, features: { pms_ficha_pesca: true } }),
 }));
 

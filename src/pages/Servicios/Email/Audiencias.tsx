@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, usePermiso } from '../../../context/AuthContext';
 import { getEmailResumen, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailContact, EmailAudiencia } from '../../../types';
 import { ImportarCsv } from './ImportarCsv';
@@ -45,6 +45,8 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
   onDelete: (email: string) => Promise<void>;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Importar, crear y borrar contactos: solo admin (lib/permisos.ts).
+  const puedeContactos = usePermiso('email.contactos');
   const [audiencia, setAudiencia] = useState<EmailAudiencia | null>(null);
   const [segActivo, setSegActivo] = useState('all');
   const [busqueda, setBusqueda] = useState('');
@@ -135,15 +137,19 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
             </div>
             {/* Las dos vías de alta, igual que en el panel principal: a mano
                 para un contacto suelto, archivo para una base entera. */}
-            <Boton onClick={() => { setVerImport((v) => !v); setVerForm(false); }}>Importar CSV</Boton>
-            <Boton tipo="primary" onClick={() => { setVerForm((v) => !v); setVerImport(false); }}>
-              <PlusIcon size={12} color="#fff" /> Agregar Contacto
-            </Boton>
+            {puedeContactos && (
+              <>
+                <Boton onClick={() => { setVerImport((v) => !v); setVerForm(false); }}>Importar CSV</Boton>
+                <Boton tipo="primary" onClick={() => { setVerForm((v) => !v); setVerImport(false); }}>
+                  <PlusIcon size={12} color="#fff" /> Agregar Contacto
+                </Boton>
+              </>
+            )}
           </div>
 
-          {verImport && <ImportarCsv onImportado={() => { setVerImport(false); recargarTodo(); }} />}
+          {puedeContactos && verImport && <ImportarCsv onImportado={() => { setVerImport(false); recargarTodo(); }} />}
 
-          {verForm && (
+          {puedeContactos && verForm && (
             <Card>
               {errorForm && <Aviso tono="critico">{errorForm}</Aviso>}
               <Campo label="Nombre">
@@ -175,7 +181,7 @@ export function AudienciasEmail({ contacts, onReload, onAdd, onDelete }: {
                   <td className="crm-cell-sub">{formatFecha(c.created_at)}</td>
                   <td>
                     <div className="crm-row-actions">
-                      <Boton sm tipo="danger" onClick={() => borrar(c.email)}>Eliminar</Boton>
+                      {puedeContactos && <Boton sm tipo="danger" onClick={() => borrar(c.email)}>Eliminar</Boton>}
                     </div>
                   </td>
                 </tr>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { AsyncState } from '../../../components/AsyncState';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, usePermiso } from '../../../context/AuthContext';
 import { getEmailTemplates, getEmailTemplate, saveEmailTemplate, deleteEmailTemplate, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailTemplate, EmailTemplateCampo } from '../../../types';
 import { htmlDeLaPlantilla, paraVistaPrevia, porGrupo } from '../../../lib/plantillaCampos';
@@ -34,6 +34,8 @@ export function TemplatesEmail({ isDesktop = true, onUsarEnCampana }: {
   onUsarEnCampana?: (templateId: string) => void;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Crear, editar y borrar plantillas: editor y admin (lib/permisos.ts).
+  const puedePlantillas = usePermiso('email.plantillas');
   const [templates, setTemplates] = useState<EmailTemplate[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -165,8 +167,8 @@ export function TemplatesEmail({ isDesktop = true, onUsarEnCampana }: {
         )}
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <Boton tipo="primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</Boton>
-          <Boton onClick={() => { setEditando(null); setErrorForm(null); }}>Cancelar</Boton>
+          {puedePlantillas && <Boton tipo="primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</Boton>}
+          <Boton onClick={() => { setEditando(null); setErrorForm(null); }}>{puedePlantillas ? 'Cancelar' : 'Cerrar'}</Boton>
           {onUsarEnCampana && editando.template_id && (
             <Boton onClick={() => onUsarEnCampana(editando.template_id as string)}>Usar en una campaña</Boton>
           )}
@@ -201,9 +203,11 @@ export function TemplatesEmail({ isDesktop = true, onUsarEnCampana }: {
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-sub)' }}>
           Galería de Plantillas Personalizadas {templates?.length ? `(${templates.length})` : ''}
         </div>
-        <Boton tipo="primary" onClick={() => { setVista('html'); setEditando({ name: '', html_body: '' }); }}>
-          + Nuevo template
-        </Boton>
+        {puedePlantillas && (
+          <Boton tipo="primary" onClick={() => { setVista('html'); setEditando({ name: '', html_body: '' }); }}>
+            + Nuevo template
+          </Boton>
+        )}
       </div>
 
       {!templates || templates.length === 0 ? (
@@ -242,9 +246,11 @@ export function TemplatesEmail({ isDesktop = true, onUsarEnCampana }: {
                       Enviar
                     </button>
                   )}
-                  <button type="button" className="crm-btn crm-btn-sm" onClick={() => borrar(t)} style={{ background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)' }}>
-                    Borrar
-                  </button>
+                  {puedePlantillas && (
+                    <button type="button" className="crm-btn crm-btn-sm" onClick={() => borrar(t)} style={{ background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)' }}>
+                      Borrar
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

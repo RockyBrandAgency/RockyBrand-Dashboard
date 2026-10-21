@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { ConflictError, crearTiendaGarantia, editarTiendaGarantia, UnauthorizedError } from '../../api/dashboardApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, usePermiso } from '../../context/AuthContext';
 import type { StoreGarantia, StoreGarantiaAviso, StoreGarantiaDatos, StoreGarantiaEstado } from '../../types';
 import { GarantiaAviso } from './GarantiaAviso';
 import { COURIERS, ESTADOS_GARANTIA, PRECIO_REPOSICION_CLP, REGIONES, TRAMO_NOMBRE, fmtMomento, formatearRut, money, preguntaBorrado, rutValido } from './garantias';
@@ -234,6 +234,8 @@ export function GarantiaFicha({
   onRecargarAviso?: (solicitudId: string) => Promise<StoreGarantiaAviso | null>;
 }) {
   const { handleUnauthorized } = useAuth();
+  // Crear o editar garantías: editor y admin (lib/permisos.ts).
+  const puedeEditarTienda = usePermiso('tienda.editar');
   const inicial = useMemo(() => desdeGarantia(garantia), [garantia]);
   const [f, setF] = useState<Formulario>(inicial);
   const [ocupado, setOcupado] = useState<'guardar' | 'eliminar' | 'restaurar' | 'borrar' | 'notificar' | null>(null);
@@ -247,7 +249,7 @@ export function GarantiaFicha({
   const editando = Boolean(garantia);
   const eliminada = Boolean(garantia?.eliminada_en);
   const cambiado = JSON.stringify(f) !== JSON.stringify(inicial);
-  const puedeGuardar = !eliminada && ocupado === null && (!editando || cambiado);
+  const puedeGuardar = puedeEditarTienda && !eliminada && ocupado === null && (!editando || cambiado);
   const estadoActual = ESTADOS_GARANTIA.find((e) => e.key === f.estado);
 
   function set<K extends keyof Formulario>(clave: K, valor: Formulario[K]) {
@@ -297,6 +299,7 @@ export function GarantiaFicha({
   }
 
   async function guardar() {
+    if (!puedeEditarTienda) return;
     const r = validarFormulario(f);
     if ('error' in r) {
       setError(r.error);

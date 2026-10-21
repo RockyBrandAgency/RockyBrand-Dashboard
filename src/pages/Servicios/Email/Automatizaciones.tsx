@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState, useCallback } from 'react';
 import { AsyncState } from '../../../components/AsyncState';
 import { Toggle } from '../../../components/Toggle';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, usePermiso } from '../../../context/AuthContext';
 import { getEmailJourneys, toggleEmailJourney, deleteEmailJourney, UnauthorizedError } from '../../../api/dashboardApi';
 import type { EmailJourney, EmailJourneysResponse, EmailJourneyStep } from '../../../types';
 import { Card, Vacio, Aviso, formatFecha } from './shared';
@@ -53,6 +53,8 @@ function esperaLegible(horas: number | null): string {
 
 export function AutomatizacionesEmail() {
   const { handleUnauthorized } = useAuth();
+  // Activar, pausar y borrar automatizaciones: solo admin (lib/permisos.ts).
+  const puedeJourneys = usePermiso('email.journeys');
   const [datos, setDatos] = useState<EmailJourneysResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +151,7 @@ export function AutomatizacionesEmail() {
                           <div className="crm-cell-sub">Trigger: {GLOSA_TRIGGER[j.trigger_event] ?? j.trigger_event}</div>
                         </td>
                         <td>
-                          <Toggle size="sm" on={j.activo} onToggle={() => alternar(j)} disabled={ocupada === j.track_id} label={`Automatización ${j.track_id}`} />
+                          <Toggle size="sm" on={j.activo} onToggle={() => alternar(j)} disabled={!puedeJourneys || ocupada === j.track_id} label={`Automatización ${j.track_id}`} />
                         </td>
                         <td>
                           {j.correos} {j.correos === 1 ? 'correo' : 'correos'} · {j.pasos.length} {j.pasos.length === 1 ? 'paso' : 'pasos'}
@@ -159,15 +161,17 @@ export function AutomatizacionesEmail() {
                             <button type="button" className="crm-btn crm-btn-ghost crm-btn-sm" onClick={() => setAbierta(abierta === j.track_id ? null : j.track_id)}>
                               {abierta === j.track_id ? 'Ocultar' : 'Ver pasos'}
                             </button>
-                            <button
-                              type="button"
-                              className="crm-btn crm-btn-sm"
-                              onClick={() => borrar(j)}
-                              disabled={ocupada === j.track_id}
-                              style={{ background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)' }}
-                            >
-                              Eliminar
-                            </button>
+                            {puedeJourneys && (
+                              <button
+                                type="button"
+                                className="crm-btn crm-btn-sm"
+                                onClick={() => borrar(j)}
+                                disabled={ocupada === j.track_id}
+                                style={{ background: 'var(--status-critico-bg)', color: 'var(--status-critico-dot)' }}
+                              >
+                                Eliminar
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
