@@ -25,6 +25,7 @@ import {
   Percent,
   Plane,
   Receipt,
+  Sigma,
   StickyNote,
   Sun,
   Tag,
@@ -51,6 +52,7 @@ export type Concepto =
   | 'margen'
   | 'precio-lista'
   | 'dolar'
+  | 'total-clp'
   | 'pagado'
   | 'saldo'
   | 'reservas'
@@ -88,6 +90,7 @@ export const ICONO_DE: Record<Concepto, LucideIcon> = {
   margen: Percent,
   'precio-lista': Tag,
   dolar: ArrowLeftRight,
+  'total-clp': Sigma,
   pagado: CircleCheck,
   saldo: Hourglass,
   reservas: CalendarCheck,

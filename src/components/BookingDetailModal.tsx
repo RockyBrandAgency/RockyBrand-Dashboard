@@ -338,6 +338,7 @@ export function BookingDetailModal({
         <AcompanantesReserva
           bookingId={reserva.BookingID}
           inicial={reserva.Companions ?? []}
+          actualizadaEn={reserva.UpdatedAt ?? null}
           editable={reserva.Status !== 'CANCELLED'}
           onCambio={marcarAcompanantesCambiaron}
           onEditando={setEditandoAcompanante}

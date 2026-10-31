@@ -19,6 +19,8 @@ vi.mock('../api/dashboardApi', () => ({
   getSemaforo: () => api.getSemaforo(),
   getReservasResumen: () => api.getReservasResumen(),
   getHuespedes: () => Promise.resolve({ huespedes: [] }),
+  // La ficha pide los pagos del cliente (30-oct); sin pagos, sin desglose.
+  getPagosReserva: () => Promise.resolve({ payments: [] }),
   UnauthorizedError: class UnauthorizedError extends Error {},
   ConflictError: class ConflictError extends Error {},
   ErrorTransitorio: class ErrorTransitorio extends Error {},

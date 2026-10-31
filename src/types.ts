@@ -294,6 +294,8 @@ export interface HuespedesResponse {
 
 export interface ReservaResumenItem {
   BookingID: string;
+  /** Última modificación (30-oct): va como ExpectedUpdatedAt en el PUT. Ausente con la Lambda anterior. */
+  UpdatedAt?: string | null;
   RoomID: string;
   CheckIn: string;
   CheckOut: string;
@@ -334,6 +336,34 @@ export interface ReservaResumenItem {
   // Solo con la bandera pms_utilidad. Los montos vienen en null, con Reason,
   // cuando no se puede calcular: nunca un número inventado.
   Profit?: ReservaProfit | null;
+  // Costo fijo del guía en CLP (30-oct, ficha-finanzas-reserva). Clave ausente
+  // = Lambda anterior: la ficha muestra «—» y no ofrece editar.
+  /** CLP por USD acordado con el guía; null si no se acordó. */
+  SupplierRate?: number | null;
+  /** Pagos al guía. El PUT reemplaza la lista entera. */
+  SupplierPayments?: PagoProveedor[] | null;
+}
+
+/** Un pago al guía, en CLP enteros. */
+export interface PagoProveedor {
+  PaymentID?: string;
+  /** YYYY-MM-DD */
+  Date: string;
+  Amount: number;
+  Notes: string;
+}
+
+/** Pago del cliente (GET /dashboard/reservas/{id}/payments). Cuentan los
+ *  COMPLETED; los REFUNDED restan. */
+export interface PagoReserva {
+  PaymentID?: string;
+  Amount: number;
+  Currency?: string | null;
+  Method?: string | null;
+  Status?: string | null;
+  PaidAt?: string | null;
+  Reference?: string | null;
+  Notes?: string | null;
 }
 
 export type FishingExperience = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
@@ -380,6 +410,12 @@ export interface ReservaProfit {
   /** Día de confirmación en Chile, YYYY-MM-DD. */
   ConfirmedAt?: string | null;
   BelowList?: boolean | null;
+  // Costo fijo del guía en CLP (30-oct). Siempre presentes en la Lambda nueva
+  // (null si no aplica); ausentes en la anterior.
+  SupplierRate?: number | null;
+  SupplierCostCLP?: number | null;
+  SupplierPaidCLP?: number | null;
+  SupplierDueCLP?: number | null;
 }
 
 // GET /dashboard/ventas?temporada=2026-27 (16-oct). Mes = mes de llegada; solo
@@ -624,6 +660,22 @@ export interface Acompanante {
   FoodAllergy: boolean;
   FoodAllergyDetail: string;
   Notes: string;
+  /** Documento del registro de pasajeros (2026-10-30). Opcional: clave
+   *  ausente = el servidor todavía no lo guarda; null o {} = sin documento.
+   *  Misma forma que valida pms_models.validar_documento. */
+  IdentityDocument?: DocumentoIdentidad | Record<string, never> | null;
+}
+
+export type TipoDocumento = 'RUT' | 'PASSPORT' | 'DNI' | 'OTHER';
+
+export interface DocumentoIdentidad {
+  Type: TipoDocumento;
+  Number: string;
+  /** El servidor la guarda en mayúsculas. */
+  Nationality: string;
+  /** ISO AAAA-MM-DD, opcionales. */
+  BirthDate?: string;
+  EntryDate?: string;
 }
 
 // Lo que el panel manda al guardar: un acompañante nuevo todavía no tiene id.

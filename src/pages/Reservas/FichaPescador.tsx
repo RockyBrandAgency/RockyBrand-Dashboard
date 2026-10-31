@@ -8,14 +8,18 @@ import {
   cancelarReserva,
   confirmarReserva,
   ConflictError,
+  esReservaModificada,
+  MENSAJE_RESERVA_MODIFICADA,
   ErrorTransitorio,
   getHuespedes,
+  getPagosReserva,
   TimeoutError,
   UnauthorizedError,
 } from '../../api/dashboardApi';
 import { useAuth, usePermiso } from '../../context/AuthContext';
 import { useAnchoContenido } from '../../hooks/useAnchoContenido';
 import { Chip } from './ChipVenta';
+import { EditorPagosGuillermo, fechaPagoCorta, notaSinCorte } from './PagosGuillermo';
 import { AcompanantesReserva } from '../../components/AcompanantesReserva';
 import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
 import { OriginBadge } from '../../components/OriginBadge';
@@ -40,7 +44,7 @@ import {
 } from '../../lib/fichaPescador';
 import { terminologiaPms } from '../../lib/terminologiaPms';
 import { personasDe } from '../../lib/personas';
-import type { FishingExperience, HuespedItem, ReservaResumenItem, UnidadCosto } from '../../types';
+import type { FishingExperience, HuespedItem, PagoProveedor, PagoReserva, ReservaResumenItem, UnidadCosto } from '../../types';
 
 // Ficha del pescador como página (5.0.0, solo Chile Fly Fishing). La abren el
 // Overview, el Calendario de Reservas y Pescadores; reemplaza ahí al modal
@@ -104,6 +108,29 @@ function mensajeTransitorio(e: unknown): string | null {
   return e instanceof ErrorTransitorio && e.delServidor ? e.message || null : null;
 }
 
+// El backend serializa Decimal con default=str: un número puede llegar como
+// texto («"981"»). null si no hay dato o no es un número (QA 18-oct).
+function num(v: unknown): number | null {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Pagos del cliente que cuentan: COMPLETED suma, REFUNDED resta. */
+function pagosQueCuentan(pagos: PagoReserva[]): { monto: number; moneda: string | null; nota: string; fecha: string | null; devolucion: boolean; clave: string }[] {
+  return pagos
+    .filter((p) => ['COMPLETED', 'REFUNDED'].includes(String(p.Status ?? '').toUpperCase()) && num(p.Amount) != null)
+    .sort((a, b) => String(a.PaidAt ?? '').localeCompare(String(b.PaidAt ?? '')))
+    .map((p, i) => ({
+      monto: num(p.Amount)!,
+      moneda: p.Currency ?? null,
+      nota: (p.Notes ?? '').trim(),
+      fecha: p.PaidAt ?? null,
+      devolucion: String(p.Status).toUpperCase() === 'REFUNDED',
+      clave: p.PaymentID ?? String(i),
+    }));
+}
+
 function enLista(partes: string[]): string {
   if (partes.length <= 1) return partes.join('');
   return `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`;
@@ -120,6 +147,10 @@ interface Form {
 }
 
 const CLAVES: (keyof Form)[] = ['checkIn', 'checkOut', 'licencia', 'equipo', 'experiencia', 'cumple', 'aniv'];
+/** Los que van en el PUT de la reserva (los demás son del pescador). */
+const CLAVES_RESERVA: (keyof Form)[] = ['checkIn', 'checkOut', 'licencia', 'equipo'];
+/** Tope de espera de la recarga tras un guardado propio: si no llega, se libera. */
+const ESPERA_RECARGA_MS = 10_000;
 
 function formDe(r: ReservaResumenItem, h: HuespedItem | null | undefined): Form {
   return {
@@ -159,9 +190,9 @@ function Seccion({ tarjeta, titulo, icono, children }: { tarjeta: string; titulo
 // Fila del resumen de la venta (§16.4), dentro de un <dl> (§7.2): ícono y
 // etiqueta en <dt>, valor en <dd>, valor a la derecha;
 // lo que va debajo (lista, chips, notas) ocupa su propia línea.
-function DatoResumen({ etiqueta, valor, cifra, color, icono, ranura, children }: { etiqueta: string; valor: React.ReactNode; cifra?: boolean; color?: string; icono?: Concepto; ranura?: React.ReactNode; children?: React.ReactNode }) {
+function DatoResumen({ etiqueta, valor, cifra, color, icono, ranura, cierre, children }: { etiqueta: string; valor: React.ReactNode; cifra?: boolean; color?: string; icono?: Concepto; ranura?: React.ReactNode; cierre?: boolean; children?: React.ReactNode }) {
   return (
-    <div className="dato fila-dato fila-dato--resumen" data-dato={etiqueta} data-fila-dato={icono ?? 'ranura'}>
+    <div className={`dato fila-dato fila-dato--resumen${cierre ? ' fila-dato--cierre' : ''}`} data-dato={etiqueta} data-fila-dato={icono ?? 'ranura'}>
       <dt className="dato__etiqueta fila-dato__etiqueta">
         {icono ? <Icono concepto={icono} /> : (ranura ?? <span className="ranura-icono" aria-hidden="true" />)}
         <span>{etiqueta}</span>
@@ -171,6 +202,22 @@ function DatoResumen({ etiqueta, valor, cifra, color, icono, ranura, children }:
       </dd>
       {children && <dd className="fila-dato__extra">{children}</dd>}
     </div>
+  );
+}
+
+// Pagos bajo una fila del resumen (30-oct): a la izquierda fecha corta y
+// nota, sangradas bajo la etiqueta; a la derecha el monto, alineado con el
+// valor de la fila.
+function ListaPagos({ etiqueta, lista, pagos }: { etiqueta: string; lista: string; pagos: { clave: string; detalle: string; monto: string }[] }) {
+  return (
+    <ul className="ficha-resumen__pagos" aria-label={etiqueta} data-lista={lista}>
+      {pagos.map((p) => (
+        <li key={p.clave} className="ficha-resumen__pago">
+          <span className="ficha-resumen__pago-detalle">{p.detalle}</span>
+          <span className="ficha-resumen__pago-monto">{p.monto}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -299,10 +346,16 @@ function FichaContenido({
   // Cuando la pantalla recarga (o llega el pescador), lo que no se tocó toma
   // el valor nuevo y lo que se está editando se respeta, campo por campo.
   const [fuente, setFuente] = useState({ reserva, huesped });
+  // Versión (UpdatedAt) con la que se cargaron los campos de la reserva que se
+  // editan aquí (30-oct, ronda 4): va como ExpectedUpdatedAt. Solo avanza si
+  // esos campos están sin tocar; si alguno se está editando, conserva la
+  // versión vieja y el servidor responde 409 si otro cambió la reserva.
+  const [versionCampos, setVersionCampos] = useState<string | null>(reserva.UpdatedAt ?? null);
   if (fuente.reserva !== reserva || fuente.huesped !== huesped) {
     const nueva = formDe(reserva, huesped);
     const mezcla = { ...form };
     for (const k of CLAVES) if (form[k] === base[k]) (mezcla as Record<string, unknown>)[k] = nueva[k];
+    if (fuente.reserva !== reserva && CLAVES_RESERVA.every((k) => form[k] === base[k])) setVersionCampos(reserva.UpdatedAt ?? null);
     setFuente({ reserva, huesped });
     setBase(nueva);
     setForm(mezcla);
@@ -333,6 +386,35 @@ function FichaContenido({
   }, [isDesktop]);
   const [editandoAcompanante, setEditandoAcompanante] = useState(false);
   const [focoA, setFocoA] = useState<'cancelar' | 'confirmar' | null>(null);
+  // Pagos a Guillermo (30-oct): el editor se abre dentro del resumen y, al
+  // cerrarse, el foco vuelve a «Editar pagos».
+  const [editandoGuillermo, setEditandoGuillermo] = useState(false);
+  const editarGuillermoRef = useRef<HTMLButtonElement>(null);
+  const volverFocoGuillermo = useRef(false);
+  useEffect(() => {
+    if (!editandoGuillermo && volverFocoGuillermo.current) {
+      volverFocoGuillermo.current = false;
+      editarGuillermoRef.current?.focus();
+    }
+  }, [editandoGuillermo]);
+  // Pagos del cliente, para el desglose de «Pagó». Si la ruta falla o no
+  // existe todavía, no hay desglose y no se avisa: el total ya está en PaidAmount.
+  const [pagosCliente, setPagosCliente] = useState<PagoReserva[] | null>(null);
+  const bookingIdActual = reserva.BookingID;
+  const pagadoActual = reserva.PaidAmount;
+  useEffect(() => {
+    let vivo = true;
+    getPagosReserva(bookingIdActual)
+      .then((r) => {
+        if (vivo) setPagosCliente(Array.isArray(r?.payments) ? r.payments : []);
+      })
+      .catch(() => {
+        if (vivo) setPagosCliente(null);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [bookingIdActual, pagadoActual]);
 
   const tituloRef = useRef<HTMLHeadingElement>(null);
   const seguroRef = useRef<HTMLButtonElement>(null);
@@ -357,7 +439,30 @@ function FichaContenido({
 
   const cerrarAviso = useCallback(() => setAviso(null), []);
   const avisar = (texto: string) => setAviso({ id: Date.now(), texto });
-  const onCambioAcompanantes = useCallback(() => onCambio(), [onCambio]);
+  // Recarga pendiente (30-oct, ronda 4): tras un guardado propio, hasta que
+  // llegue la reserva nueva los editores no guardan («Actualizando…»). Así no
+  // se manda un UpdatedAt que el propio guardado ya dejó viejo (409 falso).
+  // Se guarda la reserva de ese momento: cuando llega otra, ya no hay espera.
+  const [esperandoDe, setEsperandoDe] = useState<ReservaResumenItem | null>(null);
+  const actualizando = esperandoDe !== null && esperandoDe === reserva;
+  useEffect(() => {
+    if (!esperandoDe) return;
+    const t = setTimeout(() => setEsperandoDe(null), ESPERA_RECARGA_MS);
+    return () => clearTimeout(t);
+  }, [esperandoDe]);
+  const reservaRef = useRef(reserva);
+  reservaRef.current = reserva;
+  const recargarTrasGuardar = useCallback(() => {
+    setEsperandoDe(reservaRef.current);
+    onCambio();
+  }, [onCambio]);
+  const onCambioAcompanantes = recargarTrasGuardar;
+  const [modificadaFicha, setModificadaFicha] = useState(false);
+  // Con el 409, el foco va a «Recargar»: es lo único que se puede hacer (igual que en el editor de pagos).
+  const recargarFichaRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (modificadaFicha) recargarFichaRef.current?.focus();
+  }, [modificadaFicha]);
 
   function set<K extends keyof Form>(clave: K, valor: Form[K]) {
     setForm((f) => ({ ...f, [clave]: valor }));
@@ -368,6 +473,7 @@ function FichaContenido({
     if (guardando || ocupado) return false;
     if (sucio && !window.confirm(`¿Salir sin guardar los cambios de ${nombre}?`)) return false;
     if (editandoAcompanante && !window.confirm('Hay un acompañante sin guardar. ¿Salir de todos modos?')) return false;
+    if (editandoGuillermo && !window.confirm('Hay pagos a Guillermo sin guardar. ¿Salir de todos modos?')) return false;
     return true;
   }
 
@@ -381,7 +487,7 @@ function FichaContenido({
 
   async function guardar() {
     if (!puedeOperar) return;
-    if (!sucio || guardando) return;
+    if (!sucio || guardando || actualizando || modificadaFicha) return;
     const fechasCambiaron = form.checkIn !== base.checkIn || form.checkOut !== base.checkOut;
     if (fechasCambiaron) {
       if (!form.checkIn || !form.checkOut) {
@@ -417,9 +523,12 @@ function FichaContenido({
     }
     if (form.licencia !== base.licencia && form.licencia !== null) cr.FishingLicensePurchased = form.licencia;
     if (form.equipo !== base.equipo && form.equipo !== null) cr.BringsOwnGear = form.equipo;
+    let modificada = false;
     if (Object.keys(cr).length > 0) {
+      if (versionCampos) cr.ExpectedUpdatedAt = versionCampos;
       try {
         const resp = await actualizarReserva(reserva.BookingID, cr);
+        if (typeof resp.UpdatedAt === 'string' && resp.UpdatedAt) setVersionCampos(resp.UpdatedAt);
         if (fechasCambiaron) {
           nuevaBase.checkIn = form.checkIn;
           nuevaBase.checkOut = form.checkOut;
@@ -444,8 +553,9 @@ function FichaContenido({
           setGuardando(false);
           return handleUnauthorized();
         }
+        modificada = esReservaModificada(e);
         sinRed = sinRed || !navigator.onLine;
-        const m = mensajeDelServidor(e);
+        const m = modificada ? null : mensajeDelServidor(e);
         if (m) delServidor.push(m);
         const t = mensajeTransitorio(e);
         if (t) transitorios.push(t);
@@ -490,7 +600,12 @@ function FichaContenido({
 
     setBase(nuevaBase);
     setGuardando(false);
-    if (guardado.length > 0) onCambio();
+    if (guardado.length > 0) recargarTrasGuardar();
+    if (modificada) {
+      setModificadaFicha(true);
+      setError(guardado.length > 0 ? `Se guardaron ${enLista(guardado)}. ${MENSAJE_RESERVA_MODIFICADA}` : MENSAJE_RESERVA_MODIFICADA);
+      return;
+    }
     if (fallido.length === 0 && sinSoporte.length === 0) {
       avisar(`Guardaste los cambios de ${nombre}.`);
       return;
@@ -656,7 +771,8 @@ function FichaContenido({
     return { valor: '—', nota: null };
   })();
 
-  // Resumen de la venta (§15.3): filas A (hechos), B (plata) y C (pago).
+  // Resumen de la venta (§15.3; orden financiero del 30-oct): hechos,
+  // cliente, Guillermo (costo fijo) y resultado.
   const conGanancia = !!utilidad.formula && profit?.Amount != null && profit.Percent != null;
   // Full Day: jornadas de guía, solo si el servidor las manda. All Inclusive:
   // noches = salida − llegada (decisión del coordinador, 18-oct).
@@ -673,22 +789,80 @@ function FichaContenido({
     profit?.ListPrice != null && profit.ListPrice > 0 && profit.SupplierCost != null && !costoOriginal && monedaCostos === moneda
       ? Math.round(((profit.ListPrice - profit.SupplierCost) / profit.ListPrice) * 1000) / 10
       : null;
+  // Cliente (30-oct): Venta · Pagó · Por cobrar. Desglose de «Pagó» solo con
+  // más de un pago que cuente; cada pago en su moneda, sin sumar monedas.
+  const anioViaje = Number(reserva.CheckIn?.slice(0, 4)) || null;
+  const desgloseCliente = pagosCliente ? pagosQueCuentan(pagosCliente) : [];
   const datoPagado = (
-    <DatoResumen etiqueta="Pagado" icono="pagado" cifra={!conUtilidad} valor={pagado != null ? fmtMonto(moneda, pagado) : '—'}>
+    <DatoResumen etiqueta="Pagó" icono="pagado" cifra={!conUtilidad} valor={pagado != null ? fmtMonto(moneda, pagado) : '—'}>
       {pagado == null && <span className="ficha-resumen__sub">Sin dato de pago</span>}
+      {desgloseCliente.length > 1 && (
+        <ListaPagos
+          etiqueta="Pagos del cliente"
+          lista="pagos-cliente"
+          pagos={desgloseCliente.map((p) => ({
+            clave: p.clave,
+            detalle: [fechaPagoCorta(p.fecha, anioViaje), p.devolucion ? 'Devolución' : '', notaSinCorte(p.nota)].filter(Boolean).join(' · '),
+            monto: fmtMonto(p.moneda || moneda, p.devolucion ? -Math.abs(p.monto) : p.monto),
+          }))}
+        />
+      )}
     </DatoResumen>
   );
+  // Tres estados del saldo (revisión UX 30-oct): falta, cero o de más.
+  const estado = (v: number | null) => (v == null ? null : Math.abs(v) < 0.005 ? 'cero' : v > 0 ? 'falta' : 'demas');
+  const colorEstado = (e: string | null) => (e == null ? undefined : e === 'cero' ? 'var(--status-bien-text)' : 'var(--status-atencion-text)');
+  const estadoCobro = estado(saldo);
   const datoSaldo = (
     <DatoResumen
-      etiqueta="Saldo"
+      etiqueta={estadoCobro === 'demas' ? 'Pagó de más' : 'Por cobrar'}
       icono="saldo"
-      cifra={!conUtilidad}
-      valor={saldo != null ? fmtMonto(moneda, saldo) : '—'}
-      color={saldo == null ? undefined : saldo <= 0 ? 'var(--status-bien-text)' : 'var(--status-atencion-text)'}
+      cifra
+      cierre
+      valor={saldo != null ? fmtMonto(moneda, estadoCobro === 'cero' ? 0 : Math.abs(saldo)) : '—'}
+      color={colorEstado(estadoCobro)}
     >
-      <span className="ficha-resumen__sub">{saldo == null ? 'Sin dato de pago' : saldo <= 0 ? 'Pagado completo' : 'Por cobrar'}</span>
+      <span className="ficha-resumen__sub">
+        {estadoCobro == null ? 'Sin dato de pago' : estadoCobro === 'cero' ? 'Pagado completo' : estadoCobro === 'falta' ? 'Falta cobrarle' : 'Revisa si corresponde devolución'}
+      </span>
     </DatoResumen>
   );
+
+  // Guillermo, costo fijo (30-oct). El costo va en la moneda de su tarifa; el
+  // dólar acordado lo pasa a CLP y contra eso se le paga. Las cifras en CLP
+  // las calcula el servidor (Profit.Supplier*CLP); una Lambda anterior no las
+  // manda (clave ausente) y se muestra «—», sin ofrecer editar.
+  const costoSuMoneda = (() => {
+    if (costoOriginal) return { moneda: costoOriginal.moneda, monto: costoOriginal.monto };
+    if (profit?.SupplierCost == null && motivoDolarCosto && profit?.UnitCost != null && profit.Units != null)
+      return { moneda: monedaCostos === 'USD' ? 'CLP' : 'USD', monto: profit.UnitCost * profit.Units };
+    if (profit?.SupplierCost != null) return { moneda: monedaCostos, monto: profit.SupplierCost };
+    return null;
+  })();
+  const valorCosto = costoSuMoneda ? fmtMonto(costoSuMoneda.moneda, costoSuMoneda.monto) : '—';
+  // El desglose sin el «= total»: el total ya es el valor de la fila.
+  const costoSinTotal = costoGuia.split(' = ')[0];
+  const desgloseCosto = costoGuia !== '—' && costoSinTotal !== valorCosto ? costoSinTotal : null;
+  const conClp = !!profit && 'SupplierCostCLP' in profit;
+  const dolarAcordado = num(profit?.SupplierRate ?? reserva.SupplierRate);
+  const totalClp = conClp ? num(profit!.SupplierCostCLP) : null;
+  const pagadoGuia = conClp ? num(profit!.SupplierPaidCLP) : null;
+  const porPagar = conClp ? num(profit!.SupplierDueCLP) : null;
+  const pagosGuia: PagoProveedor[] = Array.isArray(reserva.SupplierPayments)
+    ? [...reserva.SupplierPayments].sort((a, b) => String(a.Date).localeCompare(String(b.Date)))
+    : [];
+  // Editar solo si el servidor ya maneja los campos, el rol opera y la reserva sigue viva.
+  const ofreceGuillermo = conClp || 'SupplierRate' in reserva || 'SupplierPayments' in reserva;
+  const puedeEditarGuillermo = ofreceGuillermo && puedeOperar && !cancelada;
+  const sinDolar = ofreceGuillermo && dolarAcordado == null && costoSuMoneda?.moneda === 'USD';
+  const estadoPago = estado(porPagar);
+  const nombreUnidad = profit?.Unit === 'jornada' ? 'Una jornada' : profit?.Unit ? `Un ${term.personaMinuscula}` : null;
+  // Ganancia = venta − costo, solo si las dos van en la misma moneda y la
+  // resta da lo que mandó el servidor (no se inventa una fórmula).
+  const restaGanancia =
+    conGanancia && profit?.SupplierCost != null && monedaCostos === moneda && Math.abs(reserva.TotalAmount - profit.SupplierCost - profit.Amount!) < 0.5
+      ? `${fmtMonto(moneda, reserva.TotalAmount)} − ${fmtMonto(monedaCostos, profit.SupplierCost)}`
+      : null;
 
   // El backend guarda el programa como código (`FULL_DAY`): se muestra su nombre.
   const programaTexto = nombrePrograma(reserva.RoomID);
@@ -786,42 +960,140 @@ function FichaContenido({
               <DatoResumen etiqueta={term.navPersonas} icono="pescadores" valor={personas ?? '—'} />
               <DatoResumen etiqueta="Mercado" ranura={<RanuraBandera bandera={banderaDeMercado(mercado)} />} valor={mercado ? MERCADO_LABEL[mercado] : '—'} />
             </dl>
-            <div className="grupo grupo--div ficha-resumen__grupo" data-parte="detalle">
+            <div className="ficha-resumen__columnas">
+            <div className="grupo grupo--div ficha-resumen__grupo" data-parte="detalle" data-grupo="cliente">
+              <h3 className="ficha-resumen__titulo">Cliente</h3>
               <dl className="lista-datos">
                 <DatoResumen etiqueta="Venta" icono="venta" cifra={!conUtilidad} valor={fmtMonto(moneda, reserva.TotalAmount)}>
                   {!!reserva.AddonsAmount && <span className="ficha-resumen__sub">Incluye {fmtMonto(moneda, reserva.AddonsAmount)} en extras</span>}
                 </DatoResumen>
-                {conUtilidad ? (
-                  <DatoResumen etiqueta="Costo Guillermo" icono="costo" valor={profit?.SupplierCost != null ? fmtMonto(monedaCostos, profit.SupplierCost) : '—'}>
-                    {costoOriginal && <span className="ficha-resumen__sub">Costo {fmtMonto(costoOriginal.moneda, costoOriginal.monto)}</span>}
-                  </DatoResumen>
-                ) : (
-                  <>
-                    {datoPagado}
-                    {datoSaldo}
-                  </>
-                )}
-              </dl>
-              {conUtilidad && (
-                <div className={`resultado${utilidad.negativa ? ' resultado--perdida' : ''}`} data-resultado="">
-                  <dl className="lista-datos">
-                    <DatoResumen etiqueta="Ganancia" icono={utilidad.negativa ? 'perdida' : 'ganancia'} cifra valor={conGanancia ? fmtMonto(monedaCostos, profit!.Amount!) : '—'} color={utilidad.negativa ? 'var(--status-critico-text)' : undefined}>
-                      {utilidad.negativa && <span className="ficha-resumen__chip"><Chip critico>Pérdida</Chip></span>}
-                    </DatoResumen>
-                    <DatoResumen etiqueta="Margen" icono="margen" cifra valor={conGanancia ? fmtPorcentaje(profit!.Percent!) : '—'} color={utilidad.negativa ? 'var(--status-critico-text)' : undefined}>
-                      {margenLista != null && <span className="ficha-resumen__sub">lista {fmtPorcentaje(margenLista)}</span>}
-                      {margenLista != null && bajoLista && <span className="ficha-resumen__chip"><Chip data-bajo-lista="">Bajo lista</Chip></span>}
-                    </DatoResumen>
-                  </dl>
-                </div>
-              )}
-              {conUtilidad && !conGanancia && <p className="ficha-resumen__motivo">{utilidad.motivo}</p>}
-            </div>
-            {conUtilidad && (
-              <dl className="grupo grupo--div ficha-resumen__grupo" data-parte="detalle">
                 {datoPagado}
                 {datoSaldo}
               </dl>
+            </div>
+            {conUtilidad && (
+              <div className="grupo grupo--div ficha-resumen__grupo" data-parte="detalle" data-grupo="guillermo">
+                <h3 className="ficha-resumen__titulo">Guillermo (costo fijo)</h3>
+                <dl className="lista-datos">
+                  <DatoResumen etiqueta="Costo" icono="costo" valor={valorCosto}>
+                    {desgloseCosto && <span className="ficha-resumen__sub">{desgloseCosto}</span>}
+                  </DatoResumen>
+                  <DatoResumen
+                    etiqueta="Dólar acordado"
+                    icono="dolar"
+                    valor={dolarAcordado != null ? fmtMonto('CLP', dolarAcordado) : sinDolar ? 'Sin acordar' : '—'}
+                    color={sinDolar ? 'var(--status-atencion-text)' : undefined}
+                  />
+                  {conClp && (
+                    <>
+                      <DatoResumen etiqueta="Total CLP" icono="total-clp" valor={totalClp != null ? fmtMonto('CLP', totalClp) : '—'}>
+                        {totalClp != null && dolarAcordado != null && costoSuMoneda?.moneda === 'USD' && (
+                          <span className="ficha-resumen__sub">
+                            {fmtMonto('USD', costoSuMoneda.monto)} × {dolarAcordado.toLocaleString('es-CL', { maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                        {totalClp == null && sinDolar && <span className="ficha-resumen__sub">Falta el dólar acordado</span>}
+                      </DatoResumen>
+                      <DatoResumen etiqueta="Le pagamos" icono="pagado" valor={pagadoGuia != null ? fmtMonto('CLP', pagadoGuia) : '—'}>
+                        {pagosGuia.length === 0 ? (
+                          <span className="ficha-resumen__sub">Sin pagos todavía</span>
+                        ) : (
+                          <ListaPagos
+                            etiqueta="Pagos a Guillermo"
+                            lista="pagos-guillermo"
+                            pagos={pagosGuia.map((p, i) => ({
+                              clave: p.PaymentID ?? `${p.Date}-${i}`,
+                              detalle: [fechaPagoCorta(p.Date, anioViaje), notaSinCorte((p.Notes ?? '').trim())].filter(Boolean).join(' · '),
+                              monto: num(p.Amount) != null ? fmtMonto('CLP', num(p.Amount)!) : '—',
+                            }))}
+                          />
+                        )}
+                      </DatoResumen>
+                      <DatoResumen
+                        etiqueta={estadoPago === 'demas' ? 'Pagado de más' : 'Por pagar'}
+                        icono="saldo"
+                        cifra
+                        cierre
+                        valor={porPagar != null ? fmtMonto('CLP', estadoPago === 'cero' ? 0 : Math.abs(porPagar)) : '—'}
+                        color={colorEstado(estadoPago)}
+                      >
+                        {estadoPago == null ? (
+                          sinDolar && <span className="ficha-resumen__sub">Falta el dólar acordado</span>
+                        ) : (
+                          <span className="ficha-resumen__sub">
+                            {estadoPago === 'cero' ? 'Pagado completo' : estadoPago === 'falta' ? 'Falta pagarle' : `Le pagamos ${fmtMonto('CLP', Math.abs(porPagar!))} de más`}
+                          </span>
+                        )}
+                      </DatoResumen>
+                    </>
+                  )}
+                </dl>
+                {!conClp && (
+                  <p className="ficha-resumen__motivo" data-aviso="servidor">
+                    El total en CLP y los pagos a Guillermo aparecen cuando se actualice el servidor.
+                  </p>
+                )}
+                {puedeEditarGuillermo &&
+                  (editandoGuillermo ? (
+                    <EditorPagosGuillermo
+                      bookingId={reserva.BookingID}
+                      dolar={dolarAcordado}
+                      pagos={pagosGuia}
+                      costo={costoSuMoneda}
+                      unidades={profit?.Units ?? null}
+                      nombreUnidad={nombreUnidad}
+                      anioViaje={anioViaje}
+                      updatedAt={reserva.UpdatedAt ?? null}
+                      actualizando={actualizando}
+                      onRecargar={() => {
+                        volverFocoGuillermo.current = true;
+                        setEditandoGuillermo(false);
+                        recargarTrasGuardar();
+                      }}
+                      bloqueado={confirmacion !== null}
+                      onCerrar={() => {
+                        volverFocoGuillermo.current = true;
+                        setEditandoGuillermo(false);
+                      }}
+                      onGuardado={() => {
+                        volverFocoGuillermo.current = true;
+                        setEditandoGuillermo(false);
+                        avisar('Guardaste los pagos a Guillermo.');
+                        recargarTrasGuardar();
+                      }}
+                      onUnauthorized={handleUnauthorized}
+                    />
+                  ) : (
+                    <div className="ficha-resumen__acciones">
+                      <button ref={editarGuillermoRef} type="button" className="crm-btn crm-btn-ghost ficha-control" onClick={() => setEditandoGuillermo(true)} disabled={confirmacion !== null || guardando || ocupado}>
+                        Editar dólar y pagos
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
+            </div>
+            {conUtilidad && (
+              <div className="grupo grupo--div ficha-resumen__grupo" data-parte="detalle" data-grupo="resultado">
+                <h3 className="ficha-resumen__titulo">Resultado</h3>
+                <div className={`resultado${utilidad.negativa ? ' resultado--perdida' : ''}`} data-resultado="">
+                  <dl className="lista-datos">
+                    <DatoResumen etiqueta="Ganancia" icono={utilidad.negativa ? 'perdida' : 'ganancia'} cifra valor={conGanancia ? fmtMonto(monedaCostos, profit!.Amount!) : '—'} color={utilidad.negativa ? 'var(--status-critico-text)' : undefined}>
+                      {restaGanancia && <span className="ficha-resumen__sub">{restaGanancia}</span>}
+                      {utilidad.negativa && <span className="ficha-resumen__chip"><Chip critico>Pérdida</Chip></span>}
+                    </DatoResumen>
+                    <DatoResumen etiqueta="Margen" icono="margen" cifra valor={conGanancia ? fmtPorcentaje(profit!.Percent!) : '—'} color={utilidad.negativa ? 'var(--status-critico-text)' : undefined}>
+                      {margenLista != null && (
+                        <span className="ficha-resumen__sub ficha-resumen__sub--chip">
+                          <span>De lista: {fmtPorcentaje(margenLista)}</span>
+                          {bajoLista && <Chip data-bajo-lista="">Bajo lista</Chip>}
+                        </span>
+                      )}
+                    </DatoResumen>
+                  </dl>
+                </div>
+                {!conGanancia && <p className="ficha-resumen__motivo">{utilidad.motivo}</p>}
+              </div>
             )}
           </div>
         </section>
@@ -1052,6 +1324,8 @@ function FichaContenido({
           <AcompanantesReserva
             bookingId={reserva.BookingID}
             inicial={reserva.Companions ?? []}
+            actualizadaEn={reserva.UpdatedAt ?? null}
+            actualizando={actualizando}
             editable={!cancelada && confirmacion === null}
             onCambio={onCambioAcompanantes}
             onEditando={setEditandoAcompanante}
@@ -1161,8 +1435,27 @@ function FichaContenido({
             ) : (
               <>
                 {error && !errorCampo && (
-                  <div role="alert" style={{ fontSize: 13, color: 'var(--status-critico-text)', marginBottom: 10 }}>
-                    {error}
+                  <div role={modificadaFicha ? undefined : 'alert'} data-aviso={modificadaFicha ? 'reserva-modificada' : undefined} style={{ fontSize: 13, color: 'var(--status-critico-text)', marginBottom: 10 }}>
+                    {modificadaFicha ? <span role="alert">{error}</span> : error}
+                    {modificadaFicha && (
+                      <div style={{ marginTop: 6 }}>
+                        <button
+                          ref={recargarFichaRef}
+                          type="button"
+                          className="crm-btn crm-btn-tonal crm-btn-sm"
+                          onClick={() => {
+                            // Lo editado no se guardó: se descarta y se trae lo último.
+                            setForm(base);
+                            setError(null);
+                            setReintentar(false);
+                            setModificadaFicha(false);
+                            recargarTrasGuardar();
+                          }}
+                        >
+                          Recargar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {sucio || guardando ? (
@@ -1178,13 +1471,14 @@ function FichaContenido({
                         setError(null);
                         setErrorCampo(null);
                         setReintentar(false);
+                        setModificadaFicha(false);
                       }}
                     >
                       Descartar
                     </button>
                     {puedeOperar && (
-                    <button type="button" className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando} title={isDesktop ? 'Guardar (⌘S o Ctrl+S)' : undefined}>
-                      {guardando ? 'Guardando…' : reintentar ? 'Reintentar' : 'Guardar cambios'}
+                    <button type="button" className="crm-btn crm-btn-primary" onClick={() => void guardar()} disabled={guardando || actualizando || modificadaFicha} title={isDesktop ? 'Guardar (⌘S o Ctrl+S)' : undefined}>
+                      {guardando ? 'Guardando…' : actualizando ? 'Actualizando…' : reintentar ? 'Reintentar' : 'Guardar cambios'}
                     </button>
                     )}
                   </div>

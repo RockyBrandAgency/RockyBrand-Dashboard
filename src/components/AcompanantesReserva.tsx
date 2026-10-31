@@ -1,16 +1,24 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { guardarAcompanantes, UnauthorizedError } from '../api/dashboardApi';
+import { esReservaModificada, getReservasResumen, guardarAcompanantes, MENSAJE_RESERVA_MODIFICADA, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth, usePermiso } from '../context/AuthContext';
 import {
   BORRADOR_VACIO,
+  DOCUMENTO_VACIO,
   LIMITES_ACOMPANANTE,
+  documentoABorrador,
   edad,
   errorDeAcompanante,
+  errorDeDocumento,
+  etiquetaTipoDocumento,
   isoLocal,
   nombreCompleto,
   normalizarBorrador,
+  normalizarDocumento,
+  tieneDocumento,
+  type BorradorDocumento,
 } from '../lib/acompanantes';
 import type { Acompanante, BorradorAcompanante } from '../types';
+import { CamposDocumento } from './CamposDocumento';
 
 const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' };
 const inputStyle: React.CSSProperties = {
@@ -49,6 +57,8 @@ function fmtNacimiento(iso: string): string {
 export function AcompanantesReserva({
   bookingId,
   inicial,
+  actualizadaEn = null,
+  actualizando = false,
   editable,
   onCambio,
   onEditando,
@@ -58,6 +68,10 @@ export function AcompanantesReserva({
 }: {
   bookingId: string;
   inicial: Acompanante[];
+  /** UpdatedAt de la reserva que se leyó: va como ExpectedUpdatedAt (409 si cambió). */
+  actualizadaEn?: string | null;
+  /** Recarga pendiente tras un guardado propio de la ficha: no se guarda. */
+  actualizando?: boolean;
   editable: boolean;
   onCambio: () => void;
   onEditando: (editando: boolean) => void;
@@ -75,8 +89,50 @@ export function AcompanantesReserva({
   // 'nuevo', el CompanionID que se está editando, o null.
   const [editando, setEditando] = useState<string | null>(null);
   const [borrador, setBorrador] = useState<BorradorAcompanante>(BORRADOR_VACIO);
+  const [documento, setDocumento] = useState<BorradorDocumento>(DOCUMENTO_VACIO);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
+  // 409 reserva_modificada (30-oct): lo escrito queda hasta que se recargue.
+  const [modificada, setModificada] = useState(false);
+  const [recargando, setRecargando] = useState(false);
+  // Concurrencia (30-oct, ronda 4): `esperado` es la versión del servidor que
+  // corresponde EXACTAMENTE a `lista`; se mueven juntas, nunca una sola. Tras
+  // un PUT propio pasa a ser la de la respuesta (o ninguna, si no la trae: no
+  // se manda una versión que no calce con lo guardado).
+  const esperado = useRef<string | null>(actualizadaEn);
+  const inicialRef = useRef(inicial);
+  inicialRef.current = inicial;
+  // Lo que tenía el formulario al abrirse, para saber si hay cambios sin guardar.
+  const abiertoCon = useRef('');
+  const huellaForm = JSON.stringify([borrador, documento]);
+  const conCambios = useRef(false);
+  const editandoActual = useRef(editando);
+  editandoActual.current = editando;
+  conCambios.current = editando !== null && huellaForm !== abiertoCon.current;
+  // Llegó otra versión de la reserva: sin cambios sin guardar, la lista (y el
+  // formulario abierto) se rearman con lo nuevo; con cambios, se conserva la
+  // versión de lo que se editó y el servidor responde 409 si alguien cambió.
+  useEffect(() => {
+    if (!actualizadaEn || actualizadaEn === esperado.current || conCambios.current) return;
+    esperado.current = actualizadaEn;
+    const nueva = inicialRef.current;
+    setLista(nueva);
+    setModificada(false);
+    const ed = editandoActual.current;
+    if (ed === null || ed === 'nuevo') return;
+    const a = nueva.find((x) => x.CompanionID === ed);
+    if (!a) {
+      setEditando(null);
+      return;
+    }
+    const b = { ...a };
+    const d = documentoABorrador(a.IdentityDocument);
+    abiertoCon.current = JSON.stringify([b, d]);
+    setBorrador(b);
+    setDocumento(d);
+    // Solo la versión dispara el rearmado: la lista llega con ella.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actualizadaEn]);
 
   // En un ref para que el efecto dependa solo de `editando`: quien pasa una
   // flecha nueva en cada render no dispara un aviso (y un render) por render.
@@ -87,7 +143,11 @@ export function AcompanantesReserva({
   }, [editando]);
 
   function abrir(a: Acompanante | null) {
-    setBorrador(a ? { ...a } : BORRADOR_VACIO);
+    const b = a ? { ...a } : BORRADOR_VACIO;
+    const d = documentoABorrador(a?.IdentityDocument);
+    abiertoCon.current = JSON.stringify([b, d]);
+    setBorrador(b);
+    setDocumento(d);
     setEditando(a ? a.CompanionID : 'nuevo');
     setError('');
   }
@@ -95,14 +155,18 @@ export function AcompanantesReserva({
   function cerrarFormulario() {
     setEditando(null);
     setBorrador(BORRADOR_VACIO);
+    setDocumento(DOCUMENTO_VACIO);
     setError('');
   }
 
-  async function persistir(nueva: BorradorAcompanante[]): Promise<boolean> {
+  // `conDocumento`: posición del acompañante al que se le mandó documento. Si
+  // la respuesta no lo trae, el servidor desplegado todavía no lo guarda.
+  async function persistir(nueva: BorradorAcompanante[], conDocumento: number | null = null): Promise<boolean> {
     setGuardando(true);
     setError('');
     try {
-      const res = await guardarAcompanantes(bookingId, nueva);
+      // ExpectedUpdatedAt solo si la reserva lo trajo (el servidor anterior no lo manda).
+      const res = esperado.current ? await guardarAcompanantes(bookingId, nueva, esperado.current) : await guardarAcompanantes(bookingId, nueva);
       if (!Array.isArray(res.Companions)) {
         // La Lambda desplegada respondió 200 pero no conoce el campo: no se
         // guardó nada. Decirlo es mejor que mostrar un acompañante que al
@@ -110,11 +174,22 @@ export function AcompanantesReserva({
         throw new Error('El servidor todavía no guarda acompañantes. No se guardó el cambio.');
       }
       setLista(res.Companions);
+      esperado.current = typeof res.UpdatedAt === 'string' && res.UpdatedAt ? res.UpdatedAt : null;
       onCambio();
+      if (conDocumento !== null && !tieneDocumento(res.Companions[conDocumento]?.IdentityDocument)) {
+        // El resto sí quedó guardado: se cierra el formulario y se avisa.
+        setEditando(null);
+        setError('Se guardó el acompañante, pero el servidor todavía no guarda su documento.');
+        return false;
+      }
       return true;
     } catch (e) {
       if (e instanceof UnauthorizedError) {
         handleUnauthorized();
+        return false;
+      }
+      if (esReservaModificada(e)) {
+        setModificada(true);
         return false;
       }
       setError(e instanceof Error ? e.message : 'No se pudo guardar.');
@@ -124,21 +199,52 @@ export function AcompanantesReserva({
     }
   }
 
+  // Trae la reserva de nuevo (la misma ruta que abre una ficha por booking_id)
+  // y reemplaza lo local: recién ahí se pierde lo escrito.
+  async function recargar() {
+    setRecargando(true);
+    try {
+      const { reservas } = await getReservasResumen({ bookingId });
+      const r = reservas.find((x) => x.BookingID === bookingId);
+      if (!r) throw new Error('Sin la reserva');
+      setLista(r.Companions ?? []);
+      esperado.current = r.UpdatedAt ?? null;
+      cerrarFormulario();
+      setModificada(false);
+      onCambio();
+    } catch (e) {
+      if (e instanceof UnauthorizedError) return handleUnauthorized();
+      setError('No pudimos recargar la reserva. Vuelve a intentarlo.');
+    } finally {
+      setRecargando(false);
+    }
+  }
+
   async function guardar() {
-    const problema = errorDeAcompanante(borrador);
+    if (modificada || actualizando) return;
+    const problema = errorDeAcompanante(borrador) ?? errorDeDocumento(documento);
     if (problema) {
       setError(problema);
       return;
     }
-    const limpio = normalizarBorrador(borrador);
+    const anterior = lista.find((a) => a.CompanionID === editando);
+    const doc = normalizarDocumento(documento, borrador.BirthDate || null, anterior?.IdentityDocument);
+    // La clave va solo si hay documento o si había uno que se borró: así el
+    // acompañante sin documento viaja igual que antes.
+    const limpio: BorradorAcompanante = {
+      ...normalizarBorrador(borrador),
+      ...(doc || tieneDocumento(anterior?.IdentityDocument) ? { IdentityDocument: doc } : {}),
+    };
     const nueva =
       editando === 'nuevo'
         ? [...lista, limpio]
         : lista.map((a) => (a.CompanionID === editando ? { ...limpio, CompanionID: a.CompanionID } : a));
-    if (await persistir(nueva)) cerrarFormulario();
+    const posicion = editando === 'nuevo' ? nueva.length - 1 : lista.findIndex((a) => a.CompanionID === editando);
+    if (await persistir(nueva, doc ? posicion : null)) cerrarFormulario();
   }
 
   async function quitar(a: Acompanante) {
+    if (actualizando) return;
     if (!confirm(`¿Quitar a ${nombreCompleto(a)} de los acompañantes de esta reserva?`)) return;
     await persistir(lista.filter((x) => x.CompanionID !== a.CompanionID));
   }
@@ -200,7 +306,7 @@ export function AcompanantesReserva({
                       <button className="crm-btn crm-btn-text crm-btn-sm" onClick={() => abrir(a)} disabled={guardando}>
                         Editar
                       </button>
-                      <button className="crm-btn crm-btn-danger crm-btn-sm" onClick={() => void quitar(a)} disabled={guardando}>
+                      <button className="crm-btn crm-btn-danger crm-btn-sm" onClick={() => void quitar(a)} disabled={guardando || actualizando}>
                         Quitar
                       </button>
                     </div>
@@ -225,6 +331,13 @@ export function AcompanantesReserva({
                     <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin alergias alimentarias</span>
                   )}
                 </div>
+                {tieneDocumento(a.IdentityDocument) && (
+                  <div data-dato="documento" style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 8, overflowWrap: 'anywhere' }}>
+                    {etiquetaTipoDocumento(a.IdentityDocument.Type)} {a.IdentityDocument.Number}
+                    {a.IdentityDocument.Nationality && ` · ${a.IdentityDocument.Nationality}`}
+                    {a.IdentityDocument.EntryDate && ` · Ingresó el ${fmtNacimiento(a.IdentityDocument.EntryDate)}`}
+                  </div>
+                )}
                 {a.Notes && (
                   <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 8, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{a.Notes}</div>
                 )}
@@ -322,6 +435,8 @@ export function AcompanantesReserva({
             </div>
           )}
 
+          <CamposDocumento idBase={ids} valor={documento} onChange={setDocumento} estiloEtiqueta={fieldLabel} estiloCampo={inputStyle} />
+
           <div style={{ marginTop: 12 }}>
             <label style={fieldLabel} htmlFor={`${ids}-notas`}>
               Notas
@@ -343,8 +458,8 @@ export function AcompanantesReserva({
             <button className="crm-btn crm-btn-text crm-btn-sm" onClick={cerrarFormulario} disabled={guardando}>
               Cancelar
             </button>
-            <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => void guardar()} disabled={guardando}>
-              {guardando ? 'Guardando…' : 'Guardar acompañante'}
+            <button className="crm-btn crm-btn-primary crm-btn-sm" onClick={() => void guardar()} disabled={guardando || modificada || actualizando}>
+              {guardando ? 'Guardando…' : actualizando ? 'Actualizando…' : 'Guardar acompañante'}
             </button>
           </div>
         </div>
@@ -352,6 +467,17 @@ export function AcompanantesReserva({
 
       {/* El error de quitar no tiene formulario donde mostrarse. */}
       {editando === null && error && <div style={{ fontSize: 12, color: 'var(--status-critico-dot)', marginTop: 10 }}>{error}</div>}
+
+      {modificada && (
+        <div data-aviso="reserva-modificada" style={{ marginTop: 10 }}>
+          <p role="alert" style={{ fontSize: 12, color: 'var(--status-critico-dot)', margin: 0 }}>
+            {MENSAJE_RESERVA_MODIFICADA}
+          </p>
+          <button type="button" className="crm-btn crm-btn-primary crm-btn-sm" style={{ marginTop: 8 }} onClick={() => void recargar()} disabled={recargando}>
+            {recargando ? 'Recargando…' : 'Recargar'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

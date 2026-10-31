@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { BORRADOR_VACIO, edad, errorDeAcompanante, isoLocal, nombreCompleto, normalizarBorrador } from './acompanantes';
+import {
+  BORRADOR_VACIO,
+  DOCUMENTO_VACIO,
+  documentoABorrador,
+  edad,
+  errorDeAcompanante,
+  errorDeDocumento,
+  isoLocal,
+  nombreCompleto,
+  normalizarBorrador,
+  normalizarDocumento,
+  tieneDocumento,
+} from './acompanantes';
 
 // Qué afirma este archivo: que el panel rechaza antes de mandar lo mismo que
 // rechaza pms_models.validar_acompanantes, con un mensaje que entiende quien
@@ -68,5 +80,50 @@ describe('isoLocal y nombreCompleto', () => {
   it('no deja un espacio colgando si no hay apellido', () => {
     expect(nombreCompleto({ FirstName: 'Mary', LastName: '' })).toBe('Mary');
     expect(nombreCompleto({ FirstName: 'Mary', LastName: 'Smith' })).toBe('Mary Smith');
+  });
+});
+
+describe('documento del acompañante', () => {
+  const doc = { ...DOCUMENTO_VACIO, Type: 'PASSPORT' as const, Number: 'X1' };
+
+  it('en blanco es válido y no se manda', () => {
+    expect(errorDeDocumento(DOCUMENTO_VACIO)).toBeNull();
+    expect(normalizarDocumento(DOCUMENTO_VACIO, '1980-03-12')).toBeNull();
+  });
+
+  it('si viene, exige tipo y número (como validar_documento)', () => {
+    expect(errorDeDocumento({ ...DOCUMENTO_VACIO, Nationality: 'USA' })).toBe('Elige el tipo de documento.');
+    expect(errorDeDocumento({ ...doc, Number: '   ' })).toBe('Falta el número del documento.');
+    expect(errorDeDocumento({ ...doc, EntryDate: '2027-02-30' })).toBe('La fecha de ingreso no es válida.');
+    expect(errorDeDocumento(doc)).toBeNull();
+  });
+
+  it('normaliza: recorta, nacionalidad en mayúsculas, sin fechas vacías', () => {
+    expect(normalizarDocumento({ ...doc, Number: ' X1 ', Nationality: ' bra ' }, null)).toEqual({ Type: 'PASSPORT', Number: 'X1', Nationality: 'BRA' });
+    expect(normalizarDocumento({ ...doc, EntryDate: '2027-01-10' }, '1980-03-12')).toEqual({
+      Type: 'PASSPORT',
+      Number: 'X1',
+      Nationality: '',
+      BirthDate: '1980-03-12',
+      EntryDate: '2027-01-10',
+    });
+  });
+
+  it('sin fecha del acompañante conserva la que ya traía el documento', () => {
+    const anterior = { Type: 'RUT' as const, Number: '1-9', Nationality: 'CHL', BirthDate: '1975-05-01' };
+    expect(normalizarDocumento({ ...doc, Type: 'RUT', Number: '1-9' }, null, anterior)?.BirthDate).toBe('1975-05-01');
+  });
+
+  it('null, {} o la clave ausente no son documento', () => {
+    expect(tieneDocumento(null)).toBe(false);
+    expect(tieneDocumento({})).toBe(false);
+    expect(tieneDocumento(undefined)).toBe(false);
+    expect(documentoABorrador({})).toEqual(DOCUMENTO_VACIO);
+    expect(documentoABorrador({ Type: 'DNI', Number: '30111222', Nationality: 'ARG' })).toEqual({
+      Type: 'DNI',
+      Number: '30111222',
+      Nationality: 'ARG',
+      EntryDate: '',
+    });
   });
 });

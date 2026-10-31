@@ -588,6 +588,7 @@ function DetalleHuesped({ fila, onClose, onGuardado }: { fila: FilaHuesped; onCl
             key={r.BookingID}
             bookingId={r.BookingID}
             inicial={r.Companions ?? []}
+            actualizadaEn={r.UpdatedAt ?? null}
             editable
             separacion="arriba"
             titulo={`Acompañantes · viaje del ${fmtDate(r.CheckIn)}${r.Status === 'PENDING' ? ' (pendiente de pago)' : ''}`}

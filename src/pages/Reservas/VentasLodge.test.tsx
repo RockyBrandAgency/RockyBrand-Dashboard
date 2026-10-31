@@ -35,6 +35,8 @@ vi.mock('../../api/dashboardApi', () => ({
   cancelarReserva: vi.fn(),
   confirmarReserva: vi.fn(),
   actualizarReserva: vi.fn(),
+  // La ficha pide los pagos del cliente (30-oct); sin pagos, sin desglose.
+  getPagosReserva: () => Promise.resolve({ payments: [] }),
   actualizarHuesped: vi.fn(),
   guardarAcompanantes: vi.fn(),
   ...Errores,

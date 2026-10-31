@@ -53,6 +53,8 @@ import type {
   BerryPartesFirmadas,
   BerrySubidaIniciada,
   FishingExperience,
+  PagoProveedor,
+  PagoReserva,
 } from '../types';
 
 // Misma clase / mismo criterio que 05-panel-web/src/api.ts: cualquier 401
@@ -99,7 +101,21 @@ export class ErrorTransitorio extends Error {
 // 409: lo que se quería guardar se armó sobre datos que otra persona ya
 // cambió. Es un Error común con su mensaje, para que las pantallas que no lo
 // distinguen sigan mostrándolo igual; las que sí, ofrecen traer lo actual.
-export class ConflictError extends Error {}
+export class ConflictError extends Error {
+  /** Código del servidor, p. ej. `reserva_modificada` (30-oct). */
+  readonly code?: string;
+  constructor(message?: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+/** 409 del PUT de una reserva cuyo UpdatedAt ya no es el que leyó el panel. */
+export const RESERVA_MODIFICADA = 'reserva_modificada';
+export const MENSAJE_RESERVA_MODIFICADA =
+  'Alguien cambió esta reserva mientras la editabas. Recarga para ver lo último; tus cambios no se guardaron.';
+export function esReservaModificada(e: unknown): boolean {
+  return e instanceof ConflictError && e.code === RESERVA_MODIFICADA;
+}
 /** 400: la petición está mal formada (p. ej., una temporada mal escrita). Es
  *  un Error común con el mensaje del servidor: quien ya atrapa Error no cambia. */
 export class SolicitudInvalidaError extends Error {}
@@ -169,7 +185,10 @@ async function requestUnaVez<T>(path: string, method: string, body: unknown): Pr
     const delServidor = (res.data as { error?: string }).error;
     const mensaje = delServidor || 'Error de conexión con el dashboard.';
     if (ESTADOS_TRANSITORIOS.has(res.status)) throw new ErrorTransitorio(mensaje, Boolean(delServidor));
-    if (res.status === 409) throw new ConflictError(mensaje);
+    if (res.status === 409) {
+      const code = (res.data as { code?: unknown }).code;
+      throw new ConflictError(mensaje, typeof code === 'string' ? code : undefined);
+    }
     if (res.status === 400) throw new SolicitudInvalidaError(mensaje);
     if (res.status === 403) {
       // 403 por rol (2026-10-20): el servidor manda su motivo; si viene vacío
@@ -248,11 +267,40 @@ export function getVentas(temporada?: string): Promise<VentasResponse> {
 // Licencia y equipo (5.0.0): la respuesta trae de vuelta el valor guardado.
 // Si no lo trae, la Lambda desplegada es anterior e ignoró el campo, igual
 // que con guardarAcompanantes.
+//
+// Pagos a Guillermo (30-oct): SupplierRate (CLP por USD acordado) y la lista
+// ENTERA de SupplierPayments; la respuesta los trae de vuelta si la Lambda
+// los guardó.
 export function actualizarReserva(
   bookingId: string,
-  cambios: { CheckIn?: string; CheckOut?: string; BookingNotes?: string; FishingLicensePurchased?: boolean; BringsOwnGear?: boolean }
-): Promise<{ BookingID: string; message: string; FishingLicensePurchased?: boolean; BringsOwnGear?: boolean }> {
+  cambios: {
+    CheckIn?: string;
+    CheckOut?: string;
+    BookingNotes?: string;
+    FishingLicensePurchased?: boolean;
+    BringsOwnGear?: boolean;
+    SupplierRate?: number | null;
+    SupplierPayments?: PagoProveedor[];
+    /** UpdatedAt que leyó el panel: si cambió, el servidor responde 409 reserva_modificada. */
+    ExpectedUpdatedAt?: string;
+  }
+): Promise<{
+  BookingID: string;
+  message: string;
+  FishingLicensePurchased?: boolean;
+  BringsOwnGear?: boolean;
+  SupplierRate?: number | null;
+  UpdatedAt?: string;
+  SupplierPayments?: PagoProveedor[];
+}> {
   return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'PUT', cambios);
+}
+
+// Pagos del cliente de una reserva (30-oct), para el desglose de «Pagó» en la
+// ficha. Solo lectura. Si la ruta no existe o falla, la ficha no muestra el
+// desglose: el total sigue saliendo de PaidAmount.
+export function getPagosReserva(bookingId: string): Promise<{ BookingID?: string; payments: PagoReserva[] }> {
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}/payments`);
 }
 
 // Reserva manual (llamada/mail/walk-in) y su cancelación (2026-08-06,
@@ -265,9 +313,12 @@ export function actualizarReserva(
 // la trae, la Lambda desplegada es anterior a la función e ignoró el campo.
 export function guardarAcompanantes(
   bookingId: string,
-  companions: BorradorAcompanante[]
-): Promise<{ BookingID: string; message: string; Companions?: Acompanante[] }> {
-  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'PUT', { Companions: companions });
+  companions: BorradorAcompanante[],
+  expectedUpdatedAt?: string | null
+): Promise<{ BookingID: string; message: string; Companions?: Acompanante[]; UpdatedAt?: string }> {
+  // ExpectedUpdatedAt (30-oct): solo si la reserva lo trajo; si cambió, 409 reserva_modificada.
+  const cuerpo = expectedUpdatedAt ? { Companions: companions, ExpectedUpdatedAt: expectedUpdatedAt } : { Companions: companions };
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'PUT', cuerpo);
 }
 
 export function crearReserva(payload: NuevaReservaPayload): Promise<{ BookingID: string; message: string }> {

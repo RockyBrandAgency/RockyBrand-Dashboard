@@ -871,13 +871,57 @@ fieldset:disabled .garantia-chip{ cursor:default; }
    sigue en orden de lectura (fila por fila) y el bloque teñido ocupa las dos. */
 @media (min-width:1000px){
   .ficha-resumen__grupos{ max-width:1008px; }
-  .ficha-resumen__grupos dl.grupo, .ficha-resumen__grupos .lista-datos{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:48px; align-items:start; }
+  .ficha-resumen__grupos dl.grupo, .ficha-resumen__grupos .resultado .lista-datos{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:48px; align-items:start; }
+  /* Revisión UX 30-oct: Cliente y Guillermo son las columnas, cada una se lee de arriba abajo. */
+  .ficha-resumen__columnas{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:48px; align-items:start; }
 }
 .ficha-resumen__grupos{ min-width:0; }
 .ficha-resumen__grupos > .grupo:first-child{ margin-top:12px; }
 .ficha-resumen__sub{ display:block; font-size:12px; line-height:18px; color:var(--text-sub); }
 .ficha-resumen__chip{ display:block; padding-top:6px; }
 .ficha-resumen__motivo{ margin:6px 0 0; font-size:12px; line-height:18px; color:var(--text-sub); }
+/* Orden financiero del resumen (30-oct): título de cada grupo (Cliente,
+   Guillermo, Resultado), desgloses de pagos y el editor de pagos a Guillermo. */
+.ficha-resumen__titulo{ margin:0 0 6px; font-size:14px; line-height:24px; font-weight:600; color:var(--text); }
+.ficha-resumen__columnas{ min-width:0; }
+/* Fila de cierre (Por cobrar / Por pagar): divisor de 1 px con 6 arriba y 6 abajo (padding de la fila). */
+.fila-dato--cierre{ border-top:1px solid var(--border); }
+/* Si el valor baja de línea, queda a la derecha igual. */
+.fila-dato--resumen > .fila-dato__valor{ margin-left:auto; padding-left:6px; }
+.ficha-resumen__sub--chip{ display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:6px; }
+/* Pagos bajo la fila: detalle sangrado 24 (ícono 18 + 6) a la izquierda, monto a la derecha. */
+.ficha-resumen__pagos{ list-style:none; margin:0; padding:0; font-size:12px; line-height:18px; color:var(--text-sub); }
+.ficha-resumen__pago{ display:flex; align-items:baseline; gap:12px; }
+.ficha-resumen__pago-detalle{ flex:1 1 auto; min-width:0; padding-left:24px; text-align:left; overflow-wrap:normal; }
+.ficha-resumen__pago-monto{ flex:none; margin-left:auto; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--text); }
+.ficha-resumen__acciones{ display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+.editor-guillermo{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border); min-width:0; }
+.editor-guillermo fieldset{ border:0; margin:0; padding:0; min-width:0; }
+.editor-guillermo__leyenda{ padding:0; margin:0 0 12px; font-size:14px; line-height:24px; font-weight:600; color:var(--text); }
+.editor-guillermo__dolar{ max-width:240px; }
+.editor-guillermo__vacio{ margin:12px 0 0; font-size:14px; line-height:24px; color:var(--text-sub); }
+.editor-guillermo__pagos{ list-style:none; margin:12px 0; padding:0; display:flex; flex-direction:column; gap:12px; }
+.editor-guillermo__pago{ padding:12px; border:1px solid var(--border); border-radius:6px; min-width:0; }
+.editor-guillermo__pago-campos{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; }
+.editor-guillermo__pago-titulo{ padding:0; margin:0 0 6px; font-size:14px; line-height:24px; font-weight:600; color:var(--text); }
+.editor-guillermo__celda{ flex:1 1 140px; min-width:0; }
+.editor-guillermo__celda--nota{ flex:2 1 200px; }
+.editor-guillermo__previa{ margin-top:6px; font-size:12px; line-height:18px; color:var(--text-sub); }
+.editor-guillermo__previa p{ margin:0; }
+.editor-guillermo__suma{ margin-top:12px; font-size:14px; line-height:24px; color:var(--text); }
+.editor-guillermo__aviso{ color:var(--status-atencion-text); }
+.editor-guillermo__pago--cerrado{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:6px 6px 6px 12px; }
+.editor-guillermo__lectura{ flex:1 1 180px; min-width:0; display:flex; flex-direction:column; font-size:14px; line-height:18px; color:var(--text); }
+.editor-guillermo__lectura-linea{ font-variant-numeric:tabular-nums; }
+.editor-guillermo__lectura-nota{ font-size:12px; line-height:18px; color:var(--text-sub); }
+.editor-guillermo__lectura-acciones{ flex:none; display:flex; gap:6px; margin-left:auto; }
+.ficha-pescador [data-tarjeta] .crm-btn.editor-guillermo__boton{ padding:0 12px; }
+.editor-guillermo__pago-cabecera{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-basis:100%; }
+.editor-guillermo__pago-cabecera .editor-guillermo__pago-titulo{ margin:0; }
+.editor-guillermo__descartar{ margin-top:12px; }
+.editor-guillermo__descartar > p{ margin:0; font-size:14px; line-height:24px; color:var(--text); }
+.editor-guillermo__error{ margin:12px 0 0; font-size:14px; line-height:24px; color:var(--status-critico-text); }
+.editor-guillermo__acciones{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-top:12px; }
 .resultado--perdida .icono{ color:var(--status-critico-text); }
 .ficha-control{ min-height:48px; }
 .ficha-pescador [data-tarjeta] .crm-btn{ gap:6px; padding:0 18px; font-size:14px; line-height:18px; }

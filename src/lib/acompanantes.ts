@@ -1,4 +1,4 @@
-import type { Acompanante, BorradorAcompanante } from '../types';
+import type { Acompanante, BorradorAcompanante, DocumentoIdentidad, TipoDocumento } from '../types';
 
 // Acompañantes de una reserva (2026-10-05, pedido de Mato: "vienen pescadores
 // solos y otros con su señora"). Estas reglas repiten las de
@@ -83,4 +83,69 @@ export function edad(nacimiento: string | null, en: Date = new Date()): number |
 
 export function nombreCompleto(a: Pick<Acompanante, 'FirstName' | 'LastName'>): string {
   return [a.FirstName, a.LastName].filter(Boolean).join(' ');
+}
+
+// Documento del acompañante para el registro de pasajeros (2026-10-30). Mismas
+// reglas que pms_models.validar_documento: opcional entero, pero si viene, con
+// tipo y número; un registro legal a medias da la falsa impresión de estar
+// cubierto. La fecha de nacimiento no se pide dos veces: es la del acompañante.
+export const TIPOS_DOCUMENTO: { valor: TipoDocumento; etiqueta: string }[] = [
+  { valor: 'PASSPORT', etiqueta: 'Pasaporte' },
+  { valor: 'RUT', etiqueta: 'RUT' },
+  { valor: 'DNI', etiqueta: 'DNI' },
+  { valor: 'OTHER', etiqueta: 'Otro' },
+];
+
+export interface BorradorDocumento {
+  Type: TipoDocumento | '';
+  Number: string;
+  Nationality: string;
+  EntryDate: string;
+}
+
+export const DOCUMENTO_VACIO: BorradorDocumento = { Type: '', Number: '', Nationality: '', EntryDate: '' };
+
+/** True si el valor guardado es un documento de verdad (no null ni {}). */
+export function tieneDocumento(d: Acompanante['IdentityDocument']): d is DocumentoIdentidad {
+  return !!d && typeof d === 'object' && typeof (d as DocumentoIdentidad).Type === 'string' && !!(d as DocumentoIdentidad).Number;
+}
+
+export function documentoABorrador(d: Acompanante['IdentityDocument']): BorradorDocumento {
+  if (!tieneDocumento(d)) return DOCUMENTO_VACIO;
+  return { Type: d.Type, Number: d.Number, Nationality: d.Nationality ?? '', EntryDate: d.EntryDate ?? '' };
+}
+
+export function documentoEnBlanco(b: BorradorDocumento): boolean {
+  return !b.Type && !b.Number.trim() && !b.Nationality.trim() && !b.EntryDate;
+}
+
+/** El primer problema del documento; null si está bien o si quedó en blanco. */
+export function errorDeDocumento(b: BorradorDocumento): string | null {
+  if (documentoEnBlanco(b)) return null;
+  if (!b.Type) return 'Elige el tipo de documento.';
+  if (!b.Number.trim()) return 'Falta el número del documento.';
+  if (b.EntryDate && !esFechaReal(b.EntryDate)) return 'La fecha de ingreso no es válida.';
+  return null;
+}
+
+/** Lo que se manda: null si quedó en blanco. `nacimiento` es la fecha del
+ *  acompañante; si no la hay, se conserva la que ya traía el documento. */
+export function normalizarDocumento(
+  b: BorradorDocumento,
+  nacimiento: string | null,
+  anterior?: Acompanante['IdentityDocument'],
+): DocumentoIdentidad | null {
+  if (documentoEnBlanco(b) || !b.Type) return null;
+  const fechaNacimiento = nacimiento || (tieneDocumento(anterior) ? anterior.BirthDate : undefined);
+  return {
+    Type: b.Type,
+    Number: b.Number.trim(),
+    Nationality: b.Nationality.trim().toUpperCase(),
+    ...(fechaNacimiento ? { BirthDate: fechaNacimiento } : {}),
+    ...(b.EntryDate ? { EntryDate: b.EntryDate } : {}),
+  };
+}
+
+export function etiquetaTipoDocumento(t: string): string {
+  return TIPOS_DOCUMENTO.find((x) => x.valor === t)?.etiqueta ?? t;
 }

@@ -21,6 +21,8 @@ vi.mock('../../api/dashboardApi', () => ({
   guardarAcompanantes: (...args: unknown[]) => api.guardarAcompanantes(...args),
   actualizarHuesped: vi.fn(),
   actualizarReserva: vi.fn(),
+  // La ficha pide los pagos del cliente (30-oct); sin pagos, sin desglose.
+  getPagosReserva: () => Promise.resolve({ payments: [] }),
   cancelarReserva: vi.fn(),
   confirmarReserva: vi.fn(),
   UnauthorizedError: class UnauthorizedError extends Error {},
