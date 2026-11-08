@@ -5,6 +5,7 @@ import { LineChart } from '../../components/LineChart';
 import { MetricsPageHeader } from '../../components/MetricsPageHeader';
 import { useClientContextLabel } from '../../hooks/useClientContextLabel';
 import { useMetricsReport } from '../../hooks/useMetricsReport';
+import { formatoDuracion, ReporteEjecutivoWeb } from './ReporteEjecutivoWeb';
 import { downloadCsv } from '../../lib/exportCsv';
 import type { DateRangeDays } from '../../components/DateRangeControl';
 
@@ -82,6 +83,23 @@ export function MetricasWeb({ isDesktop }: { isDesktop: boolean }) {
       ['País', 'Usuarios'],
       ...paises.map((p) => [p.pais, p.usuarios]),
     ];
+    const ej = web.ejecutivo;
+    if (ej && 'eeuu' in ej && !ej.nota) {
+      rows.push(
+        [],
+        ['Reporte ejecutivo'],
+        ['Visitas desde EE. UU. (sin ' + ej.eeuu.excluye.join(', ') + ')', ej.eeuu.usuarios],
+        ['Ciudad', 'Personas', 'Duración promedio'],
+        ...ej.eeuu.ciudades.map((c) => [c.ciudad, c.usuarios, formatoDuracion(c.duracion_media_s)]),
+        [],
+        ['Formulario de reserva', 'Personas'],
+        ...ej.formulario.etapas.map((e) => [e.etapa, e.usuarios]),
+        [],
+        ['Atención por visita', formatoDuracion(ej.sesion.tiempo_activo_s)],
+        ['Duración promedio de la visita', formatoDuracion(ej.sesion.duracion_media_s)],
+        ['Visitas con interacción', ej.sesion.sesiones_con_interaccion, 'de', ej.sesion.sesiones],
+      );
+    }
     downloadCsv(`metricas-web-${days}d.csv`, rows);
   };
 
@@ -214,6 +232,8 @@ export function MetricasWeb({ isDesktop }: { isDesktop: boolean }) {
                   </div>
                 )}
               </div>
+
+              <ReporteEjecutivoWeb web={web} isDesktop={isDesktop} />
             </>
           )}
         </AsyncState>

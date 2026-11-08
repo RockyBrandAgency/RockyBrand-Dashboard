@@ -15,6 +15,45 @@ muestra botones que no guardan.
 
 ---
 
+## 5.1.0
+
+**2026-11-07** · menor · requiere backend: rama `feat/reporte-ejecutivo-web`
+de AI_Agency (`ga4_client.get_reporte_ejecutivo`) desplegada antes. Con la
+Lambda anterior la sección dice «El reporte ejecutivo todavía no está
+disponible» y el resto de la pantalla sigue igual. El detalle por paso del
+formulario requiere además la rama `feat/marcas-pasos-reserva` del sitio
+(cff-produccion) publicada: manda `booking_step_2` a `booking_step_5`.
+
+Reporte ejecutivo del sitio (pedido de Mato para Chile Fly Fishing):
+
+- **Qué.** Al final de Métricas > Sitio web, cuatro tarjetas con la respuesta
+  en el título: desde dónde nos visitan (top 5 países), visitas desde EE. UU.
+  por ciudad con su duración, el formulario de reserva (abrieron → pasaron del
+  primer paso → enviaron solicitud o consulta → abrieron el pago → pagaron)
+  y cuánto se quedan (atención y duración por visita, y visitas con
+  interacción, en tres casillas). El formulario ocupa todo el ancho: título
+  «Donde más se caen: <etapa>», tres cifras (abrieron, enviaron, pagaron) y
+  cada etapa numerada con lo que se le pide al visitante, su barra, cuántos
+  llegaron y cuántos se quedaron ahí; la mayor caída va en rojo. Con las
+  marcas del sitio, el formulario se ve paso a paso (Programa, Objetivo,
+  Fechas, Datos, Revisión) desde el día siguiente a la primera marca, para
+  no mostrar una caída falsa a mitad de día. También sale en el CSV. Las
+  consultas son la opción «I have questions first» del mismo formulario
+  (`generate_lead` en las páginas donde se abrió); sin contarlas, quien
+  consultaba se leía como caído.
+- **Por qué.** Las tablas de arriba responden «cuánto tráfico»; el cliente
+  preguntaba dónde se cae la gente que quiere reservar.
+- **Beneficio.** Se lee en un minuto sin interpretar tablas, y Boardman
+  (servidores de AWS) queda fuera de países y ciudades, así EE. UU. dice lo
+  mismo en las dos tarjetas nuevas (difiere de la tabla de países de arriba,
+  que sí lo cuenta, y la tarjeta lo dice). El reporte corre en paralelo con
+  el resto y con un tope de 12 s: si GA4 se demora, cae solo esta sección.
+- **Límites.** Hasta que el sitio publique las marcas por paso se ve
+  «Pasaron del primer paso» y una nota; el detalle no es retroactivo. Las
+  cifras son personas por evento en el período, no un embudo cerrado por
+  persona. El salto de Gaucho (`fill_booking_form`) directo a Revisión marca
+  los pasos intermedios por código; no se probó en el navegador.
+
 ## 5.0.0
 
 **2026-10-16** · mayor (en Chile Fly Fishing, Pescadores deja de listar a

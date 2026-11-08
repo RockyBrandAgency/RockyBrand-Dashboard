@@ -39,6 +39,8 @@ const NOMBRES: Record<string, string> = {
   PE: 'peru|pe|per',
   UY: 'uruguay|uy|ury',
   ZA: 'south africa|sudafrica|za|zaf',
+  SG: 'singapore|singapur|sg|sgp',
+  CN: 'china|cn|chn',
 };
 
 const CODIGO_POR_NOMBRE = new Map<string, string>();

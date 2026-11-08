@@ -1211,6 +1211,48 @@ export interface WebCountryRow {
   usuarios: number;
 }
 
+// Reporte ejecutivo (2026-11-07): ciudades de EE. UU. sin la ciudad de
+// servidores, embudo del formulario de reserva y duración de la visita. Viaja
+// con su propia `nota`: si falla, el resto de la pantalla sigue en pie. `null`
+// cuando el backend todavía no lo manda.
+export interface WebEtapaFormulario {
+  clave: string;
+  etapa: string;
+  usuarios: number;
+  /** Qué le pide esa etapa al visitante. Opcional: el backend anterior no lo manda. */
+  que_pide?: string | null;
+}
+
+export interface WebReporteEjecutivo {
+  // Países sin la ciudad de servidores, para que EE. UU. diga lo mismo acá y
+  // en la tarjeta de ciudades.
+  origen: { usuarios: number; paises: WebCountryRow[] };
+  eeuu: {
+    usuarios: number;
+    duracion_media_s: number | null;
+    ciudades: { ciudad: string; usuarios: number; duracion_media_s: number }[];
+    excluye: string[];
+  };
+  formulario: {
+    etapas: WebEtapaFormulario[];
+    /** Desglose de la etapa «Enviaron solicitud o consulta». Opcionales: el
+     *  backend anterior a 5.1.0 no los manda. */
+    solicitudes?: number;
+    consultas?: number;
+    /** AAAA-MM-DD desde el que se cuenta el embudo por paso, si empezó dentro del período. */
+    desde?: string | null;
+    detalle_por_paso: boolean;
+    nota_pasos: string | null;
+  };
+  sesion: {
+    duracion_media_s: number | null;
+    tiempo_activo_s: number | null;
+    sesiones: number | null;
+    sesiones_con_interaccion: number | null;
+  };
+  nota: string | null;
+}
+
 export interface WebMetrics {
   visitas_eeuu_7d: number | null;
   usuarios: number | null;
@@ -1223,6 +1265,7 @@ export interface WebMetrics {
   // Las fechas que GA4 devolvió de verdad, no "últimos N días": una
   // propiedad joven contesta menos días de los que se le piden.
   periodo: string | null;
+  ejecutivo?: WebReporteEjecutivo | { nota: string } | null;
   nota: string | null;
 }
 
