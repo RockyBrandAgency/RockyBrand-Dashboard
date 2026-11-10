@@ -14,7 +14,7 @@ import {
   type ResultadoLogin,
   alCambiarSesion,
 } from '../api/cognitoAuth';
-import { puede, rolDesdeClaims, type Accion, type Rol } from '../lib/permisos';
+import { puede, rolDesdeClaims, tieneGrupoDeCliente, type Accion, type Rol } from '../lib/permisos';
 import { getMe, UnauthorizedError } from '../api/dashboardApi';
 import { leerPerfilCacheado, guardarPerfilCacheado, borrarPerfilCacheado } from '../api/perfilCache';
 import { applyClientTheme, applyClientTitle, CLIENT_BRANDING, clientIdFromHostname } from '../branding';
@@ -44,6 +44,9 @@ interface AuthContextValue {
   // Rol del usuario según cognito:groups (ver lib/permisos.ts). Solo para
   // esconder botones; el servidor es quien autoriza.
   rol: Rol;
+  /** false si el token no trae grupo de cliente: el rol cae en admin por la
+   *  migración, pero las acciones de EXIGE_GRUPO (lib/permisos.ts) no se ofrecen. */
+  conGrupo: boolean;
   logout: () => void;
   handleUnauthorized: () => void;
   // Identidad + servicios REALES del cliente logueado (rockybrand-client-config,
@@ -419,6 +422,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated || !idTokenActual) return 'lectura';
     return rolDesdeClaims(decodeIdTokenClaims(idTokenActual));
   }, [isAuthenticated, idTokenActual]);
+  const conGrupo = useMemo(() => {
+    if (!isAuthenticated || !idTokenActual) return false;
+    return tieneGrupoDeCliente(decodeIdTokenClaims(idTokenActual));
+  }, [isAuthenticated, idTokenActual]);
 
   return (
     <AuthContext.Provider
@@ -438,6 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avisoDesafio,
         volverAlInicio,
         rol,
+        conGrupo,
         logout,
         handleUnauthorized,
         clientDisplayName,
@@ -468,5 +476,6 @@ export function useAuth() {
 
 /** true si el rol del usuario permite la acción (solo para la interfaz). */
 export function usePermiso(accion: Accion): boolean {
-  return puede(useAuth().rol, accion);
+  const { rol, conGrupo } = useAuth();
+  return puede(rol, accion, conGrupo);
 }

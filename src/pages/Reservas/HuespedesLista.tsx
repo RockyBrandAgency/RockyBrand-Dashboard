@@ -9,6 +9,7 @@ import { terminologiaPms } from '../../lib/terminologiaPms';
 import { telefonoDe, enlaceWhatsapp } from '../../lib/contactoHuesped';
 import { AcompanantesReserva } from '../../components/AcompanantesReserva';
 import { FichaPescador } from './FichaPescador';
+import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
 import { useRetornoFicha } from '../../hooks/useRetornoFicha';
 import { hoyLocalISO, pescadoresConfirmados, sumarDias } from '../../lib/fichaPescador';
 import type { Screen } from '../../screens';
@@ -77,6 +78,9 @@ export function HuespedesLista({ isDesktop, onNavigate }: { isDesktop: boolean; 
   // Un solo gate para todo lo de 5.0.0: la bandera del cliente, no su client_id.
   const conFicha = features?.pms_ficha_pesca === true;
   const [ficha, setFicha] = useState<{ bookingId: string; huesped: HuespedItem } | null>(null);
+  // «Borrar definitivamente» (10-nov): aviso de la lista tras borrar desde la ficha.
+  const [avisoBorrada, setAvisoBorrada] = useState<Aviso | null>(null);
+  const cerrarAvisoBorrada = useCallback(() => setAvisoBorrada(null), []);
   const { scrollRef, recordar } = useRetornoFicha(ficha !== null);
 
   const load = useCallback(() => {
@@ -151,6 +155,11 @@ export function HuespedesLista({ isDesktop, onNavigate }: { isDesktop: boolean; 
         isDesktop={isDesktop}
         onVolver={() => setFicha(null)}
         onCambio={load}
+        onBorrada={(borradaId, texto) => {
+          setReservas((prev) => prev.filter((r) => r.BookingID !== borradaId));
+          setFicha(null);
+          setAvisoBorrada({ id: Date.now(), texto });
+        }}
       />
     );
   }
@@ -365,6 +374,7 @@ export function HuespedesLista({ isDesktop, onNavigate }: { isDesktop: boolean; 
           }}
         />
       )}
+      {avisoBorrada && <AvisoFlotante aviso={avisoBorrada} isDesktop={isDesktop} onCerrar={cerrarAvisoBorrada} />}
     </div>
   );
 }

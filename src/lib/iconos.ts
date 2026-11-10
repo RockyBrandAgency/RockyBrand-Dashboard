@@ -30,6 +30,7 @@ import {
   Sun,
   Tag,
   Ticket,
+  Trash2,
   TrendingDown,
   TrendingUp,
   User,
@@ -78,6 +79,7 @@ export type Concepto =
   | 'costos'
   | 'ids'
   | 'aviso'
+  | 'borrar'
   | 'grafico-barras'
   | 'grafico-dona'
   | 'grafico-tendencia';
@@ -116,6 +118,7 @@ export const ICONO_DE: Record<Concepto, LucideIcon> = {
   costos: Calculator,
   ids: Hash,
   aviso: CircleAlert,
+  borrar: Trash2,
   'grafico-barras': ChartBar,
   'grafico-dona': ChartPie,
   'grafico-tendencia': ChartLine,

@@ -24,11 +24,20 @@ const GRUPOS: Record<string, Rol> = {
 // asignación no debe abrir más de lo que se quiso dar.
 const ORDEN: Rol[] = ['lectura', 'editor', 'admin'];
 
-/** El rol que dicen los claims del ID token. */
-export function rolDesdeClaims(claims: Record<string, unknown>): Rol {
+function rolesDeClaims(claims: Record<string, unknown>): Rol[] {
   const grupos = claims['cognito:groups'];
   const lista = Array.isArray(grupos) ? grupos : typeof grupos === 'string' ? [grupos] : [];
-  const roles = lista.map((g) => (typeof g === 'string' ? GRUPOS[g] : undefined)).filter((r): r is Rol => !!r);
+  return lista.map((g) => (typeof g === 'string' ? GRUPOS[g] : undefined)).filter((r): r is Rol => !!r);
+}
+
+/** true si el token trae al menos un grupo de cliente (cliente-lectura/editor/admin). */
+export function tieneGrupoDeCliente(claims: Record<string, unknown>): boolean {
+  return rolesDeClaims(claims).length > 0;
+}
+
+/** El rol que dicen los claims del ID token. */
+export function rolDesdeClaims(claims: Record<string, unknown>): Rol {
+  const roles = rolesDeClaims(claims);
   if (roles.length === 0) return 'admin';
   return roles.reduce((menor, r) => (ORDEN.indexOf(r) < ORDEN.indexOf(menor) ? r : menor));
 }
@@ -55,6 +64,7 @@ export type Accion =
   | 'logo'
   | 'agencias'
   | 'tienda.garantias.borrar' // borrar para siempre desde la papelera
+  | 'pms.reservas.borrar' // borrar para siempre una reserva cancelada (10-nov, decisión de Mato)
   | 'tienda.garantias.notificar'; // aviso de despacho por WhatsApp
 
 const DE_EDITOR: ReadonlySet<Accion> = new Set<Accion>([
@@ -67,7 +77,14 @@ const DE_EDITOR: ReadonlySet<Accion> = new Set<Accion>([
   'subidas',
 ]);
 
-export function puede(rol: Rol, accion: Accion): boolean {
+// Acciones que exigen un grupo de cliente asignado (10-nov): para ellas el
+// servidor trata al usuario sin grupo como cliente-lectura, así que el panel
+// no se las ofrece aunque, por la migración, lo trate como admin en lo demás.
+const EXIGE_GRUPO: ReadonlySet<Accion> = new Set<Accion>(['pms.reservas.borrar']);
+
+/** `conGrupo`: el usuario tiene un grupo de cliente. Solo pesa en EXIGE_GRUPO. */
+export function puede(rol: Rol, accion: Accion, conGrupo = true): boolean {
+  if (!conGrupo && EXIGE_GRUPO.has(accion)) return false;
   if (rol === 'admin') return true;
   if (rol === 'editor') return DE_EDITOR.has(accion);
   return false;

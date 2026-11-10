@@ -9,11 +9,11 @@ import type { HuespedItem, ReservaResumenItem } from '../../types';
 // devuelven el foco, y la línea del pago solo sale si ya pagó algo.
 
 const { api, auth, sesion, Errores } = vi.hoisted(() => {
-  const auth = { features: { pms_ficha_pesca: true, pms_utilidad: false } as Record<string, boolean>, puede: true, handleUnauthorized: () => {} };
+  const auth = { features: { pms_ficha_pesca: true, pms_utilidad: false } as Record<string, boolean>, puede: true, admin: true, handleUnauthorized: () => {} };
   // useAuth estable: un objeto nuevo por render rehace los useCallback (memoria del panel 06).
   const sesion = { handleUnauthorized: () => auth.handleUnauthorized(), clientId: 'chile-fly-fishing', get features() { return auth.features; } };
   return {
-    api: { cancelarReserva: vi.fn(), confirmarReserva: vi.fn(), getHuespedes: vi.fn(), actualizarReserva: vi.fn(), getPagosReserva: vi.fn() },
+    api: { borrarReservaDefinitivo: vi.fn(), cancelarReserva: vi.fn(), confirmarReserva: vi.fn(), getHuespedes: vi.fn(), actualizarReserva: vi.fn(), getPagosReserva: vi.fn() },
     auth,
     sesion,
     Errores: {
@@ -37,6 +37,14 @@ const { api, auth, sesion, Errores } = vi.hoisted(() => {
 
 vi.mock('../../api/dashboardApi', () => ({
   cancelarReserva: (...a: unknown[]) => api.cancelarReserva(...a),
+  borrarReservaDefinitivo: (...a: unknown[]) => api.borrarReservaDefinitivo(...a),
+  SOLO_CANCELADAS: 'solo_canceladas',
+  RESERVA_MODIFICADA: 'reserva_modificada',
+  NOCHES_SIN_LIBERAR: 'noches_sin_liberar',
+  DEMASIADOS_ITEMS: 'demasiados_items',
+  SolicitudInvalidaError: class SolicitudInvalidaError extends Error {},
+  SinPermisoError: class SinPermisoError extends Error {},
+  NoEncontradoError: class NoEncontradoError extends Error {},
   confirmarReserva: (...a: unknown[]) => api.confirmarReserva(...a),
   getHuespedes: () => api.getHuespedes(),
   actualizarReserva: (...a: unknown[]) => api.actualizarReserva(...a),
@@ -50,7 +58,8 @@ vi.mock('../../api/dashboardApi', () => ({
   ErrorTransitorio: Errores.ErrorTransitorio,
   TimeoutError: class TimeoutError extends Error {},
 }));
-vi.mock('../../context/AuthContext', () => ({ usePermiso: () => auth.puede,
+// «Borrar definitivamente» es solo admin: su permiso va aparte de pms.operar.
+vi.mock('../../context/AuthContext', () => ({ usePermiso: (accion: string) => (accion === 'pms.reservas.borrar' ? auth.admin : auth.puede),
   useAuth: () => sesion,
 }));
 
@@ -74,9 +83,10 @@ let root: Root;
 const onCambio = vi.fn();
 
 const onVolver = vi.fn();
+const onBorrada = vi.fn();
 const arbol = (r: ReservaResumenItem) => (
   <StrictMode>
-    <FichaPescador bookingId={r.BookingID} reservas={[r]} huesped={huesped} volverA="Calendario de Reservas" isDesktop onVolver={onVolver} onCambio={onCambio} />
+    <FichaPescador bookingId={r.BookingID} reservas={[r]} huesped={huesped} volverA="Calendario de Reservas" isDesktop onVolver={onVolver} onCambio={onCambio} onBorrada={onBorrada} />
   </StrictMode>
 );
 
@@ -109,6 +119,9 @@ beforeEach(() => {
   onCambio.mockReset();
   auth.features = { pms_ficha_pesca: true, pms_utilidad: false };
   auth.puede = true;
+  auth.admin = true;
+  api.borrarReservaDefinitivo.mockReset().mockResolvedValue({ BookingID: 'bkg_1', message: 'ok', borrados: 1 });
+  onBorrada.mockReset();
 });
 
 afterEach(() => {
@@ -1085,5 +1098,61 @@ describe('Ficha del pescador: rol Lectura sin IdentityDocument (30-oct)', () => 
     expect(container.textContent).not.toMatch(/undefined|NaN/);
     expect(container.querySelector('[data-tarjeta="resumen-venta"] [data-grupo="resultado"]')).not.toBeNull();
     expect(boton('Editar dólar y pagos')).toBeUndefined();
+  });
+});
+
+// «Borrar definitivamente» (10-nov, decisión de Mato): solo en una reserva
+// CANCELADA y solo con rol admin; «Cancelar reserva» no cambia.
+describe('Ficha del pescador: borrar definitivamente', () => {
+  const botonBorrar = () => boton('Borrar definitivamente');
+
+  it('aparece en una reserva cancelada si el rol es admin, en la cabecera', async () => {
+    await render(reserva({ Status: 'CANCELLED' }));
+    const b = botonBorrar();
+    expect(b).toBeTruthy();
+    expect(b!.closest('[data-tarjeta="cabecera"]')).not.toBeNull();
+  });
+
+  it('no aparece en una reserva confirmada ni pendiente, y «Cancelar reserva» sigue', async () => {
+    await render(reserva({ Status: 'CONFIRMED' }));
+    expect(botonBorrar()).toBeUndefined();
+    expect(boton('Cancelar reserva')).toBeTruthy();
+    await recargar(reserva({ Status: 'PENDING' }));
+    expect(botonBorrar()).toBeUndefined();
+  });
+
+  it('no aparece para Editor ni Lectura (solo admin)', async () => {
+    auth.admin = false;
+    await render(reserva({ Status: 'CANCELLED' }));
+    expect(botonBorrar()).toBeUndefined();
+    auth.puede = false;
+    await recargar(reserva({ Status: 'CANCELLED', UpdatedAt: 'otra' }));
+    expect(botonBorrar()).toBeUndefined();
+  });
+
+  it('confirmar muestra programa y fechas, llama a la API y entrega el aviso a la pantalla', async () => {
+    await render(reserva({ Status: 'CANCELLED' }));
+    await act(async () => botonBorrar()!.click());
+    const dialogo = container.querySelector('[role="alertdialog"]')!;
+    expect(dialogo.textContent).toContain('llega el 10 de noviembre de 2026 y se va el 15 de noviembre de 2026');
+    expect(dialogo.textContent).not.toContain('ana@example.com');
+    expect(document.activeElement).toBe(boton('Volver sin cambios'));
+    await act(async () => (dialogo.querySelector('.crm-btn-danger-filled') as HTMLButtonElement).click());
+    expect(api.borrarReservaDefinitivo).toHaveBeenCalledWith('bkg_1');
+    expect(api.cancelarReserva).not.toHaveBeenCalled();
+    expect(onBorrada).toHaveBeenCalledTimes(1);
+    expect(onBorrada.mock.calls[0][0]).toBe('bkg_1');
+    expect(onBorrada.mock.calls[0][1]).toMatch(/^Borraste definitivamente la reserva .+ del 10 nov.* al 15 nov/);
+  });
+
+  it('409 reserva_modificada: pide recargar y «Recargar» llama a onCambio', async () => {
+    api.borrarReservaDefinitivo.mockRejectedValueOnce(new Errores.ConflictError('cambió', 'reserva_modificada'));
+    await render(reserva({ Status: 'CANCELLED' }));
+    await act(async () => botonBorrar()!.click());
+    await act(async () => (container.querySelector('[role="alertdialog"] .crm-btn-danger-filled') as HTMLButtonElement).click());
+    expect(container.querySelector('[role="alertdialog"] [role="alert"]')!.textContent).toContain('Recarga para ver lo último');
+    expect(onBorrada).not.toHaveBeenCalled();
+    await act(async () => boton('Recargar')!.click());
+    expect(onCambio).toHaveBeenCalledTimes(1);
   });
 });

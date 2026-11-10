@@ -13,6 +13,7 @@ import { terminologiaPms } from '../../lib/terminologiaPms';
 import { cuadra, fraseMix, hoyChile, mercadosDelMes, mixDe } from '../../lib/ventasMix';
 import { Chip } from './ChipVenta';
 import { FichaPescador } from './FichaPescador';
+import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
 import { MercadosMes, QueSeVende } from './QueSeVende';
 import { ResumenPorPeriodo } from './ResumenPorPeriodo';
 import { PERIODO_POR_DEFECTO, ventanasDe } from '../../lib/ventanasVentas';
@@ -231,6 +232,9 @@ export function VentasLodge({ isDesktop, tablas: tablasPorVentana }: { isDesktop
   const [fichaDatos, setFichaDatos] = useState<EstadoFicha>({ estado: 'cargando' });
   const [abiertos, setAbiertos] = useState<Set<string>>(() => new Set());
   const [ficha, setFicha] = useState<string | null>(null);
+  // «Borrar definitivamente» (10-nov): aviso de la lista tras borrar desde la ficha.
+  const [avisoBorrada, setAvisoBorrada] = useState<Aviso | null>(null);
+  const cerrarAvisoBorrada = useCallback(() => setAvisoBorrada(null), []);
   // El período vive aquí y no en el resumen: sobrevive a abrir una ficha (CA-V25).
   const [periodo, setPeriodo] = useState<VentasPeriodo>(PERIODO_POR_DEFECTO);
   const { scrollRef, recordar } = useRetornoFicha(ficha !== null);
@@ -378,6 +382,12 @@ export function VentasLodge({ isDesktop, tablas: tablasPorVentana }: { isDesktop
         onCambio={() => {
           load(temporada);
           cargarFicha(ficha, true);
+        }}
+        onBorrada={(_borradaId, texto) => {
+          // Los montos de Ventas los suma el servidor: se vuelven a pedir.
+          cerrarFicha();
+          load(temporada);
+          setAvisoBorrada({ id: Date.now(), texto });
         }}
       />
     );
@@ -1280,6 +1290,7 @@ export function VentasLodge({ isDesktop, tablas: tablasPorVentana }: { isDesktop
           </AsyncState>
         )}
       </div>
+      {avisoBorrada && <AvisoFlotante aviso={avisoBorrada} isDesktop={isDesktop} onCerrar={cerrarAvisoBorrada} />}
     </div>
   );
 }

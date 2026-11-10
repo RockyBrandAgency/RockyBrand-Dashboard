@@ -329,6 +329,29 @@ export function cancelarReserva(bookingId: string): Promise<{ BookingID: string;
   return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}`, 'DELETE');
 }
 
+// «Borrar definitivamente» (10-nov-2026, decisión de Mato): solo una reserva
+// ya CANCELADA, y solo admin con grupo de cliente. A diferencia de
+// cancelarReserva, no se puede deshacer: la reserva sale del historial y de
+// Ventas. Ruta propia (POST /borrar, sin cuerpo) para que nunca se confunda
+// con el DELETE que cancela. Respuestas del contrato:
+//   200 `{BookingID, message, borrados}`.
+//   400 booking_id inválido.
+//   403 sin permiso (el usuario sin grupo cuenta como cliente-lectura).
+//   404 la reserva no existe.
+//   409 `solo_canceladas`: ya no está cancelada.
+//   409 `reserva_modificada`: cambió mientras se miraba.
+//   409 `noches_sin_liberar`: quedan noches tomadas a nombre de la reserva.
+//   409 `demasiados_items`: más de 99 registros que borrar.
+//   500 error del servidor.
+// Al ser POST no se reintenta: tras un tiempo agotado o un corte, puede que
+// se haya borrado igual.
+export const SOLO_CANCELADAS = 'solo_canceladas';
+export const NOCHES_SIN_LIBERAR = 'noches_sin_liberar';
+export const DEMASIADOS_ITEMS = 'demasiados_items';
+export function borrarReservaDefinitivo(bookingId: string): Promise<{ BookingID: string; message: string; borrados: unknown }> {
+  return request(`/dashboard/reservas/${encodeURIComponent(bookingId)}/borrar`, 'POST');
+}
+
 // "Ya pagó": PENDING -> CONFIRMED a mano, desde el detalle de la reserva
 // (2026-08-17, pedido explícito de Mato). Es el mismo salto que hace el cobro
 // de WeTravel y por eso NO manda ningún estado: el backend reusa

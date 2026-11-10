@@ -11,6 +11,7 @@ import { STATUS } from '../components/status';
 import { getSemaforo, getReservasResumen, UnauthorizedError } from '../api/dashboardApi';
 import { useAuth } from '../context/AuthContext';
 import { FichaPescador } from './Reservas/FichaPescador';
+import { AvisoFlotante, type Aviso } from '../components/AvisoFlotante';
 import { useRetornoFicha } from '../hooks/useRetornoFicha';
 import { diasEntre, fmtMonto, hoyLocalISO, llegadasProximas, PAGO_LABEL } from '../lib/fichaPescador';
 import type { Screen } from '../screens';
@@ -84,6 +85,9 @@ export function Overview({ onDetail, isDesktop, onNavigate }: { onDetail: () => 
   const [reservasError, setReservasError] = useState<string | null>(null);
   const [kpis, setKpis] = useState<ReservasKpis | null>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
+  // «Borrar definitivamente» (10-nov): aviso de la lista tras borrar desde la ficha.
+  const [avisoBorrada, setAvisoBorrada] = useState<Aviso | null>(null);
+  const cerrarAvisoBorrada = useCallback(() => setAvisoBorrada(null), []);
   const { scrollRef, recordar } = useRetornoFicha(fichaId !== null);
 
   const load = useCallback(() => {
@@ -141,6 +145,11 @@ export function Overview({ onDetail, isDesktop, onNavigate }: { onDetail: () => 
         isDesktop={isDesktop}
         onVolver={() => setFichaId(null)}
         onCambio={loadReservas}
+        onBorrada={(borradaId, texto) => {
+          setReservas((prev) => (prev ? prev.filter((r) => r.BookingID !== borradaId) : prev));
+          setFichaId(null);
+          setAvisoBorrada({ id: Date.now(), texto });
+        }}
       />
     );
   }
@@ -369,6 +378,7 @@ export function Overview({ onDetail, isDesktop, onNavigate }: { onDetail: () => 
           )}
         </AsyncState>
       </div>
+      {avisoBorrada && <AvisoFlotante aviso={avisoBorrada} isDesktop={isDesktop} onCerrar={cerrarAvisoBorrada} />}
     </div>
   );
 }

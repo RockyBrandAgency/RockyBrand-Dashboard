@@ -627,6 +627,8 @@ fieldset:disabled .garantia-chip{ cursor:default; }
    de texto con height fijo ni overflow:hidden (WCAG 2.2 1.4.12).
    ========================================================================== */
 .icono{ flex-shrink:0; display:block; color:var(--text-sub); }
+/* «Borrar definitivamente» (10-nov): dentro del botón, el ícono toma el color del texto (blanco en el rojo lleno). */
+.crm-btn .icono[data-icono="borrar"]{ color:currentColor; }
 .ranura-bandera{ flex-shrink:0; display:inline-block; width:18px; font-size:16px; line-height:18px; text-align:center; }
 :where([data-resumen-periodo], [data-grafico], [data-fila], .ficha-pescador) .con-bandera .bandera{ margin-right:6px !important; }
 :where([data-resumen-periodo], [data-grafico], [data-fila], .ficha-pescador) .badge-programa{ display:inline-flex; align-items:center; box-sizing:border-box; min-height:24px; padding:0 6px; border-radius:6px; font-size:12px; line-height:18px; font-weight:600; vertical-align:middle; }

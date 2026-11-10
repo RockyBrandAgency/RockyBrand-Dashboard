@@ -22,6 +22,7 @@ import { Chip } from './ChipVenta';
 import { EditorPagosGuillermo, fechaPagoCorta, notaSinCorte } from './PagosGuillermo';
 import { AcompanantesReserva } from '../../components/AcompanantesReserva';
 import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
+import { BorrarReserva } from './BorrarReserva';
 import { OriginBadge } from '../../components/OriginBadge';
 import { telefonoDe, enlaceWhatsapp } from '../../lib/contactoHuesped';
 import { fmtSelloUtc } from '../../lib/selloUtc';
@@ -259,6 +260,10 @@ export interface FichaPescadorProps {
   onVolver: () => void;
   /** Algo cambió en el servidor: la pantalla recarga su lista. */
   onCambio: () => void;
+  /** «Borrar definitivamente» (10-nov): la reserva cancelada ya no existe.
+   *  La pantalla cierra la ficha, la saca de su lista y muestra el aviso.
+   *  Sin esta prop, la ficha no ofrece borrar. */
+  onBorrada?: (bookingId: string, textoAviso: string) => void;
 }
 
 export function FichaPescador(props: FichaPescadorProps) {
@@ -313,6 +318,7 @@ function FichaContenido({
   isDesktop,
   onVolver,
   onCambio,
+  onBorrada,
   onCambiarViaje,
 }: Omit<FichaPescadorProps, 'bookingId' | 'huesped'> & {
   reserva: ReservaResumenItem;
@@ -322,6 +328,8 @@ function FichaContenido({
   const { handleUnauthorized, features, clientId, clientTerminologia } = useAuth();
   // Guardar, confirmar y cancelar: editor y admin (lib/permisos.ts).
   const puedeOperar = usePermiso('pms.operar');
+  // Borrar para siempre una reserva cancelada: solo admin (lib/permisos.ts).
+  const puedeBorrar = usePermiso('pms.reservas.borrar');
   const term = terminologiaPms(clientId, clientTerminologia);
   // El bloque de utilidad solo con la bandera pms_utilidad del cliente.
   const conUtilidad = features?.pms_utilidad === true;
@@ -944,6 +952,16 @@ function FichaContenido({
             <div className="crm-aviso critico" data-parte="detalle" style={{ marginTop: 12, marginBottom: 0 }}>
               Esta reserva está cancelada. Queda en el historial y no se puede modificar.
             </div>
+          )}
+          {cancelada && puedeBorrar && onBorrada && (
+            <BorrarReserva
+              bookingId={reserva.BookingID}
+              resumen={`${programaTexto} · llega el ${fmtFecha(reserva.CheckIn)} y se va el ${fmtFecha(reserva.CheckOut)}.`}
+              textoAviso={`Borraste definitivamente la reserva ${programaTexto} del ${fmtCorta(reserva.CheckIn)} al ${fmtCorta(reserva.CheckOut)}.`}
+              onBorrada={onBorrada}
+              onRecargar={onCambio}
+              onUnauthorized={handleUnauthorized}
+            />
           )}
         </section>
 

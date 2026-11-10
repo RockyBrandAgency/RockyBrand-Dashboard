@@ -6,6 +6,7 @@ import { SearchIcon, CalendarIcon, CalendarRangeIcon } from '../../components/ic
 import { EmptyStateIllustrated } from '../../components/EmptyStateIllustrated';
 import { BookingDetailModal } from '../../components/BookingDetailModal';
 import { FichaPescador } from './FichaPescador';
+import { AvisoFlotante, type Aviso } from '../../components/AvisoFlotante';
 import { useRetornoFicha } from '../../hooks/useRetornoFicha';
 import { useAnchoContenido } from '../../hooks/useAnchoContenido';
 import { NewBookingModal } from '../../components/NewBookingModal';
@@ -101,6 +102,9 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
   // del modal. Los filtros siguen en este estado; el scroll y el foco los
   // devuelve useRetornoFicha.
   const [fichaId, setFichaId] = useState<string | null>(null);
+  // «Borrar definitivamente» (10-nov): aviso de la lista tras borrar desde la ficha.
+  const [avisoBorrada, setAvisoBorrada] = useState<Aviso | null>(null);
+  const cerrarAvisoBorrada = useCallback(() => setAvisoBorrada(null), []);
   const [listaRef, anchoLista] = useAnchoContenido<HTMLDivElement>();
   const { scrollRef, recordar } = useRetornoFicha(fichaId !== null);
   const [nuevaAbierta, setNuevaAbierta] = useState(false);
@@ -190,6 +194,12 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
         isDesktop={isDesktop}
         onVolver={() => setFichaId(null)}
         onCambio={load}
+        onBorrada={(borradaId, texto) => {
+          // Sin recargar: la reserva sale de la lista que ya está en pantalla.
+          setReservas((prev) => (prev ? prev.filter((r) => r.BookingID !== borradaId) : prev));
+          setFichaId(null);
+          setAvisoBorrada({ id: Date.now(), texto });
+        }}
       />
     );
   }
@@ -216,7 +226,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            <h1 data-titulo-lista tabIndex={-1} style={{ margin: 0, fontSize: isDesktop ? 24 : 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
               Calendario de Reservas
             </h1>
             <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 4 }}>
@@ -540,6 +550,7 @@ export function ReservasResumen({ isDesktop }: { isDesktop: boolean }) {
           }}
         />
       )}
+      {avisoBorrada && <AvisoFlotante aviso={avisoBorrada} isDesktop={isDesktop} onCerrar={cerrarAvisoBorrada} />}
     </div>
   );
 }
